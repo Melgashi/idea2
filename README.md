@@ -13,12 +13,25 @@ Keys: `Space` / `N` advances one year.
 - **22 studios** to start, in three tiers: Major, Mid and Indie. Each has cash, prestige, a lean from arthouse to commercial, and signature genres. Studios move up and down tiers, get acquired, shut down, and new ones open, so at least 20 are always active.
 - **1,000 actors** plus about 180 directors, 180 writers, 110 cinematographers and 100 composers. Retirements and deaths are balanced by newcomers, so the pool stays the same size.
 - **Character sheets** for everyone:
-  - Role-specific attributes (actors: Acting, Range, Charisma, Looks, Comedy, Drama, Action, Discipline)
+  - Actors are rated **1-10** on six core stats and five genre skills (see below); crew have role-specific attributes from 1 to 100
   - OVR and a potential rating in stars
   - Fame and prestige
   - Traits such as Method Actor, Box Office Magnet, Diva, Auteur, Late Bloomer and Scandal-Prone
   - Asking fee, filmography with graded performances, awards history and frequent collaborators
-- **Aging**: each attribute has its own age curve. Looks and action skills peak early, while craft keeps improving with experience until the person's peak age.
+- **Aging**: each attribute has its own age curve. Presence and Physicality peak early, while Craft and Chemistry deepen with experience.
+
+### Actor stats (1-10)
+
+| Core stat | What it means | In the sim |
+| --- | --- | --- |
+| Presence | How much the camera loves them, and star power | Drives audience appeal of leads; commercial studios cast for it |
+| Craft | Technique, training, consistency take after take | Biggest part of performance quality, and it reduces take-to-take variance |
+| Intensity | Emotional depth and willingness to go all in | Key for Drama, Thriller, Biopic, War; raises the ceiling and the variance |
+| Physicality | Stunts, action, dance, body control | Key for Action, Superhero, Fantasy, Musical; fades fastest with age |
+| Chemistry | Comedic timing, improv, lifting scene partners | Key for Comedy, Romance, Animation; boosts every co-star's performance |
+| Range | Versatility, playing against type | Helps every performance a little |
+
+**Genre skills:** Comedy, Action, Romance, Drama and Thriller. Each film genre draws on one or more of them (Sci-Fi is Action + Drama + Thriller, Musical is Romance + Comedy, and so on). After every role, the relevant skills grow according to the film's critic and audience reception, its box office relative to budget, and the actor's own performance. Hits grow them faster, flops can shrink them, and gains slow down near 10, so long careers lead naturally to typecasting.
 
 ## How a year plays out
 

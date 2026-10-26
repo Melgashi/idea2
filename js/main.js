@@ -120,6 +120,7 @@
       try {
         var w = JSON.parse(r.result);
         if (!w || !w.people || !w.studios || !w.films) throw new Error('not a Hollywood Dynasty save');
+        if (w.version !== 2) throw new Error('this save is from an older version');
         setAuto(false);
         HW.world = w;
         save();
@@ -196,8 +197,9 @@
   window.addEventListener('hashchange', function () { HW.UI.render(); window.scrollTo(0, 0); });
 
   load().then(function (w) {
-    HW.world = w && w.version === 1 ? w : HW.newWorld({ startYear: 1980 });
-    if (!w) save();
+    HW.world = w && w.version === 2 ? w : HW.newWorld({ startYear: 1980 });
+    if (w && w.version !== 2) toast('Actor stats were redesigned, so older saves can\'t load. A fresh world has started.');
+    if (HW.world !== w) save();
     HW.UI.render();
   });
 })(globalThis.HW = globalThis.HW || {});

@@ -41,32 +41,32 @@
       Larsen Lindqvist Okafor Mensah Adeyemi Nakamura Tanaka Sato Kapoor Mehta Rao Haddad Nasser Costa Duarte`)
   };
 
-  // aptitude weights map an actor's comedy/drama/action stats to a genre fit.
+  // apt: which actor genre skills a film draws on; core: which core stats matter most for the genre.
   // budget: multiplier on budget; appeal: audience multiplier; awards: academy bias;
   // spectacle: how much budget/VFX matter; critic: critics' bias.
   HW.GENRES = {
-    'Drama':     { budget: 0.55, appeal: 0.75, awards: 9,   spectacle: 0.05, critic: 4,  apt: { drama: 1 } },
-    'Comedy':    { budget: 0.65, appeal: 1.05, awards: -7,  spectacle: 0.1,  critic: -2, apt: { comedy: 1 } },
-    'Action':    { budget: 1.6,  appeal: 1.25, awards: -9,  spectacle: 1.0,  critic: -5, apt: { action: 0.8, drama: 0.2 } },
-    'Sci-Fi':    { budget: 1.7,  appeal: 1.15, awards: -3,  spectacle: 0.95, critic: 0,  apt: { action: 0.5, drama: 0.5 } },
-    'Horror':    { budget: 0.35, appeal: 1.0,  awards: -11, spectacle: 0.2,  critic: -4, apt: { drama: 0.7, action: 0.3 } },
-    'Romance':   { budget: 0.55, appeal: 0.85, awards: -2,  spectacle: 0.05, critic: -1, apt: { drama: 0.6, comedy: 0.4 } },
-    'Thriller':  { budget: 0.8,  appeal: 0.95, awards: 0,   spectacle: 0.35, critic: 1,  apt: { drama: 0.7, action: 0.3 } },
-    'Fantasy':   { budget: 1.8,  appeal: 1.15, awards: -4,  spectacle: 0.9,  critic: -1, apt: { drama: 0.5, action: 0.5 } },
-    'Animation': { budget: 1.4,  appeal: 1.25, awards: -6,  spectacle: 0.6,  critic: 3,  apt: { comedy: 0.7, drama: 0.3 } },
-    'War':       { budget: 1.1,  appeal: 0.8,  awards: 7,   spectacle: 0.6,  critic: 3,  apt: { drama: 0.7, action: 0.3 } },
-    'Western':   { budget: 0.85, appeal: 0.7,  awards: 3,   spectacle: 0.35, critic: 2,  apt: { action: 0.5, drama: 0.5 } },
-    'Musical':   { budget: 0.95, appeal: 0.85, awards: 4,   spectacle: 0.3,  critic: 1,  apt: { comedy: 0.5, drama: 0.5 } },
-    'Biopic':    { budget: 0.7,  appeal: 0.7,  awards: 11,  spectacle: 0.1,  critic: 3,  apt: { drama: 1 } },
-    'Crime':     { budget: 0.8,  appeal: 0.95, awards: 4,   spectacle: 0.3,  critic: 3,  apt: { drama: 0.7, action: 0.3 } },
-    'Family':    { budget: 0.9,  appeal: 1.1,  awards: -8,  spectacle: 0.4,  critic: -3, apt: { comedy: 0.8, drama: 0.2 } },
-    'Superhero': { budget: 2.0,  appeal: 1.35, awards: -12, spectacle: 1.0,  critic: -3, apt: { action: 0.8, drama: 0.2 } }
+    'Drama':     { budget: 0.55, appeal: 0.75, awards: 9,   spectacle: 0.05, critic: 4,  apt: { drama: 1 }, core: { intensity: 1 } },
+    'Comedy':    { budget: 0.65, appeal: 1.05, awards: -7,  spectacle: 0.1,  critic: -2, apt: { comedy: 1 }, core: { chemistry: 1 } },
+    'Action':    { budget: 1.6,  appeal: 1.25, awards: -9,  spectacle: 1.0,  critic: -5, apt: { action: 1 }, core: { physicality: 1 } },
+    'Sci-Fi':    { budget: 1.7,  appeal: 1.15, awards: -3,  spectacle: 0.95, critic: 0,  apt: { action: 0.5, drama: 0.3, thriller: 0.2 }, core: { physicality: 0.5, intensity: 0.5 } },
+    'Horror':    { budget: 0.35, appeal: 1.0,  awards: -11, spectacle: 0.2,  critic: -4, apt: { thriller: 1 }, core: { intensity: 0.6, physicality: 0.4 } },
+    'Romance':   { budget: 0.55, appeal: 0.85, awards: -2,  spectacle: 0.05, critic: -1, apt: { romance: 1 }, core: { chemistry: 0.6, presence: 0.4 } },
+    'Thriller':  { budget: 0.8,  appeal: 0.95, awards: 0,   spectacle: 0.35, critic: 1,  apt: { thriller: 1 }, core: { intensity: 1 } },
+    'Fantasy':   { budget: 1.8,  appeal: 1.15, awards: -4,  spectacle: 0.9,  critic: -1, apt: { action: 0.5, drama: 0.3, romance: 0.2 }, core: { physicality: 0.5, presence: 0.5 } },
+    'Animation': { budget: 1.4,  appeal: 1.25, awards: -6,  spectacle: 0.6,  critic: 3,  apt: { comedy: 0.7, drama: 0.3 }, core: { chemistry: 1 } },
+    'War':       { budget: 1.1,  appeal: 0.8,  awards: 7,   spectacle: 0.6,  critic: 3,  apt: { drama: 0.6, action: 0.4 }, core: { intensity: 0.6, physicality: 0.4 } },
+    'Western':   { budget: 0.85, appeal: 0.7,  awards: 3,   spectacle: 0.35, critic: 2,  apt: { action: 0.6, drama: 0.4 }, core: { presence: 0.6, physicality: 0.4 } },
+    'Musical':   { budget: 0.95, appeal: 0.85, awards: 4,   spectacle: 0.3,  critic: 1,  apt: { romance: 0.5, comedy: 0.5 }, core: { physicality: 0.5, chemistry: 0.5 } },
+    'Biopic':    { budget: 0.7,  appeal: 0.7,  awards: 11,  spectacle: 0.1,  critic: 3,  apt: { drama: 1 }, core: { intensity: 0.7, craft: 0.3 } },
+    'Crime':     { budget: 0.8,  appeal: 0.95, awards: 4,   spectacle: 0.3,  critic: 3,  apt: { thriller: 0.6, drama: 0.4 }, core: { intensity: 0.7, presence: 0.3 } },
+    'Family':    { budget: 0.9,  appeal: 1.1,  awards: -8,  spectacle: 0.4,  critic: -3, apt: { comedy: 0.8, drama: 0.2 }, core: { chemistry: 1 } },
+    'Superhero': { budget: 2.0,  appeal: 1.35, awards: -12, spectacle: 1.0,  critic: -3, apt: { action: 0.8, comedy: 0.2 }, core: { physicality: 0.6, presence: 0.4 } }
   };
   HW.GENRE_KEYS = Object.keys(HW.GENRES);
 
   HW.ROLES = {
     actor:           { label: 'Actor', plural: 'Actors', target: 1000,
-                       stats: ['acting', 'range', 'charisma', 'looks', 'comedy', 'drama', 'action', 'discipline'] },
+                       stats: ['presence', 'craft', 'intensity', 'physicality', 'chemistry', 'range'] },
     director:        { label: 'Director', plural: 'Directors', target: 180,
                        stats: ['vision', 'craft', 'actorHandling', 'commercial', 'efficiency'] },
     writer:          { label: 'Writer', plural: 'Writers', target: 180,
@@ -78,9 +78,20 @@
   };
   HW.ROLE_KEYS = Object.keys(HW.ROLES);
 
+  // Actor stats are on a 1-10 scale. Core stats follow genes + age; genre skills grow with each film's results.
+  HW.ACTOR_GENRES = ['comedy', 'action', 'romance', 'drama', 'thriller'];
+  HW.STAT_DESC = {
+    presence: 'How much the camera loves them, and star power.',
+    craft: 'Technique, training, and consistency take after take.',
+    intensity: 'Emotional depth and willingness to go all in.',
+    physicality: 'Stunts, action, dance, and body control.',
+    chemistry: 'Comedic timing, improv, and how well they elevate scene partners.',
+    range: 'Versatility: how well they play against type.'
+  };
+
   HW.STAT_LABELS = {
-    acting: 'Acting', range: 'Range', charisma: 'Charisma', looks: 'Looks', comedy: 'Comedy', drama: 'Drama',
-    action: 'Action', discipline: 'Discipline', vision: 'Vision', craft: 'Craft', actorHandling: 'Actor Handling',
+    presence: 'Presence', craft: 'Craft', intensity: 'Intensity', physicality: 'Physicality', chemistry: 'Chemistry',
+    range: 'Range', comedy: 'Comedy', action: 'Action', romance: 'Romance', drama: 'Drama', thriller: 'Thriller', vision: 'Vision', craft: 'Craft', actorHandling: 'Actor Handling',
     commercial: 'Commercial Instinct', efficiency: 'Budget Control', originality: 'Originality', dialogue: 'Dialogue',
     structure: 'Structure', visuals: 'Visual Eye', technique: 'Technique', innovation: 'Innovation',
     melody: 'Melody', atmosphere: 'Atmosphere', versatility: 'Versatility'
@@ -88,17 +99,17 @@
 
   // How each stat ages: peak offset relative to the person's peak age, and decline rate per year past plateau.
   HW.STAT_AGING = {
-    looks:      { peak: 27, plateau: 8, decline: 0.013, young: 0.97 },
-    action:     { peak: 30, plateau: 7, decline: 0.022, young: 0.85 },
-    charisma:   { peak: 35, plateau: 25, decline: 0.006, young: 0.85 },
-    discipline: { peak: 50, plateau: 20, decline: 0.004, young: 0.7 },
-    comedy:     { peak: 34, plateau: 20, decline: 0.008, young: 0.75 }
+    presence:    { peak: 30, plateau: 14, decline: 0.009, young: 0.85 },
+    physicality: { peak: 28, plateau: 8, decline: 0.022, young: 0.88 },
+    chemistry:   { peak: 34, plateau: 25, decline: 0.005, young: 0.8 }
     // everything else uses the person's own peakAge (craft-type stats)
   };
 
   HW.TRAITS = {
     // actors
     method:       { name: 'Method Actor', roles: ['actor'], desc: 'Disappears into roles. Bigger, riskier performances.' },
+    stuntman:     { name: 'Does Own Stunts', roles: ['actor'], desc: 'Exceptional physicality; action audiences love it.' },
+    improv:       { name: 'Improv Wizard', roles: ['actor'], desc: 'Riffs that lift every scene partner.' },
     magnet:       { name: 'Box Office Magnet', roles: ['actor'], desc: 'Audiences show up just to see them.' },
     darling:      { name: "Critics' Darling", roles: ['actor', 'director', 'writer'], desc: 'Critics and voters adore their work.' },
     diva:         { name: 'Diva', roles: ['actor', 'director'], desc: 'Demands a premium and causes friction on set.' },

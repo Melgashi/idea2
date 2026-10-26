@@ -25,6 +25,16 @@
   function pct(v) { return Math.round(v) + '%'; }
   function scoreCls(v) { return v >= 80 ? 's-elite' : v >= 65 ? 's-good' : v >= 50 ? 's-ok' : v >= 35 ? 's-weak' : 's-bad'; }
   function scoreBadge(v) { return '<span class="score ' + scoreCls(v) + '">' + v + '</span>'; }
+  // Actors are rated 1-10; crew 1-100. OVR is always 0-100 internally.
+  function ovrText(p) { var o = HW.ovr(p); return p.role === 'actor' ? (o / 10).toFixed(1) : String(o); }
+  function statText(p, v) { return p.role === 'actor' ? String(Math.round(v)) : String(v); }
+  function topGenre(p) {
+    return HW.ACTOR_GENRES.reduce(function (a, g) { return p.genre[g] > p.genre[a] ? g : a; });
+  }
+  function statLine(label, v, max, tip, extra) {
+    var pctv = v / max * 100;
+    return '<div class="statline"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span class="sl">' + label + '</span><span class="sb"><span class="' + scoreCls(pctv) + '" style="width:' + pctv + '%"></span></span><span class="sv">' + (max === 10 ? Math.round(v) : v) + '</span>' + (extra || '') + '</div>';
+  }
   function grade(v) { return v >= 90 ? 'A+' : v >= 82 ? 'A' : v >= 75 ? 'B+' : v >= 68 ? 'B' : v >= 60 ? 'C+' : v >= 52 ? 'C' : v >= 44 ? 'D' : 'F'; }
   function stars(n) { return '<span class="stars">' + '★★★★★'.slice(0, n) + '<span class="off">' + '★★★★★'.slice(n) + '</span></span>'; }
   function meter(v, cls) { return '<span class="meter ' + (cls || '') + '"><span style="width:' + Math.max(0, Math.min(100, v)) + '%"></span></span>'; }
@@ -298,11 +308,14 @@
       { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
       { h: 'Age', cls: 'num', v: function (p) { return ageOf(p); } },
       { h: 'Sex', v: function (p) { return p.gender; } },
-      { h: 'OVR', cls: 'num', v: function (p) { return HW.ovr(p); }, html: function (p) { return scoreBadge(HW.ovr(p)); } },
+      { h: 'OVR', cls: 'num', v: function (p) { return HW.ovr(p); }, html: function (p) { return '<span class="score ' + scoreCls(HW.ovr(p)) + '">' + ovrText(p) + '</span>'; } },
       { h: 'Pot.', cls: 'num', v: function (p) { return HW.potentialStars(p); }, html: function (p) { return stars(HW.potentialStars(p)); } }
     ];
-    var keyStats = { actor: ['acting', 'charisma', 'looks'], director: ['vision', 'craft'], writer: ['originality', 'dialogue'], cinematographer: ['visuals'], composer: ['melody'] }[role];
-    keyStats.forEach(function (k) { cols.push({ h: HW.STAT_LABELS[k], cls: 'num', v: function (p) { return p.stats[k]; } }); });
+    var keyStats = { actor: HW.ROLES.actor.stats, director: ['vision', 'craft'], writer: ['originality', 'dialogue'], cinematographer: ['visuals'], composer: ['melody'] }[role];
+    keyStats.forEach(function (k) {
+      cols.push({ h: role === 'actor' ? HW.STAT_LABELS[k].slice(0, 4) + '.' : HW.STAT_LABELS[k], cls: 'num', v: function (p) { return p.stats[k]; }, html: function (p) { return statText(p, p.stats[k]); } });
+    });
+    if (role === 'actor') cols.push({ h: 'Best genre', v: function (p) { return p.genre[topGenre(p)]; }, html: function (p) { var g = topGenre(p); return HW.STAT_LABELS[g] + ' <span class="muted">' + Math.round(p.genre[g]) + '</span>'; } });
     cols.push(
       { h: 'Fame', cls: 'num', v: function (p) { return p.fame; }, html: function (p) { return Math.round(p.fame); } },
       { h: 'Prestige', cls: 'num', v: function (p) { return p.prestige; }, html: function (p) { return Math.round(p.prestige); } },
@@ -324,14 +337,21 @@
       '<div class="traits">' + (p.traits.length ? p.traits.map(function (t) { return '<span class="trait" title="' + esc(HW.TRAITS[t].desc) + '">' + HW.TRAITS[t].name + '</span>'; }).join('') : '<span class="muted small">No notable traits</span>') +
       (p.specialty ? p.specialty.map(function (g) { return '<span class="trait spec" title="Specialty genre">' + g + '</span>'; }).join('') : '') +
       (p.lifetime ? '<span class="trait gold" title="Lifetime Achievement Laurel">Lifetime Laurel ' + p.lifetime + '</span>' : '') + '</div></div>' +
-      '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovr + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
+      '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
 
     h += '<div class="grid sheet-grid">';
-    var statRows = R.stats.map(function (k) {
-      var v = p.stats[k];
-      return '<div class="statline"><span class="sl">' + HW.STAT_LABELS[k] + '</span><span class="sb"><span class="' + scoreCls(v) + '" style="width:' + v + '%"></span></span><span class="sv">' + v + '</span></div>';
-    }).join('');
-    h += card('Attributes', statRows + '<p class="muted small">Peaks around age ' + p.peakAge + '. Attributes grow with experience and fade with age.</p>');
+    var actor = p.role === 'actor';
+    var statRows = R.stats.map(function (k) { return statLine(HW.STAT_LABELS[k], p.stats[k], actor ? 10 : 100, HW.STAT_DESC[k]); }).join('');
+    h += card(actor ? 'Core stats' : 'Attributes', statRows + '<p class="muted small">Peaks around age ' + p.peakAge + '. ' +
+      (actor ? 'Presence and Physicality fade with age; Craft and Chemistry deepen with experience.' : 'Attributes grow with experience and fade with age.') + '</p>');
+    if (actor) {
+      var recent = p.gLast && p.gLast.y === lastYear() ? p.gLast.d : {};
+      h += card('Genre skills', HW.ACTOR_GENRES.map(function (g) {
+        var d = recent[g], arrow = '';
+        if (d && Math.abs(d) >= 0.05) arrow = '<span class="delta ' + (d > 0 ? 'pos' : 'neg') + '">' + (d > 0 ? '▲' : '▼') + Math.abs(d).toFixed(1) + '</span>';
+        return statLine(HW.STAT_LABELS[g], p.genre[g], 10, (p.genre[g]).toFixed(2) + ' / 10', arrow);
+      }).join('') + '<p class="muted small">Genre skills grow with every role, faster when the film lands with critics, audiences and the box office. Flops can set them back. Arrows show last year\'s change.</p>');
+    }
     var bp = p.bestPerf ? w.films[p.bestPerf.f] : null;
     h += card('Standing', '<div class="statline"><span class="sl">Fame</span><span class="sb">' + '<span class="fame" style="width:' + p.fame + '%"></span></span><span class="sv">' + Math.round(p.fame) + '</span></div>' +
       '<div class="statline"><span class="sl">Prestige</span><span class="sb"><span class="prestige" style="width:' + p.prestige + '%"></span></span><span class="sv">' + Math.round(p.prestige) + '</span></div>' +

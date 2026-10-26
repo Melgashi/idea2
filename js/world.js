@@ -7,7 +7,7 @@
     var seed = opts.seed || Math.floor(Math.random() * 1e9);
     var rng = new HW.RNG(seed);
     var w = {
-      version: 1,
+      version: 2,
       seed: seed,
       startYear: opts.startYear || 1980,
       year: opts.startYear || 1980, // next year to simulate
@@ -82,18 +82,16 @@
     var star = rng.normal(0, 1); // shared talent factor, correlates stats
     var genius = rng.chance(0.012);
     var genes = {};
+    var actor = role === 'actor';
     HW.ROLES[role].stats.forEach(function (s) {
-      var v = rng.normal(54 + star * 9, 12);
-      if (genius) v += 18;
-      genes[s] = Math.round(clamp(v, 15, 99));
+      // actors use a 1-10 scale, crew 1-100
+      if (actor) genes[s] = HW.round1(clamp(rng.normal(5.4 + star * 0.9, 1.2) + (genius ? 1.8 : 0), 1, 10));
+      else genes[s] = Math.round(clamp(rng.normal(54 + star * 9, 12) + (genius ? 18 : 0), 15, 99));
     });
     var traits = rollTraits(rng, role);
-    if (role === 'actor') {
-      if (traits.indexOf('chameleon') >= 0) genes.range = Math.min(99, genes.range + 18);
-      if (traits.indexOf('heartthrob') >= 0) genes.looks = Math.min(99, genes.looks + 20);
-      // actors tend to lean into one genre skill
-      var lean = rng.pick(['comedy', 'drama', 'action']);
-      genes[lean] = Math.min(99, genes[lean] + rng.int(5, 15));
+    if (actor) {
+      var boost = { chameleon: 'range', heartthrob: 'presence', stuntman: 'physicality', improv: 'chemistry', method: 'intensity' };
+      traits.forEach(function (t) { if (boost[t]) genes[boost[t]] = Math.min(10, HW.round1(genes[boost[t]] + 1.8)); });
     }
     var peakAge = Math.round(clamp(rng.normal(role === 'actor' ? 38 : 47, 5), 28, 60));
     if (traits.indexOf('bloomer') >= 0) peakAge += 10;
@@ -124,11 +122,21 @@
     };
     if (p.specialty && p.specialty[0] === p.specialty[1]) p.specialty.pop();
     if (o.initial) p.exp = clamp(Math.round((w.year - p.debut) * rng.range(0.3, 1.1)), 0, 30);
+    if (actor) {
+      // genre skills: everyone leans into one genre; veterans start with more seasoning
+      p.genre = {};
+      p.gLast = null;
+      var lean = rng.pick(HW.ACTOR_GENRES);
+      HW.ACTOR_GENRES.forEach(function (g) {
+        var v = rng.normal(o.initial ? 3.6 : 2.6, 1.1) + p.exp * 0.07 + star * 0.4 + (g === lean ? rng.range(1.5, 3) : 0);
+        p.genre[g] = HW.round1(clamp(v, 1, 9));
+      });
+    }
     HW.updateStats(p, w.year);
     var ovr = HW.ovr(p);
     var yearsIn = w.year - p.debut;
     if (o.initial) {
-      p.fame = Math.round(clamp((ovr - 45) * 1.3 + yearsIn * 1.1 + rng.normal(0, 12) + (role === 'actor' ? (p.stats.looks - 50) * 0.25 : -8), 0, 95));
+      p.fame = Math.round(clamp((ovr - 45) * 1.3 + yearsIn * 1.1 + rng.normal(0, 12) + (actor ? (p.stats.presence - 5) * 2.5 : -8), 0, 95));
       p.prestige = Math.round(clamp((ovr - 45) * 1.4 + yearsIn * 0.9 + rng.normal(0, 10), 0, 90));
     } else {
       p.fame = Math.round(clamp(rng.normal(4, 4), 0, 20));
@@ -186,7 +194,8 @@
   // Current stats from genes, age curve and accumulated experience.
   HW.updateStats = function (p, year) {
     var age = year - p.born;
-    var expBonus = Math.min(10, p.exp * 0.45);
+    var actor = p.role === 'actor';
+    var expBonus = Math.min(10, p.exp * 0.45) * (actor ? 0.1 : 1);
     HW.ROLES[p.role].stats.forEach(function (s) {
       var a = HW.STAT_AGING[s] || { peak: p.peakAge, plateau: 12, decline: 0.009, young: 0.72 };
       var peak = HW.STAT_AGING[s] ? a.peak : p.peakAge;
@@ -195,16 +204,17 @@
       if (age < peak) f = a.young + (1 - a.young) * clamp((age - startAge) / (peak - startAge), 0, 1);
       else if (age <= peak + a.plateau) f = 1;
       else f = Math.max(0.35, 1 - (age - peak - a.plateau) * a.decline);
-      var bonus = (s === 'looks' || s === 'action') ? 0 : expBonus * (age < peak + a.plateau ? 1 : 0.7);
-      p.stats[s] = Math.round(clamp(p.genes[s] * f + bonus, 1, 99));
+      var bonus = (s === 'presence' || s === 'physicality') ? 0 : expBonus * (age < peak + a.plateau ? 1 : 0.7);
+      p.stats[s] = actor ? HW.round1(clamp(p.genes[s] * f + bonus, 1, 10)) : Math.round(clamp(p.genes[s] * f + bonus, 1, 99));
     });
   };
 
   HW.ovr = function (p) {
     var s = p.stats;
     switch (p.role) {
-      case 'actor':
-        return Math.round(s.acting * 0.42 + s.range * 0.13 + s.charisma * 0.2 + Math.max(s.comedy, s.drama, s.action) * 0.15 + s.looks * 0.1);
+      case 'actor': // 0-100 for sorting; shown to players as 1-10
+        var best = Math.max.apply(null, HW.ACTOR_GENRES.map(function (g) { return p.genre[g]; }));
+        return Math.round((s.presence * 0.2 + s.craft * 0.22 + s.intensity * 0.18 + s.physicality * 0.08 + s.chemistry * 0.14 + s.range * 0.08 + best * 0.1) * 10);
       case 'director':
         return Math.round(s.vision * 0.32 + s.craft * 0.32 + s.actorHandling * 0.16 + s.commercial * 0.12 + s.efficiency * 0.08);
       case 'writer':
@@ -221,7 +231,7 @@
   HW.potentialStars = function (p) {
     var keys = HW.ROLES[p.role].stats, sum = 0;
     keys.forEach(function (k) { sum += p.genes[k]; });
-    var avg = sum / keys.length;
+    var avg = sum / keys.length * (p.role === 'actor' ? 10 : 1);
     return clamp(Math.round((avg - 30) / 12), 1, 5);
   };
 
@@ -238,10 +248,29 @@
     return Math.round(base * 100) / 100;
   };
 
+  // How well an actor fits a genre, 0-100: mostly their genre skill, partly the genre's key core stats.
   HW.genreApt = function (p, genre) {
-    var apt = HW.GENRES[genre].apt, v = 0;
-    for (var k in apt) v += p.stats[k] * apt[k];
-    return v;
+    var G = HW.GENRES[genre], skill = 0, core = 0, k;
+    for (k in G.apt) skill += p.genre[k] * G.apt[k];
+    for (k in G.core) core += p.stats[k] * G.core[k];
+    return (skill * 0.6 + core * 0.4) * 10;
+  };
+
+  // Genre skills move with how each film turns out. Returns the change applied.
+  HW.growGenres = function (p, f, perf, lead) {
+    var G = HW.GENRES[f.genre];
+    var reception = ((f.critic + f.audience) / 2 - 55) / 30;           // roughly -1.5..+1.5
+    var boxOffice = clamp(Math.log2(f.gross / Math.max(1, f.budget)) / 3, -1, 1);
+    var own = (perf - 60) / 25;
+    var x = 0.18 + 0.22 * reception + 0.12 * boxOffice + 0.2 * own;   // a typical film nudges skills up a little
+    var out = {};
+    for (var g in G.apt) {
+      var d = x * G.apt[g] * (lead ? 1 : 0.6);
+      d *= d > 0 ? Math.max(0.1, (10 - p.genre[g]) / 6) : 0.6;         // harder to improve near the top
+      p.genre[g] = Math.round(clamp(p.genre[g] + d, 1, 10) * 100) / 100;
+      out[g] = d;
+    }
+    return out;
   };
 
   HW.has = function (p, trait) { return p.traits.indexOf(trait) >= 0; };

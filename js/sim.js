@@ -235,10 +235,10 @@
         if (castIds[p.id]) return -1e9;
         var age = Y - p.born;
         if (age < role.age[0] || age > role.age[1]) return -1e9;
-        var apt = HW.genreApt(p, genre);
-        var q = p.stats.acting * 0.45 + apt * 0.3 + p.stats.charisma * 0.15 + p.stats.range * 0.1;
+        var st = p.stats, apt = HW.genreApt(p, genre);
+        var q = apt * 0.4 + (st.craft * 0.3 + st.intensity * 0.12 + st.range * 0.1 + st.chemistry * 0.08) * 10;
         var sc = q * (1 - 0.3 * c) + (1 - c) * p.prestige * 0.25 + c * p.fame * (role.r === 'L' ? 0.4 : 0.15);
-        if (role.r === 'L' && genre !== 'Animation') sc += c * (p.stats.looks - 50) * 0.15;
+        if (role.r === 'L' && genre !== 'Animation') sc += c * (st.presence - 5) * 1.5;
         if (prevCast[p.id] === role.r) sc += 40;
         if (collab[p.id]) sc += 4;
         return sc;
@@ -350,16 +350,21 @@
     var dirHandling = (dir.stats.actorHandling - 50) * 0.12 + (HW.has(dir, 'actorsdir') ? 4 : 0);
     var dialogue = wr ? (wr.stats.dialogue - 50) * 0.06 + (HW.has(wr, 'wordsmith') ? 2 : 0) : -3;
 
-    var actSum = 0, actW = 0, charSum = 0, charW = 0;
+    var actSum = 0, actW = 0, charSum = 0, charW = 0, chemTotal = 0;
+    f.cast.forEach(function (c) { chemTotal += w.people[c.p].stats.chemistry; });
     f.cast.forEach(function (c) {
       var p = w.people[c.p], s = p.stats;
       var method = HW.has(p, 'method');
-      var perf = s.acting * 0.5 + HW.genreApt(p, f.genre) * 0.25 + s.range * 0.1 + s.charisma * 0.15 +
-        dirHandling + dialogue + (s.discipline - 50) * 0.04 + (method ? 3 : 0) + rng.normal(0, method ? 10 : 7);
-      c.perf = Math.round(clamp(perf, 1, 99));
+      // chemistry: scene partners lift (or flatten) each other
+      var partners = f.cast.length > 1 ? (chemTotal - s.chemistry) / (f.cast.length - 1) : 5;
+      var perf = HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
+        (partners - 5) * 1.2 + dirHandling + dialogue + (method ? 3 : 0);
+      // craft is consistency: skilled actors deliver take after take; intensity swings bigger
+      var sd = 10 - s.craft * 0.5 + (method ? 3 : 0) + (s.intensity - 5) * 0.3;
+      c.perf = Math.round(clamp(perf + rng.normal(0, Math.max(2.5, sd)), 1, 99));
       var wgt = c.r === 'L' ? 2 : 1;
       actSum += c.perf * wgt; actW += wgt;
-      if (c.r === 'L') { charSum += s.charisma + (f.genre === 'Animation' ? 0 : (s.looks - 50) * 0.2); charW++; }
+      if (c.r === 'L') { charSum += (s.presence * 0.75 + s.chemistry * 0.25) * 10 + (HW.GENRES[f.genre].core.physicality || 0) * (s.physicality - 5) * 3; charW++; }
     });
     var acting = actW ? actSum / actW : 40;
     var starAppeal = charW ? charSum / charW : 45;
@@ -445,6 +450,9 @@
         p.gross += f.gross;
         gainFame(p, wgt * (boxo + aud + (c.perf - 60) / 15) + (HW.has(p, 'heartthrob') && Y - p.born < 32 ? 2 : 0));
         gainPrestige(p, wgt * (crit * 0.6 + (c.perf - 60) / 8));
+        var gd = HW.growGenres(p, f, c.perf, c.r === 'L');
+        if (!p.gLast || p.gLast.y !== Y) p.gLast = { y: Y, d: {} };
+        for (var g in gd) p.gLast.d[g] = Math.round(((p.gLast.d[g] || 0) + gd[g]) * 100) / 100;
         if (!p.bestPerf || c.perf > p.bestPerf.v) p.bestPerf = { v: c.perf, f: f.id };
       });
       [['director', 1], ['writer', 0.5], ['dp', 0.3], ['composer', 0.3]].forEach(function (x) {
@@ -599,7 +607,7 @@
     // spotlight a hot newcomer now and then
     var fresh = w.people.filter(function (p) { return p.debut === N && p.role === 'actor'; });
     if (fresh.length) {
-      var best = fresh.reduce(function (a, b) { return HW.potentialStars(b) * 100 + b.genes.acting > HW.potentialStars(a) * 100 + a.genes.acting ? b : a; });
+      var best = fresh.reduce(function (a, b) { return HW.potentialStars(b) * 100 + b.genes.craft > HW.potentialStars(a) * 100 + a.genes.craft ? b : a; });
       if (HW.potentialStars(best) >= 4) HW.addNews(w, Y, 'Scouts are buzzing about newcomer ' + best.name + ', ' + (N - best.born) + ', tipped as a future star.', 'people', { p: best.id });
     }
   }
