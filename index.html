@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hollywood Dynasty</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" data-go="#/">
+      <span class="logo">★</span>
+      <span class="brand-text">Hollywood <b>Dynasty</b></span>
+    </div>
+    <div class="year-box">
+      <div class="year-label">Year</div>
+      <div class="year-value" id="yearValue">—</div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-action="advance" data-years="1">▶ Next Year</button>
+      <button class="btn" data-action="advance" data-years="5">⏩ 5 Years</button>
+      <button class="btn" data-action="advance" data-years="10">⏭ 10 Years</button>
+      <button class="btn" data-action="auto" id="autoBtn">⟳ Auto</button>
+      <button class="btn ghost" data-action="menu">☰</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <a href="#/">Overview</a>
+    <a href="#/studios">Studios</a>
+    <a href="#/talent">Talent</a>
+    <a href="#/films">Films</a>
+    <a href="#/awards">Golden Laurels</a>
+    <a href="#/history">History</a>
+    <a href="#/records">Records</a>
+    <a href="#/news">News</a>
+  </nav>
+  <div class="progress" id="progress"><div class="bar" id="progressBar"></div></div>
+  <main id="app"><div class="loading">Rolling cameras…</div></main>
+
+  <div class="modal" id="menu" hidden>
+    <div class="modal-card">
+      <h2>Game</h2>
+      <div class="menu-section">
+        <h3>New world</h3>
+        <label>Start year <input type="number" id="newStart" value="1980" min="1920" max="2030"></label>
+        <label>Seed <input type="text" id="newSeed" placeholder="random"></label>
+        <button class="btn primary" data-action="new">Start new world</button>
+        <p class="muted small">Starting a new world replaces your current save.</p>
+      </div>
+      <div class="menu-section">
+        <h3>Save file</h3>
+        <button class="btn" data-action="export">Export save</button>
+        <label class="btn">Import save <input type="file" id="importFile" accept=".json,application/json" hidden></label>
+        <p class="muted small" id="saveInfo"></p>
+      </div>
+      <div class="menu-section">
+        <h3>Auto-play speed</h3>
+        <select id="autoSpeed">
+          <option value="2500">Slow (2.5s / year)</option>
+          <option value="1000" selected>Normal (1s / year)</option>
+          <option value="250">Fast</option>
+        </select>
+      </div>
+      <button class="btn ghost close" data-action="closeMenu">Close</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="js/rng.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/awards.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
