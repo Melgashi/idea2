@@ -1,0 +1,2476 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hollywood Dynasty</title>
+  <style>
+:root {
+  --bg: #0f0d0b;
+  --bg2: #17140f;
+  --panel: #1d1914;
+  --panel2: #252019;
+  --line: #3a3226;
+  --text: #ede6d8;
+  --muted: #9a8f7c;
+  --gold: #e3b552;
+  --gold2: #f6d98c;
+  --red: #e2665a;
+  --green: #6cc28a;
+  --blue: #6aa6e0;
+  --elite: #f1c453;
+  --good: #6cc28a;
+  --ok: #6aa6e0;
+  --weak: #b49a6a;
+  --bad: #8a6f6f;
+  --radius: 10px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: radial-gradient(ellipse at top, #231c12 0%, var(--bg) 55%) fixed, var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+a { color: inherit; }
+h1, h2, h3, h4 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; margin: 0; }
+h1 { font-size: 28px; letter-spacing: .3px; }
+h2 { font-size: 20px; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--gold); font-family: system-ui, sans-serif; margin-bottom: 10px; }
+h4 { font-size: 13px; color: var(--muted); margin: 12px 0 6px; font-family: system-ui, sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+
+/* top bar */
+.topbar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 10px 20px; background: linear-gradient(180deg, #1c160e, #120f0b);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.logo { color: var(--gold); font-size: 26px; text-shadow: 0 0 12px rgba(227,181,82,.5); }
+.brand-text { font-family: Georgia, serif; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; }
+.brand-text b { color: var(--gold); font-weight: 600; }
+.year-box { margin-left: auto; text-align: center; padding: 2px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2); }
+.year-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+.year-value { font-family: Georgia, serif; font-size: 22px; color: var(--gold2); line-height: 1.1; }
+.controls { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.btn {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 12px; font: inherit; cursor: pointer; text-decoration: none; display: inline-block;
+}
+.btn:hover { border-color: var(--gold); }
+.btn.primary { background: linear-gradient(180deg, #e9c066, #c8962f); color: #1a1208; border-color: #c8962f; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.on { background: var(--red); border-color: var(--red); color: #fff; }
+.btn.small { padding: 4px 9px; font-size: 12px; }
+.btn[disabled] { opacity: .4; cursor: default; }
+body.busy .controls .btn { opacity: .6; pointer-events: none; }
+body.busy .controls #autoBtn { opacity: 1; pointer-events: auto; }
+
+.tabs { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid var(--line); background: #120f0b; overflow-x: auto; }
+.tabs a { padding: 10px 14px; text-decoration: none; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs a:hover { color: var(--text); }
+.tabs a.on { color: var(--gold2); border-bottom-color: var(--gold); }
+.progress { height: 3px; background: transparent; }
+.progress.on { background: var(--bg2); }
+.progress .bar { height: 100%; width: 0; background: var(--gold); transition: width .15s; }
+
+main { max-width: 1320px; margin: 0 auto; padding: 20px; }
+.loading { padding: 80px; text-align: center; color: var(--muted); }
+
+/* layout */
+.pagehead { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.pagehead .seg { margin-left: auto; }
+.grid { display: grid; gap: 16px; margin-bottom: 16px; align-items: start; }
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.awards { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.grid.sheet-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+@media (max-width: 980px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+.card > .tablewrap { margin: 0 -6px; }
+.card.gold { border-color: #6b5426; background: linear-gradient(180deg, #2a2112, var(--panel)); }
+.hero { background: linear-gradient(135deg, #2a2112, #1a150e); border: 1px solid #6b5426; border-radius: var(--radius); padding: 28px; margin-bottom: 16px; }
+.hero h1 { font-size: 34px; color: var(--gold2); margin-bottom: 10px; }
+.hero p { max-width: 760px; font-size: 15px; }
+.event { background: #2b1f12; border: 1px solid #6b5426; color: var(--gold2); padding: 6px 12px; border-radius: 20px; font-size: 13px; }
+.empty { padding: 12px 0; }
+
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.stat-v { font-family: Georgia, serif; font-size: 24px; color: var(--gold2); }
+.stat-l { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+.stat-s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.toolbar input, .toolbar select, .menu-section input, .menu-section select {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit;
+}
+.toolbar input[type=search] { min-width: 220px; }
+.yearnav { justify-content: space-between; }
+.yearnav h2 { text-align: center; flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { background: var(--panel); color: var(--muted); border: 0; border-right: 1px solid var(--line); padding: 6px 12px; font: inherit; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--panel2); color: var(--gold2); }
+
+/* tables */
+.tablewrap { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th.sortable { cursor: pointer; user-select: none; }
+.tbl th.sortable:hover { color: var(--gold2); }
+.tbl td { padding: 7px 8px; border-bottom: 1px solid #2a241b; vertical-align: top; }
+.tbl tr:hover td { background: rgba(255,255,255,.02); }
+.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tbl th.num { text-align: right; }
+.sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.pager { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 12px 0 2px; }
+
+.lnk { text-decoration: none; color: var(--text); border-bottom: 1px dotted #5a4d38; }
+.lnk:hover { color: var(--gold2); border-bottom-color: var(--gold); }
+.lnk.film { font-style: italic; }
+.lnk.inactive { color: var(--muted); }
+.lnk.plain { border-bottom: 0; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+.score { display: inline-block; min-width: 30px; text-align: center; padding: 1px 6px; border-radius: 5px; font-weight: 600; font-size: 12px; color: #111; }
+.s-elite { background: var(--elite); }
+.s-good { background: var(--good); }
+.s-ok { background: var(--ok); }
+.s-weak { background: var(--weak); }
+.s-bad { background: var(--bad); color: #eee; }
+.grade { display: inline-block; min-width: 26px; text-align: center; padding: 1px 5px; border-radius: 5px; font-weight: 700; font-size: 12px; color: #111; }
+.tag { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .8px; padding: 1px 6px; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; font-style: normal; }
+.tag.gold { color: var(--gold2); border-color: #6b5426; }
+.tag.green { color: var(--green); border-color: #2f5a3d; }
+.tag.red { color: var(--red); border-color: #6a2e28; }
+.tier { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); }
+.tier-Major { color: var(--gold2); border-color: #6b5426; }
+.tier-Mid { color: var(--blue); border-color: #2c4a66; }
+.tier-Indie { color: var(--green); border-color: #2f5a3d; }
+.status { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-left: 6px; }
+.status.active { background: #1f3a29; color: var(--green); }
+.status.retired { background: #2b2b2b; color: #bbb; }
+.status.deceased { background: #3a1f1f; color: #e7a7a0; }
+.laurel { font-size: 12px; margin-left: 6px; }
+.stars { color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
+.stars .off { color: #4a4031; }
+
+.meter { display: inline-block; width: 60px; height: 6px; background: #2c261d; border-radius: 3px; vertical-align: middle; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--blue); }
+.meter.fame > span { background: var(--gold); }
+.meter.prestige > span { background: #b48ce0; }
+.lean { position: relative; display: inline-block; width: 70px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #b48ce0, #e3b552); vertical-align: middle; }
+.lean span { position: absolute; top: -3px; width: 4px; height: 12px; background: #fff; border-radius: 2px; transform: translateX(-2px); }
+
+.plist { list-style: none; padding: 0; margin: 0; }
+.plist li { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid #2a241b; flex-wrap: wrap; }
+.plist li:last-child { border-bottom: 0; }
+.plist .right { margin-left: auto; display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+ol.plist { counter-reset: n; }
+ol.plist li::before { counter-increment: n; content: counter(n); color: var(--muted); width: 20px; font-size: 12px; }
+.ny { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+
+.news { list-style: none; margin: 0; padding: 0; }
+.news li { padding: 6px 0 6px 10px; border-left: 2px solid var(--line); margin-bottom: 4px; }
+.news li.nk-awards { border-left-color: var(--gold); }
+.news li.nk-boxoffice { border-left-color: var(--green); }
+.news li.nk-scandal { border-left-color: var(--red); }
+.news li.nk-studio { border-left-color: var(--blue); }
+.news li.nk-event { border-left-color: #b48ce0; }
+.news li.nk-people { border-left-color: #888; }
+
+.bars .barrow { display: grid; grid-template-columns: 80px 1fr 44px; gap: 8px; align-items: center; padding: 2px 0; font-size: 13px; }
+.bb { height: 8px; background: #2c261d; border-radius: 4px; overflow: hidden; }
+.bb span { display: block; height: 100%; background: var(--blue); }
+.bb span.hot { background: var(--gold); }
+.bb span.cold { background: #6b5f50; }
+.bv { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.aw-row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid #3a2f1c; flex-wrap: wrap; }
+.aw-cat { color: var(--muted); width: 170px; font-size: 13px; }
+.aw-win { flex: 1; min-width: 160px; }
+.noms { list-style: none; margin: 0; padding: 0; }
+.noms li { display: grid; grid-template-columns: 26px 1fr; padding: 6px 0; border-bottom: 1px solid #2a241b; }
+.noms li .sub { grid-column: 2; }
+.noms li.won { color: var(--gold2); }
+.noms li.won .lnk { color: var(--gold2); font-weight: 600; }
+.statue.off { color: #4a4031; text-align: center; }
+.lifetime { font-size: 18px; font-family: Georgia, serif; }
+.awl { list-style: none; padding: 0; margin: 0; }
+.awl li { padding: 5px 0; border-bottom: 1px solid #2a241b; }
+.awl li.won { color: var(--gold2); }
+
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 10px; margin: 10px 0 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+
+/* character sheet */
+.sheet-head { display: flex; gap: 18px; align-items: center; background: linear-gradient(135deg, #2a2112, var(--panel)); border: 1px solid #6b5426; border-radius: var(--radius); padding: 18px; margin-bottom: 16px; flex-wrap: wrap; }
+.avatar { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-family: Georgia, serif; font-size: 26px; color: #1a1208; flex: none; }
+.avatar.gM { background: linear-gradient(135deg, #8fb5dc, #4f79a8); }
+.avatar.gF { background: linear-gradient(135deg, #e5a8b8, #b26683); }
+.who { flex: 1; min-width: 220px; }
+.who .meta { color: var(--muted); margin: 4px 0 8px; }
+.traits { display: flex; gap: 6px; flex-wrap: wrap; }
+.trait { font-size: 12px; padding: 2px 9px; border-radius: 12px; background: #2f271b; border: 1px solid #5a4a30; cursor: help; }
+.trait.spec { background: #1d2a36; border-color: #2c4a66; color: #a9cbed; }
+.trait.gold { color: var(--gold2); border-color: var(--gold); }
+.ovr { text-align: center; padding: 0 10px; }
+.ovr-v { font-family: Georgia, serif; font-size: 40px; font-weight: 700; color: #111; border-radius: 12px; padding: 2px 14px; display: inline-block; }
+.ovr-l { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
+.statline { display: grid; grid-template-columns: 130px 1fr 32px; gap: 10px; align-items: center; padding: 4px 0; }
+.sl { color: var(--muted); font-size: 13px; }
+.sb { height: 9px; background: #2c261d; border-radius: 5px; overflow: hidden; }
+.sb > span { display: block; height: 100%; border-radius: 5px; }
+.sb > span.fame { background: var(--gold); }
+.sb > span.prestige { background: #b48ce0; }
+.sv { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.statline:has(.delta) { grid-template-columns: 130px 1fr 32px 44px; }
+.delta { font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* studio & film heads */
+.studiohead { border-left: 6px solid hsl(var(--hue), 60%, 55%); padding-left: 14px; }
+.studiohead .meta, .finfo .meta { color: var(--muted); margin-top: 4px; }
+.filmhead { display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
+.poster {
+  width: 170px; height: 250px; flex: none; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end;
+  background: linear-gradient(160deg, hsl(var(--hue), 45%, 32%), hsl(var(--hue), 40%, 10%));
+  border: 1px solid hsl(var(--hue), 30%, 35%); box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.pt { font-family: Georgia, serif; font-size: 20px; line-height: 1.15; text-transform: uppercase; letter-spacing: 1px; }
+.pg, .py { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,.7); margin-top: 6px; }
+.finfo { flex: 1; min-width: 260px; }
+.finfo .stats-row { margin-top: 14px; }
+
+.chart { display: flex; align-items: flex-end; gap: 2px; height: 160px; padding-bottom: 18px; }
+.chart .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; position: relative; min-width: 3px; }
+.chart .col span { background: linear-gradient(180deg, var(--gold), #9a7426); border-radius: 2px 2px 0 0; }
+.chart .col:hover span { background: var(--gold2); }
+.chart .col i { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); font-style: normal; }
+
+/* modal & toast */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal-card { background: var(--panel); border: 1px solid #6b5426; border-radius: 12px; padding: 22px; width: min(440px, 100%); max-height: 90vh; overflow: auto; }
+.modal-card h2 { color: var(--gold2); margin-bottom: 12px; }
+.menu-section { border-top: 1px solid var(--line); padding: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.menu-section label { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.menu-section label.btn { display: inline-block; text-align: center; }
+.close { width: 100%; margin-top: 6px; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--gold); padding: 10px 18px; border-radius: 8px; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+
+@media (max-width: 640px) {
+  main { padding: 12px 16px; }
+  .topbar { padding: 8px 16px; gap: 10px; }
+  .brand-text { font-size: 16px; }
+  .year-box { margin-left: 0; }
+  .controls { width: 100%; }
+  .controls .btn { flex: 1; padding: 7px 6px; font-size: 13px; }
+  h1 { font-size: 22px; }
+  .aw-cat { width: 100%; }
+  .statline { grid-template-columns: 100px 1fr 30px; }
+  .kv { grid-template-columns: 110px 1fr; }
+  .poster { width: 120px; height: 176px; }
+}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" data-go="#/">
+      <span class="logo">★</span>
+      <span class="brand-text">Hollywood <b>Dynasty</b></span>
+    </div>
+    <div class="year-box">
+      <div class="year-label">Year</div>
+      <div class="year-value" id="yearValue">—</div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-action="advance" data-years="1">▶ Next Year</button>
+      <button class="btn" data-action="advance" data-years="5">⏩ 5 Years</button>
+      <button class="btn" data-action="advance" data-years="10">⏭ 10 Years</button>
+      <button class="btn" data-action="auto" id="autoBtn">⟳ Auto</button>
+      <button class="btn ghost" data-action="menu">☰</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <a href="#/">Overview</a>
+    <a href="#/studios">Studios</a>
+    <a href="#/talent">Talent</a>
+    <a href="#/films">Films</a>
+    <a href="#/awards">Golden Laurels</a>
+    <a href="#/history">History</a>
+    <a href="#/records">Records</a>
+    <a href="#/news">News</a>
+  </nav>
+  <div class="progress" id="progress"><div class="bar" id="progressBar"></div></div>
+  <main id="app"><div class="loading">Rolling cameras…</div></main>
+
+  <div class="modal" id="menu" hidden>
+    <div class="modal-card">
+      <h2>Game</h2>
+      <div class="menu-section">
+        <h3>New world</h3>
+        <label>Start year <input type="number" id="newStart" value="1980" min="1920" max="2030"></label>
+        <label>Seed <input type="text" id="newSeed" placeholder="random"></label>
+        <button class="btn primary" data-action="new">Start new world</button>
+        <p class="muted small">Starting a new world replaces your current save.</p>
+      </div>
+      <div class="menu-section">
+        <h3>Save file</h3>
+        <button class="btn" data-action="export">Export save</button>
+        <label class="btn">Import save <input type="file" id="importFile" accept=".json,application/json" hidden></label>
+        <p class="muted small" id="saveInfo"></p>
+      </div>
+      <div class="menu-section">
+        <h3>Auto-play speed</h3>
+        <select id="autoSpeed">
+          <option value="2500">Slow (2.5s / year)</option>
+          <option value="1000" selected>Normal (1s / year)</option>
+          <option value="250">Fast</option>
+        </select>
+      </div>
+      <button class="btn ghost close" data-action="closeMenu">Close</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script>
+// Seeded RNG + small math helpers shared by every module.
+(function (HW) {
+  function RNG(seed) {
+    this.s = (seed >>> 0) || 1;
+  }
+  // mulberry32
+  RNG.prototype.next = function () {
+    var t = (this.s = (this.s + 0x6d2b79f5) >>> 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  RNG.prototype.range = function (a, b) { return a + (b - a) * this.next(); };
+  RNG.prototype.int = function (a, b) { return Math.floor(this.range(a, b + 1)); };
+  RNG.prototype.chance = function (p) { return this.next() < p; };
+  RNG.prototype.pick = function (arr) { return arr[Math.floor(this.next() * arr.length)]; };
+  RNG.prototype.normal = function (mu, sd) {
+    var u = 1 - this.next(), v = this.next();
+    return mu + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  RNG.prototype.weighted = function (items, weightFn) {
+    var total = 0, w = [], i;
+    for (i = 0; i < items.length; i++) { w[i] = Math.max(0, weightFn(items[i], i)); total += w[i]; }
+    if (total <= 0) return items[Math.floor(this.next() * items.length)];
+    var r = this.next() * total;
+    for (i = 0; i < items.length; i++) { r -= w[i]; if (r <= 0) return items[i]; }
+    return items[items.length - 1];
+  };
+  RNG.prototype.shuffle = function (arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(this.next() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  };
+
+  HW.RNG = RNG;
+  HW.clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  HW.round1 = function (v) { return Math.round(v * 10) / 10; };
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// Static game data: names, genres, traits, studios, title fragments, industry events.
+(function (HW) {
+  function words(s) { return s.trim().split(/\s+/); }
+
+  HW.NAMES = {
+    male: words(`James John Robert Michael William David Richard Joseph Thomas Charles Christopher Daniel Matthew
+      Anthony Mark Donald Steven Paul Andrew Joshua Kenneth Kevin Brian George Timothy Ronald Edward Jason Jeffrey
+      Ryan Jacob Gary Nicholas Eric Jonathan Stephen Larry Justin Scott Brandon Benjamin Samuel Gregory Alexander
+      Frank Patrick Raymond Jack Dennis Jerry Tyler Aaron Jose Adam Nathan Henry Douglas Zachary Peter Kyle Ethan
+      Walter Noah Jeremy Christian Keith Roger Terry Gerald Harold Sean Austin Carl Arthur Lawrence Dylan Jesse
+      Jordan Bryan Billy Joe Bruce Gabriel Logan Albert Willie Alan Juan Wayne Elijah Randy Roy Vincent Ralph
+      Eugene Russell Bobby Mason Philip Louis Marcus Theo Rafael Mateo Hugo Luca Oscar Felix Julian Miles Dante
+      Isaac Leon Victor Omar Rhys Declan Callum Idris Kenji Hiro Dev Arjun Sanjay Andre Malik Darius Tobias Silas
+      Clint Montgomery Cary Errol Gene Sterling Rock Spencer Humphrey Orson Marlon Warren Dustin Harrison Keanu`),
+    female: words(`Mary Patricia Jennifer Linda Elizabeth Barbara Susan Jessica Sarah Karen Lisa Nancy Betty Margaret
+      Sandra Ashley Kimberly Emily Donna Michelle Carol Amanda Dorothy Melissa Deborah Stephanie Rebecca Sharon
+      Laura Cynthia Kathleen Amy Angela Shirley Anna Brenda Pamela Emma Nicole Helen Samantha Katherine Christine
+      Debra Rachel Carolyn Janet Catherine Maria Heather Diane Ruth Julie Olivia Joyce Virginia Victoria Kelly
+      Lauren Christina Joan Evelyn Judith Megan Andrea Cheryl Hannah Jacqueline Martha Gloria Teresa Ann Sara
+      Madison Frances Kathryn Janice Jean Abigail Alice Julia Judy Sophia Grace Denise Amber Doris Marilyn Danielle
+      Beverly Isabella Theresa Diana Natalie Brittany Charlotte Marie Kayla Alexis Lori Greta Ingrid Audrey Vivien
+      Bette Lauren Rita Ava Lana Sophia Meryl Jodie Halle Zoe Mila Chloe Isla Freya Priya Aiko Yuna Ines Lucia
+      Elena Camila Valentina Amara Zara Nadia Leila Simone Juliette Margot Saoirse Florence Cate Viola Octavia`),
+    last: words(`Smith Johnson Williams Brown Jones Garcia Miller Davis Rodriguez Martinez Hernandez Lopez Gonzalez
+      Wilson Anderson Thomas Taylor Moore Jackson Martin Lee Perez Thompson White Harris Sanchez Clark Ramirez Lewis
+      Robinson Walker Young Allen King Wright Scott Torres Nguyen Hill Flores Green Adams Nelson Baker Hall Rivera
+      Campbell Mitchell Carter Roberts Gomez Phillips Evans Turner Diaz Parker Cruz Edwards Collins Reyes Stewart
+      Morris Morales Murphy Cook Rogers Gutierrez Ortiz Morgan Cooper Peterson Bailey Reed Kelly Howard Ramos Kim
+      Cox Ward Richardson Watson Brooks Chavez Wood James Bennett Gray Mendoza Ruiz Hughes Price Alvarez Castillo
+      Sanders Patel Myers Long Ross Foster Jimenez Powell Jenkins Perry Russell Sullivan Bell Coleman Butler
+      Henderson Barnes Gonzales Fisher Vasquez Simmons Romero Jordan Patterson Alexander Hamilton Graham Reynolds
+      Griffin Wallace Moreno West Cole Hayes Bryant Herrera Gibson Ellis Tran Medina Aguilar Stevens Murray Ford
+      Castro Marshall Owens Harrison Fernandez McDonald Woods Washington Kennedy Wells Vargas Henry Chen Freeman
+      Webb Tucker Guzman Burns Crawford Olson Simpson Porter Hunter Gordon Mendez Silva Shaw Snyder Mason Dixon
+      Munoz Hunt Hicks Holmes Palmer Wagner Black Robertson Boyd Rose Stone Salazar Fox Warren Mills Meyer Rice
+      Schmidt Garza Daniels Ferguson Nichols Stephens Soto Weaver Ryan Gardner Payne Grant Dunn Kelley Spencer
+      Hawkins Arnold Pierce Vance Hansen Peters Santos Hart Bradley Knight Elliott Cunningham Duncan Armstrong
+      Hudson Carroll Lane Riley Andrews Ray Berry Perkins Hoffman Johnston Matthews Pena Richards Willis Carpenter
+      Lawrence Sandoval Blackwood Ashford Whitmore Kingsley Lancaster Sinclair Montague Fairbanks Langley Prescott
+      Hawthorne Marlowe Vaughn Beaumont Delacroix Moreau Rossi Bianchi Conti Russo Novak Kowalski Petrov Ivanova
+      Larsen Lindqvist Okafor Mensah Adeyemi Nakamura Tanaka Sato Kapoor Mehta Rao Haddad Nasser Costa Duarte`)
+  };
+
+  // apt: which actor genre skills a film draws on; core: which core stats matter most for the genre.
+  // budget: multiplier on budget; appeal: audience multiplier; awards: academy bias;
+  // spectacle: how much budget/VFX matter; critic: critics' bias.
+  HW.GENRES = {
+    'Drama':     { budget: 0.55, appeal: 0.75, awards: 9,   spectacle: 0.05, critic: 4,  apt: { drama: 1 }, core: { intensity: 1 } },
+    'Comedy':    { budget: 0.65, appeal: 1.05, awards: -7,  spectacle: 0.1,  critic: -2, apt: { comedy: 1 }, core: { chemistry: 1 } },
+    'Action':    { budget: 1.6,  appeal: 1.25, awards: -9,  spectacle: 1.0,  critic: -5, apt: { action: 1 }, core: { physicality: 1 } },
+    'Sci-Fi':    { budget: 1.7,  appeal: 1.15, awards: -3,  spectacle: 0.95, critic: 0,  apt: { action: 0.5, drama: 0.3, thriller: 0.2 }, core: { physicality: 0.5, intensity: 0.5 } },
+    'Horror':    { budget: 0.35, appeal: 1.0,  awards: -11, spectacle: 0.2,  critic: -4, apt: { thriller: 1 }, core: { intensity: 0.6, physicality: 0.4 } },
+    'Romance':   { budget: 0.55, appeal: 0.85, awards: -2,  spectacle: 0.05, critic: -1, apt: { romance: 1 }, core: { chemistry: 0.6, presence: 0.4 } },
+    'Thriller':  { budget: 0.8,  appeal: 0.95, awards: 0,   spectacle: 0.35, critic: 1,  apt: { thriller: 1 }, core: { intensity: 1 } },
+    'Fantasy':   { budget: 1.8,  appeal: 1.15, awards: -4,  spectacle: 0.9,  critic: -1, apt: { action: 0.5, drama: 0.3, romance: 0.2 }, core: { physicality: 0.5, presence: 0.5 } },
+    'Animation': { budget: 1.4,  appeal: 1.25, awards: -6,  spectacle: 0.6,  critic: 3,  apt: { comedy: 0.7, drama: 0.3 }, core: { chemistry: 1 } },
+    'War':       { budget: 1.1,  appeal: 0.8,  awards: 7,   spectacle: 0.6,  critic: 3,  apt: { drama: 0.6, action: 0.4 }, core: { intensity: 0.6, physicality: 0.4 } },
+    'Western':   { budget: 0.85, appeal: 0.7,  awards: 3,   spectacle: 0.35, critic: 2,  apt: { action: 0.6, drama: 0.4 }, core: { presence: 0.6, physicality: 0.4 } },
+    'Musical':   { budget: 0.95, appeal: 0.85, awards: 4,   spectacle: 0.3,  critic: 1,  apt: { romance: 0.5, comedy: 0.5 }, core: { physicality: 0.5, chemistry: 0.5 } },
+    'Biopic':    { budget: 0.7,  appeal: 0.7,  awards: 11,  spectacle: 0.1,  critic: 3,  apt: { drama: 1 }, core: { intensity: 0.7, craft: 0.3 } },
+    'Crime':     { budget: 0.8,  appeal: 0.95, awards: 4,   spectacle: 0.3,  critic: 3,  apt: { thriller: 0.6, drama: 0.4 }, core: { intensity: 0.7, presence: 0.3 } },
+    'Family':    { budget: 0.9,  appeal: 1.1,  awards: -8,  spectacle: 0.4,  critic: -3, apt: { comedy: 0.8, drama: 0.2 }, core: { chemistry: 1 } },
+    'Superhero': { budget: 2.0,  appeal: 1.35, awards: -12, spectacle: 1.0,  critic: -3, apt: { action: 0.8, comedy: 0.2 }, core: { physicality: 0.6, presence: 0.4 } }
+  };
+  HW.GENRE_KEYS = Object.keys(HW.GENRES);
+
+  HW.ROLES = {
+    actor:           { label: 'Actor', plural: 'Actors', target: 1000,
+                       stats: ['presence', 'craft', 'intensity', 'physicality', 'chemistry', 'range'] },
+    director:        { label: 'Director', plural: 'Directors', target: 180,
+                       stats: ['vision', 'craft', 'actorHandling', 'commercial', 'efficiency'] },
+    writer:          { label: 'Writer', plural: 'Writers', target: 180,
+                       stats: ['originality', 'dialogue', 'structure', 'commercial'] },
+    cinematographer: { label: 'Cinematographer', plural: 'Cinematographers', target: 110,
+                       stats: ['visuals', 'technique', 'innovation'] },
+    composer:        { label: 'Composer', plural: 'Composers', target: 100,
+                       stats: ['melody', 'atmosphere', 'versatility'] }
+  };
+  HW.ROLE_KEYS = Object.keys(HW.ROLES);
+
+  // Actor stats are on a 1-10 scale. Core stats follow genes + age; genre skills grow with each film's results.
+  HW.ACTOR_GENRES = ['comedy', 'action', 'romance', 'drama', 'thriller'];
+  HW.STAT_DESC = {
+    presence: 'How much the camera loves them, and star power.',
+    craft: 'Technique, training, and consistency take after take.',
+    intensity: 'Emotional depth and willingness to go all in.',
+    physicality: 'Stunts, action, dance, and body control.',
+    chemistry: 'Comedic timing, improv, and how well they elevate scene partners.',
+    range: 'Versatility: how well they play against type.'
+  };
+
+  HW.STAT_LABELS = {
+    presence: 'Presence', craft: 'Craft', intensity: 'Intensity', physicality: 'Physicality', chemistry: 'Chemistry',
+    range: 'Range', comedy: 'Comedy', action: 'Action', romance: 'Romance', drama: 'Drama', thriller: 'Thriller', vision: 'Vision', craft: 'Craft', actorHandling: 'Actor Handling',
+    commercial: 'Commercial Instinct', efficiency: 'Budget Control', originality: 'Originality', dialogue: 'Dialogue',
+    structure: 'Structure', visuals: 'Visual Eye', technique: 'Technique', innovation: 'Innovation',
+    melody: 'Melody', atmosphere: 'Atmosphere', versatility: 'Versatility'
+  };
+
+  // How each stat ages: peak offset relative to the person's peak age, and decline rate per year past plateau.
+  HW.STAT_AGING = {
+    presence:    { peak: 30, plateau: 14, decline: 0.009, young: 0.85 },
+    physicality: { peak: 28, plateau: 8, decline: 0.022, young: 0.88 },
+    chemistry:   { peak: 34, plateau: 25, decline: 0.005, young: 0.8 }
+    // everything else uses the person's own peakAge (craft-type stats)
+  };
+
+  HW.TRAITS = {
+    // actors
+    method:       { name: 'Method Actor', roles: ['actor'], desc: 'Disappears into roles. Bigger, riskier performances.' },
+    stuntman:     { name: 'Does Own Stunts', roles: ['actor'], desc: 'Exceptional physicality; action audiences love it.' },
+    improv:       { name: 'Improv Wizard', roles: ['actor'], desc: 'Riffs that lift every scene partner.' },
+    magnet:       { name: 'Box Office Magnet', roles: ['actor'], desc: 'Audiences show up just to see them.' },
+    darling:      { name: "Critics' Darling", roles: ['actor', 'director', 'writer'], desc: 'Critics and voters adore their work.' },
+    diva:         { name: 'Diva', roles: ['actor', 'director'], desc: 'Demands a premium and causes friction on set.' },
+    workhorse:    { name: 'Workhorse', roles: ['actor', 'director', 'writer', 'cinematographer', 'composer'], desc: 'Takes on more projects per year.' },
+    scandal:      { name: 'Scandal-Prone', roles: ['actor', 'director'], desc: 'Never far from a tabloid headline.' },
+    bloomer:      { name: 'Late Bloomer', roles: ['actor', 'director', 'writer'], desc: 'Peaks much later than most.' },
+    chameleon:    { name: 'Chameleon', roles: ['actor'], desc: 'Exceptional versatility across genres.' },
+    indie:        { name: 'Indie Spirit', roles: ['actor', 'director'], desc: 'Takes pay cuts for interesting projects.' },
+    campaigner:   { name: 'Awards Campaigner', roles: ['actor', 'director'], desc: 'Works the awards circuit relentlessly.' },
+    reclusive:    { name: 'Reclusive', roles: ['actor', 'director', 'writer'], desc: 'Works rarely, picks projects carefully.' },
+    heartthrob:   { name: 'Heartthrob', roles: ['actor'], desc: 'Fame rises fast in youth, fades as they age.' },
+    // crew
+    auteur:       { name: 'Auteur', roles: ['director'], desc: 'Uncompromising vision. Critics love, audiences vary.' },
+    hitmaker:     { name: 'Hitmaker', roles: ['director', 'writer'], desc: 'Knows exactly what crowds want.' },
+    perfectionist:{ name: 'Perfectionist', roles: ['director', 'cinematographer'], desc: 'Better films, but blows budgets.' },
+    actorsdir:    { name: "Actor's Director", roles: ['director'], desc: 'Coaxes career-best performances out of casts.' },
+    franchise:    { name: 'Franchise Builder', roles: ['director', 'writer'], desc: 'Their hits beget sequels.' },
+    wordsmith:    { name: 'Wordsmith', roles: ['writer'], desc: 'Dialogue that actors kill to say.' },
+    pioneer:      { name: 'Tech Pioneer', roles: ['cinematographer', 'composer'], desc: 'Pushes the medium forward.' },
+    hummable:     { name: 'Hummable', roles: ['composer'], desc: 'Writes themes the whole world whistles.' }
+  };
+
+  HW.STUDIO_NAMES = words(`Silver_Crown_Pictures Meridian_Studios Atlas_Film_Corporation Starlight_Pictures
+    Golden_Gate_Films Pacific_Horizon_Pictures Monarch_Entertainment Redwood_Pictures Lionheart_Films
+    Blue_Harbor_Studios Northstar_Pictures Empire_Coast_Studios Crescent_Moon_Films Ironclad_Pictures
+    Velvet_Curtain_Films Grand_Marquee_Studios Obsidian_Films Halcyon_Pictures Lantern_Light_Films Cobalt_Pictures
+    Wildfire_Studios Paper_Moon_Pictures Copperline_Films Emerald_City_Pictures Archway_Studios Bright_Arrow_Films
+    Nightjar_Pictures Saltwater_Films Tall_Pines_Pictures Phoenix_Rising_Studios Odyssey_Films Vantage_Point_Pictures`)
+    .map(function (s) { return s.replace(/_/g, ' '); });
+  HW.STUDIO_PREFIX = words(`Amber Apex Aurora Beacon Boulevard Canyon Cascade Citadel Comet Coral Daybreak Driftwood
+    Echo Ember Falcon Fable Firefly Foxglove Granite Harbor Highland Hollow Indigo Juniper Keystone Lighthouse Lotus
+    Magnolia Mirage Mosaic Neon Nova Oasis Onyx Orchard Paragon Pinnacle Prism Quarry Radiant Raven Riverbend Sable
+    Sapphire Sequoia Solstice Sparrow Summit Tidal Topaz Twilight Uptown Valiant Willow Zenith`);
+  HW.STUDIO_SUFFIX = ['Pictures', 'Films', 'Studios', 'Entertainment', 'Media', 'Productions', 'Film Group', 'Cinema'];
+
+  HW.TITLE = {
+    adj: words(`Last Silent Broken Golden Dark Hidden Lost Final Eternal Burning Crimson Wild Hollow Savage Secret
+      Fallen Midnight Frozen Restless Distant Bitter Sweet Shattered Endless Iron Velvet Scarlet Electric Lonely
+      Perfect Forgotten Wicked Little Infinite Deadly Brave Quiet Crooked Twisted Blue Black White Electric`),
+    noun: words(`Heart Shadow River City Kingdom Dream Storm Fire Road Sky Night Promise Truth Game Empire Garden
+      Mirror Echo Horizon Highway Witness Code Signal Harvest Winter Summer Ocean Island Frontier Hunter Machine
+      Legacy Season Ghost Angel Stranger Detective Prophet Outlaw Crown Star Moon Sun Line Hour Letter Song Dance`),
+    place: words(`Paris Brooklyn Memphis Tokyo Avalon Eden Babylon Mars Atlantis Nowhere Tomorrow Yesterday Vegas
+      Montana Havana Berlin Rome Casablanca Shanghai Chinatown Harlem Sunset Malibu Arcadia Neptune Orion`),
+    patterns: {
+      'Drama':     ['The {adj} {noun}', '{noun} of {place}', 'A {noun} in {place}', '{adj} {noun}s', 'Before the {noun}'],
+      'Comedy':    ['{first} Gets {verbed}', 'The {noun} Party', 'Meet the {last}s', 'My Big {adj} {noun}', '{first} & {first2}'],
+      'Action':    ['{adj} {noun}', '{noun} Protocol', 'Operation {noun}', 'Code {adj}', 'Maximum {noun}', '{noun} Strike'],
+      'Sci-Fi':    ['{noun} of {place}', 'Beyond the {noun}', 'The {noun} Paradox', 'Project {place}', '{place} Rising'],
+      'Horror':    ['The {noun} Beneath', 'It Came from {place}', '{adj} {noun}', 'Don\'t Open the {noun}', 'The Hollowing'],
+      'Romance':   ['Love in {place}', 'A {adj} {noun}', '{first} & {first2}', 'Letters to {first}', 'The {noun} Between Us'],
+      'Thriller':  ['The {noun} Witness', '{adj} Silence', 'No {noun} Left', 'The {last} Affair', 'Dead {noun}'],
+      'Fantasy':   ['The {noun} of {place}', '{adj} Kingdom', 'The {adj} Crown', 'Quest for {place}', 'Realm of {noun}s'],
+      'Animation': ['{first} the {noun}', 'The Little {noun}', 'Tales of {place}', '{noun} Pals', 'The {adj} Adventure'],
+      'War':       ['Battle of {place}', '{adj} Front', 'The Road to {place}', 'Brothers of the {noun}', 'Hill {num}'],
+      'Western':   ['The {adj} Rider', '{noun} at Dawn', 'Showdown at {place}', 'The {last} Gang', 'Dust and {noun}'],
+      'Musical':   ['{place} Nights', 'Sing for {first}', 'The {noun} Song', '{adj} Melody', 'Dancing in {place}'],
+      'Biopic':    ['{first} {last}', 'The {last} Story', '{last}', 'Becoming {first}', 'The Man Called {last}'],
+      'Crime':     ['The {last} Job', '{place} Confidential', 'Blood and {noun}', 'The {adj} Score', 'Family {noun}'],
+      'Family':    ['A {noun} for {first}', 'The {noun} Who Saved {place}', 'Home for the {noun}', 'Our {adj} {noun}'],
+      'Superhero': ['Captain {noun}', 'The {adj} {noun}', '{noun}man', 'League of {noun}s', 'Rise of the {noun}', '{noun} Force']
+    },
+    verbed: words(`Married Lost Fired Elected Even Lucky Famous Grounded Hitched Hired Even Schooled`)
+  };
+
+  HW.MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Industry-wide events. Each applies modifiers for the year it fires.
+  HW.EVENTS = [
+    { key: 'strike',   weight: 3, text: "Writers' strike halts production across town",       mods: { output: 0.72 } },
+    { key: 'recession',weight: 4, text: 'Economic recession hits ticket sales',                 mods: { boxOffice: 0.84 } },
+    { key: 'boom',     weight: 4, text: 'Moviegoing boom: theaters packed nationwide',          mods: { boxOffice: 1.15 } },
+    { key: 'video',    weight: 3, text: 'Home video & streaming revenue surges',                mods: { ancillary: 1.5 } },
+    { key: 'vfx',      weight: 3, text: 'Visual-effects breakthrough dazzles audiences',        mods: { spectacle: 1.25 } },
+    { key: 'craze',    weight: 7, text: '{genre} craze sweeps the box office',                  mods: { craze: 1 } },
+    { key: 'fatigue',  weight: 5, text: 'Audiences grow tired of {genre} pictures',             mods: { fatigue: 1 } },
+    { key: 'china',    weight: 2, text: 'Overseas markets open up, global grosses soar',        mods: { boxOffice: 1.1, spectacleBO: 1.15 } },
+    { key: 'prestige', weight: 3, text: 'Arthouse revival: audiences seek serious cinema',      mods: { prestigeBO: 1.3 } }
+  ];
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// World generation, people, studios, and per-person derived values (age, OVR, fee).
+(function (HW) {
+  var clamp = HW.clamp;
+
+  HW.newWorld = function (opts) {
+    opts = opts || {};
+    var seed = opts.seed || Math.floor(Math.random() * 1e9);
+    var rng = new HW.RNG(seed);
+    var w = {
+      version: 2,
+      seed: seed,
+      startYear: opts.startYear || 1980,
+      year: opts.startYear || 1980, // next year to simulate
+      people: [],
+      studios: [],
+      films: [],
+      awards: {},
+      history: [],
+      news: [],
+      trends: {},
+      usedNames: {},
+      usedTitles: {},
+      rngState: 0
+    };
+    HW.GENRE_KEYS.forEach(function (g) { w.trends[g] = clamp(rng.normal(1, 0.12), 0.7, 1.3); });
+    w.trends['Superhero'] = 0.45; // a niche genre... for now
+
+    HW.ROLE_KEYS.forEach(function (role) {
+      for (var i = 0; i < HW.ROLES[role].target; i++) createPerson(w, rng, role, { initial: true });
+    });
+
+    var names = rng.shuffle(HW.STUDIO_NAMES.slice());
+    var tiers = [];
+    var i;
+    for (i = 0; i < 6; i++) tiers.push('Major');
+    for (i = 0; i < 8; i++) tiers.push('Mid');
+    for (i = 0; i < 8; i++) tiers.push('Indie');
+    tiers.forEach(function (tier, idx) {
+      createStudio(w, rng, tier, { name: names[idx], founded: w.startYear - rng.int(tier === 'Major' ? 40 : 2, tier === 'Major' ? 70 : 30) });
+    });
+
+    w.rngState = rng.s;
+    HW.addNews(w, w.startYear, 'The curtain rises on ' + w.startYear + ' Hollywood: ' + w.studios.length + ' studios and ' +
+      w.people.length + ' artists chase fame and glory.', 'event');
+    return w;
+  };
+
+  function uniqueName(w, rng, gender) {
+    for (var tries = 0; tries < 50; tries++) {
+      var n = rng.pick(gender === 'M' ? HW.NAMES.male : HW.NAMES.female) + ' ' + rng.pick(HW.NAMES.last);
+      if (!w.usedNames[n]) { w.usedNames[n] = 1; return n; }
+    }
+    var base = rng.pick(gender === 'M' ? HW.NAMES.male : HW.NAMES.female) + ' ' + rng.pick(HW.NAMES.last);
+    var k = 2;
+    while (w.usedNames[base + ' ' + roman(k)]) k++;
+    w.usedNames[base + ' ' + roman(k)] = 1;
+    return base + ' ' + roman(k);
+  }
+  function roman(n) { return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || ('#' + n); }
+
+  function rollTraits(rng, role) {
+    var pool = Object.keys(HW.TRAITS).filter(function (k) { return HW.TRAITS[k].roles.indexOf(role) >= 0; });
+    var n = rng.chance(0.45) ? (rng.chance(0.3) ? 2 : 1) : 0;
+    var out = [];
+    while (out.length < n) {
+      var t = rng.pick(pool);
+      if (out.indexOf(t) < 0) out.push(t);
+    }
+    return out;
+  }
+
+  // Create a person. Genes are the stat ceilings; current stats are derived from genes + age + experience.
+  function createPerson(w, rng, role, o) {
+    o = o || {};
+    var gender = o.gender || (role === 'actor' ? (rng.chance(0.5) ? 'M' : 'F') : (rng.chance(0.72) ? 'M' : 'F'));
+    var age;
+    if (o.initial) {
+      age = role === 'actor' ? Math.round(clamp(rng.normal(36, 13), 17, 82)) : Math.round(clamp(rng.normal(46, 12), 24, 82));
+    } else {
+      age = role === 'actor' ? rng.int(17, 26) : rng.int(24, 34);
+    }
+    var star = rng.normal(0, 1); // shared talent factor, correlates stats
+    var genius = rng.chance(0.012);
+    var genes = {};
+    var actor = role === 'actor';
+    HW.ROLES[role].stats.forEach(function (s) {
+      // actors use a 1-10 scale, crew 1-100
+      if (actor) genes[s] = HW.round1(clamp(rng.normal(5.4 + star * 0.9, 1.2) + (genius ? 1.8 : 0), 1, 10));
+      else genes[s] = Math.round(clamp(rng.normal(54 + star * 9, 12) + (genius ? 18 : 0), 15, 99));
+    });
+    var traits = rollTraits(rng, role);
+    if (actor) {
+      var boost = { chameleon: 'range', heartthrob: 'presence', stuntman: 'physicality', improv: 'chemistry', method: 'intensity' };
+      traits.forEach(function (t) { if (boost[t]) genes[boost[t]] = Math.min(10, HW.round1(genes[boost[t]] + 1.8)); });
+    }
+    var peakAge = Math.round(clamp(rng.normal(role === 'actor' ? 38 : 47, 5), 28, 60));
+    if (traits.indexOf('bloomer') >= 0) peakAge += 10;
+
+    var p = {
+      id: w.people.length,
+      name: uniqueName(w, rng, gender),
+      gender: gender,
+      role: role,
+      born: w.year - age,
+      debut: o.initial ? w.year - Math.max(0, rng.int(0, Math.max(0, age - (role === 'actor' ? 18 : 25)))) : w.year,
+      status: 'active',
+      genes: genes,
+      stats: {},
+      peakAge: peakAge,
+      traits: traits,
+      specialty: role === 'actor' ? null : [rng.pick(HW.GENRE_KEYS.slice(0, 15)), rng.pick(HW.GENRE_KEYS.slice(0, 15))],
+      exp: 0,
+      fame: 0,
+      prestige: 0,
+      films: [],
+      gross: 0,
+      noms: 0,
+      wins: 0,
+      lastWorked: null,
+      scandalYear: null,
+      bestPerf: null
+    };
+    if (p.specialty && p.specialty[0] === p.specialty[1]) p.specialty.pop();
+    if (o.initial) p.exp = clamp(Math.round((w.year - p.debut) * rng.range(0.3, 1.1)), 0, 30);
+    if (actor) {
+      // genre skills: everyone leans into one genre; veterans start with more seasoning
+      p.genre = {};
+      p.gLast = null;
+      var lean = rng.pick(HW.ACTOR_GENRES);
+      HW.ACTOR_GENRES.forEach(function (g) {
+        var v = rng.normal(o.initial ? 3.6 : 2.6, 1.1) + p.exp * 0.07 + star * 0.4 + (g === lean ? rng.range(1.5, 3) : 0);
+        p.genre[g] = HW.round1(clamp(v, 1, 9));
+      });
+    }
+    HW.updateStats(p, w.year);
+    var ovr = HW.ovr(p);
+    var yearsIn = w.year - p.debut;
+    if (o.initial) {
+      p.fame = Math.round(clamp((ovr - 45) * 1.3 + yearsIn * 1.1 + rng.normal(0, 12) + (actor ? (p.stats.presence - 5) * 2.5 : -8), 0, 95));
+      p.prestige = Math.round(clamp((ovr - 45) * 1.4 + yearsIn * 0.9 + rng.normal(0, 10), 0, 90));
+    } else {
+      p.fame = Math.round(clamp(rng.normal(4, 4), 0, 20));
+      p.prestige = Math.round(clamp(rng.normal(4, 4), 0, 20));
+    }
+    w.people.push(p);
+    return p;
+  }
+  HW.createPerson = createPerson;
+
+  function createStudio(w, rng, tier, o) {
+    o = o || {};
+    var name = o.name;
+    if (!name) {
+      var taken = {};
+      w.studios.forEach(function (s) { taken[s.name] = 1; });
+      for (var t = 0; t < 40 && (!name || taken[name]); t++) {
+        name = rng.chance(0.3) && HW.STUDIO_NAMES.some(function (n) { return !taken[n]; })
+          ? rng.pick(HW.STUDIO_NAMES.filter(function (n) { return !taken[n]; }))
+          : rng.pick(HW.STUDIO_PREFIX) + ' ' + rng.pick(HW.STUDIO_SUFFIX);
+      }
+    }
+    var prefs = {};
+    HW.GENRE_KEYS.forEach(function (g) { prefs[g] = HW.round1(clamp(rng.normal(1, 0.35), 0.2, 2.2)); });
+    // each studio has a couple of signature genres
+    for (var i = 0; i < 2; i++) prefs[rng.pick(HW.GENRE_KEYS.slice(0, 15))] += 1.2;
+    var cash = { Major: rng.int(700, 1100), Mid: rng.int(180, 320), Indie: rng.int(30, 80) }[tier];
+    var s = {
+      id: w.studios.length,
+      name: name,
+      tier: tier,
+      founded: o.founded || w.year,
+      active: true,
+      cash: cash,
+      prestige: Math.round(clamp(rng.normal(tier === 'Indie' ? 45 : 50, 14), 10, 90)),
+      // 0 = arthouse, 1 = pure commercial
+      commercial: HW.round1(clamp(rng.normal(tier === 'Major' ? 0.7 : tier === 'Mid' ? 0.55 : 0.35, 0.18), 0.05, 0.95)),
+      prefs: prefs,
+      hue: rng.int(0, 359),
+      films: [],
+      wins: 0,
+      noms: 0,
+      bestPictures: 0,
+      yearly: [],
+      debtYears: 0,
+      fate: null
+    };
+    w.studios.push(s);
+    return s;
+  }
+  HW.createStudio = createStudio;
+
+  HW.age = function (p, year) { return year - p.born; };
+
+  // Current stats from genes, age curve and accumulated experience.
+  HW.updateStats = function (p, year) {
+    var age = year - p.born;
+    var actor = p.role === 'actor';
+    var expBonus = Math.min(10, p.exp * 0.45) * (actor ? 0.1 : 1);
+    HW.ROLES[p.role].stats.forEach(function (s) {
+      var a = HW.STAT_AGING[s] || { peak: p.peakAge, plateau: 12, decline: 0.009, young: 0.72 };
+      var peak = HW.STAT_AGING[s] ? a.peak : p.peakAge;
+      var startAge = p.role === 'actor' ? 16 : 22;
+      var f;
+      if (age < peak) f = a.young + (1 - a.young) * clamp((age - startAge) / (peak - startAge), 0, 1);
+      else if (age <= peak + a.plateau) f = 1;
+      else f = Math.max(0.35, 1 - (age - peak - a.plateau) * a.decline);
+      var bonus = (s === 'presence' || s === 'physicality') ? 0 : expBonus * (age < peak + a.plateau ? 1 : 0.7);
+      p.stats[s] = actor ? HW.round1(clamp(p.genes[s] * f + bonus, 1, 10)) : Math.round(clamp(p.genes[s] * f + bonus, 1, 99));
+    });
+  };
+
+  HW.ovr = function (p) {
+    var s = p.stats;
+    switch (p.role) {
+      case 'actor': // 0-100 for sorting; shown to players as 1-10
+        var best = Math.max.apply(null, HW.ACTOR_GENRES.map(function (g) { return p.genre[g]; }));
+        return Math.round((s.presence * 0.2 + s.craft * 0.22 + s.intensity * 0.18 + s.physicality * 0.08 + s.chemistry * 0.14 + s.range * 0.08 + best * 0.1) * 10);
+      case 'director':
+        return Math.round(s.vision * 0.32 + s.craft * 0.32 + s.actorHandling * 0.16 + s.commercial * 0.12 + s.efficiency * 0.08);
+      case 'writer':
+        return Math.round(s.originality * 0.3 + s.dialogue * 0.28 + s.structure * 0.3 + s.commercial * 0.12);
+      case 'cinematographer':
+        return Math.round(s.visuals * 0.45 + s.technique * 0.35 + s.innovation * 0.2);
+      case 'composer':
+        return Math.round(s.melody * 0.4 + s.atmosphere * 0.4 + s.versatility * 0.2);
+    }
+    return 50;
+  };
+
+  // Potential shown as 1-5 stars, based on gene ceiling (scouts can't see exact genes).
+  HW.potentialStars = function (p) {
+    var keys = HW.ROLES[p.role].stats, sum = 0;
+    keys.forEach(function (k) { sum += p.genes[k]; });
+    var avg = sum / keys.length * (p.role === 'actor' ? 10 : 1);
+    return clamp(Math.round((avg - 30) / 12), 1, 5);
+  };
+
+  // Asking fee in $M.
+  HW.fee = function (p) {
+    var f = p.fame / 100, pr = p.prestige / 100, base;
+    switch (p.role) {
+      case 'actor': base = 0.05 + Math.pow(f, 2.3) * 22 + pr * 2; break;
+      case 'director': base = 0.1 + Math.pow(f, 2) * 12 + pr * 3; break;
+      case 'writer': base = 0.05 + Math.pow(f, 2) * 4 + pr * 1; break;
+      default: base = 0.04 + Math.pow(f, 2) * 2 + pr * 0.6;
+    }
+    if (p.traits.indexOf('diva') >= 0) base *= 1.5;
+    return Math.round(base * 100) / 100;
+  };
+
+  // How well an actor fits a genre, 0-100: mostly their genre skill, partly the genre's key core stats.
+  HW.genreApt = function (p, genre) {
+    var G = HW.GENRES[genre], skill = 0, core = 0, k;
+    for (k in G.apt) skill += p.genre[k] * G.apt[k];
+    for (k in G.core) core += p.stats[k] * G.core[k];
+    return (skill * 0.6 + core * 0.4) * 10;
+  };
+
+  // Genre skills move with how each film turns out. Returns the change applied.
+  HW.growGenres = function (p, f, perf, lead) {
+    var G = HW.GENRES[f.genre];
+    var reception = ((f.critic + f.audience) / 2 - 55) / 30;           // roughly -1.5..+1.5
+    var boxOffice = clamp(Math.log2(f.gross / Math.max(1, f.budget)) / 3, -1, 1);
+    var own = (perf - 60) / 25;
+    var x = 0.18 + 0.22 * reception + 0.12 * boxOffice + 0.2 * own;   // a typical film nudges skills up a little
+    var out = {};
+    for (var g in G.apt) {
+      var d = x * G.apt[g] * (lead ? 1 : 0.6);
+      d *= d > 0 ? Math.max(0.1, (10 - p.genre[g]) / 6) : 0.6;         // harder to improve near the top
+      p.genre[g] = Math.round(clamp(p.genre[g] + d, 1, 10) * 100) / 100;
+      out[g] = d;
+    }
+    return out;
+  };
+
+  HW.has = function (p, trait) { return p.traits.indexOf(trait) >= 0; };
+
+  HW.addNews = function (w, year, text, type, ref) {
+    w.news.push({ y: year, t: text, k: type || 'misc', r: ref || null });
+    if (w.news.length > 4000) w.news.splice(0, w.news.length - 4000);
+  };
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// Yearly simulation: industry events, trends, production, release & box office, careers, aging.
+(function (HW) {
+  var clamp = HW.clamp;
+
+  var TIER = {
+    Major: { films: [7, 11], budget: 70, sd: 0.55, min: 20, max: 280, overhead: 45, floor: -500, reserve: 2000 },
+    Mid:   { films: [4, 6],  budget: 26, sd: 0.55, min: 6,  max: 110, overhead: 14, floor: -160, reserve: 600 },
+    Indie: { films: [2, 4],  budget: 5,  sd: 0.7,  min: 0.4, max: 30, overhead: 2,  floor: -50, reserve: 150 }
+  };
+  HW.TIER = TIER;
+
+  var CAPS = { actor: 2, director: 1, writer: 2, cinematographer: 2, composer: 3 };
+
+  HW.simulateYear = function (w) {
+    var rng = new HW.RNG(w.rngState);
+    var ctx = {
+      year: w.year, rng: rng, films: [], booked: {}, resting: {},
+      mods: { output: 1, boxOffice: 1, ancillary: 1, spectacle: 1, spectacleBO: 1, prestigeBO: 1 },
+      event: null
+    };
+    rollEvent(w, ctx);
+    updateTrends(w, ctx);
+    produceFilms(w, ctx);
+    releaseFilms(w, ctx);
+    careerUpdates(w, ctx);
+    HW.runAwards(w, ctx);
+    studioYearEnd(w, ctx);
+    peopleYearEnd(w, ctx);
+    recordHistory(w, ctx);
+    w.year++;
+    w.rngState = rng.s;
+    return ctx;
+  };
+
+  // ---------- events & trends ----------
+  function rollEvent(w, ctx) {
+    var rng = ctx.rng;
+    if (!rng.chance(0.45)) return;
+    var ev = rng.weighted(HW.EVENTS, function (e) { return e.weight; });
+    var text = ev.text, genre = null;
+    if (ev.mods.craze) {
+      genre = rng.weighted(HW.GENRE_KEYS, function (g) { return w.trends[g] + 0.3; });
+      w.trends[genre] = clamp(w.trends[genre] * rng.range(1.3, 1.6), 0.3, 2.4);
+    } else if (ev.mods.fatigue) {
+      genre = HW.GENRE_KEYS.slice().sort(function (a, b) { return w.trends[b] - w.trends[a]; })[rng.int(0, 2)];
+      w.trends[genre] = clamp(w.trends[genre] * rng.range(0.6, 0.8), 0.3, 2.4);
+    } else {
+      for (var k in ev.mods) ctx.mods[k] = ev.mods[k];
+    }
+    text = text.replace('{genre}', genre);
+    ctx.event = { key: ev.key, text: text, genre: genre };
+    HW.addNews(w, ctx.year, text + '.', 'event');
+  }
+
+  function updateTrends(w, ctx) {
+    var rng = ctx.rng, gs = w.genreStats || {};
+    HW.GENRE_KEYS.forEach(function (g) {
+      var t = w.trends[g];
+      var target = g === 'Superhero' ? 0.75 : 1;
+      t += (target - t) * 0.12 + rng.normal(0, 0.06);
+      // copycat effect: last year's profitable genres get more appetite
+      var s = gs[g];
+      if (s && s.films >= 2 && s.budget > 0) t += clamp((s.gross / s.budget - 2.6) * 0.03, -0.07, 0.1);
+      w.trends[g] = clamp(t, 0.35, 1.9);
+    });
+    // keep overall appetite near 1 so trends are relative
+    var mean = HW.GENRE_KEYS.reduce(function (a, g) { return a + w.trends[g]; }, 0) / HW.GENRE_KEYS.length;
+    HW.GENRE_KEYS.forEach(function (g) { w.trends[g] = Math.round(w.trends[g] / Math.sqrt(mean) * 100) / 100; });
+  }
+
+  // ---------- production ----------
+  function capFor(p) {
+    var c = CAPS[p.role];
+    if (HW.has(p, 'workhorse')) c += 1;
+    if (HW.has(p, 'reclusive')) c = 1;
+    return c;
+  }
+
+  function produceFilms(w, ctx) {
+    var rng = ctx.rng, Y = ctx.year;
+    // some people sit the year out
+    w.people.forEach(function (p) {
+      if (p.status !== 'active') return;
+      var restP = HW.has(p, 'reclusive') ? 0.5 : 0.08;
+      if (rng.chance(restP)) ctx.resting[p.id] = 1;
+    });
+
+    var pools = {};
+    HW.ROLE_KEYS.forEach(function (r) { pools[r] = []; });
+    w.people.forEach(function (p) {
+      if (p.status === 'active' && !ctx.resting[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
+    });
+    ctx.pools = pools;
+    ctx.fees = [];
+    w.people.forEach(function (p) { if (p.status === 'active') ctx.fees[p.id] = HW.fee(p); });
+    ctx.pools.actorM = pools.actor.filter(function (p) { return p.gender === 'M'; });
+    ctx.pools.actorF = pools.actor.filter(function (p) { return p.gender === 'F'; });
+
+    var projects = [];
+    w.studios.forEach(function (s) {
+      if (!s.active) return;
+      var t = TIER[s.tier];
+      var n = rng.int(t.films[0], t.films[1]) * ctx.mods.output;
+      if (s.cash < 0) n *= 0.6;
+      else if (s.cash > { Major: 1500, Mid: 450, Indie: 120 }[s.tier]) n *= 1.15;
+      n = Math.max(1, Math.round(n));
+      for (var i = 0; i < n; i++) projects.push(planProject(w, ctx, s));
+    });
+    // bigger productions get first pick of talent (with some shuffle)
+    projects.sort(function (a, b) { return b.budget * rng.range(0.7, 1.3) - a.budget * rng.range(0.7, 1.3); });
+    projects.forEach(function (f) { staffProject(w, ctx, f); });
+    ctx.seqCount = {}; // audiences tire of too many sequels in one genre
+    projects.forEach(function (f) { if (f.seqOf != null) ctx.seqCount[f.genre] = (ctx.seqCount[f.genre] || 0) + 1; });
+    ctx.films = projects.filter(function (f) { return f.director != null && f.cast.length > 0; });
+  }
+
+  function findSequel(w, s, Y, rng) {
+    var cands = [];
+    for (var i = s.films.length - 1; i >= 0; i--) {
+      var f = w.films[s.films[i]];
+      if (f.year < Y - 4) break;
+      if (f.hasSeq || (f.seqNum || 1) >= 5) continue;
+      var dir = w.people[f.director];
+      var thresh = HW.has(dir, 'franchise') ? 2.0 : 2.6;
+      if (f.gross / f.budget >= thresh && f.gross >= 60 && f.audience >= 55) cands.push(f);
+    }
+    if (!cands.length || !rng.chance(0.35)) return null;
+    return rng.pick(cands);
+  }
+
+  function planProject(w, ctx, s) {
+    var rng = ctx.rng, Y = ctx.year, t = TIER[s.tier];
+    var seq = findSequel(w, s, Y, rng);
+    var genre;
+    if (seq) { genre = seq.genre; seq.hasSeq = true; }
+    else {
+      genre = rng.weighted(HW.GENRE_KEYS, function (g) {
+        var G = HW.GENRES[g];
+        var commercialFit = s.commercial * G.appeal + (1 - s.commercial) * (1 + G.awards / 15);
+        var budgetFit = s.tier === 'Indie' && G.budget > 1.3 ? 0.25 : 1;
+        return s.prefs[g] * Math.pow(w.trends[g], 1.5) * commercialFit * budgetFit;
+      });
+    }
+    var G = HW.GENRES[genre];
+    var budget = t.budget * Math.exp(rng.normal(0, t.sd)) * G.budget * (0.75 + s.commercial * 0.5);
+    if (seq) budget = Math.max(budget, seq.budget * rng.range(1.1, 1.5));
+    budget = clamp(budget, t.min, t.max);
+    budget = Math.min(budget, Math.max(t.min, s.cash * 0.4 + t.max * 0.15));
+    budget = Math.round(budget * 10) / 10;
+    var commercial = clamp(s.commercial + rng.normal(0, 0.15) + (G.awards > 5 ? -0.15 : 0) + (seq ? 0.2 : 0), 0, 1);
+    return {
+      id: null, title: null, year: Y, month: 0, studio: s.id, genre: genre, budget: budget, commercial: commercial,
+      seqOf: seq ? seq.id : null, seqNum: seq ? (seq.seqNum || 1) + 1 : 1, root: seq ? (seq.root != null ? seq.root : seq.id) : null,
+      director: null, writer: null, dp: null, composer: null, cast: [],
+      gross: 0, profit: 0, critic: 0, audience: 0, noms: 0, wins: 0, won: [], tags: []
+    };
+  }
+
+  function hire(ctx, pool, f, allowance, scoreFn) {
+    var rng = ctx.rng, best = null, bestScore = -1e9, bestFee = 0, bestCut = false;
+    allowance = Math.max(allowance, 0.12);
+    for (var i = 0; i < pool.length; i++) {
+      var p = pool[i];
+      if ((ctx.booked[p.id] || 0) >= capFor(p)) continue;
+      var raw = scoreFn(p);
+      if (raw < -1e8 || raw + 8.5 < bestScore) continue; // can't beat current pick even with max luck
+      var fee = ctx.fees[p.id], cut = false;
+      if (fee > allowance) {
+        // passion projects: some talent take a pay cut for serious work
+        var passion = (HW.has(p, 'indie') ? 0.5 : 0.06) * (1 - f.commercial);
+        if (fee * 0.3 <= allowance && ((p.id * 7919 + f.year) % 100) / 100 < passion) { fee = fee * 0.3; cut = true; }
+        else continue;
+      }
+      var sc = raw + (rng.next() - 0.5) * 17 - (fee / allowance) * 3;
+      if (sc > bestScore) { bestScore = sc; best = p; bestFee = fee; bestCut = cut; }
+    }
+    if (best) {
+      ctx.booked[best.id] = (ctx.booked[best.id] || 0) + 1;
+      return { p: best, fee: bestFee, cut: bestCut };
+    }
+    return null;
+  }
+
+  function specBonus(p, genre, amt) { return p.specialty && p.specialty.indexOf(genre) >= 0 ? amt : 0; }
+
+  function staffProject(w, ctx, f) {
+    var rng = ctx.rng, c = f.commercial, genre = f.genre, Y = ctx.year;
+    var prev = f.seqOf != null ? w.films[f.seqOf] : null;
+    var B = f.budget;
+
+    var d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
+      var q = (p.stats.vision + p.stats.craft) / 2;
+      return q * 0.65 + specBonus(p, genre, 8) + c * (p.stats.commercial * 0.25 + p.fame * 0.15) +
+        (1 - c) * p.prestige * 0.3 + (prev && prev.director === p.id ? 30 : 0);
+    });
+    if (!d) return;
+    f.director = d.p.id;
+    var dir = d.p;
+    var wr = hire(ctx, ctx.pools.writer, f, B * 0.03, function (p) {
+      var q = (p.stats.originality + p.stats.dialogue + p.stats.structure) / 3;
+      return q * 0.7 + specBonus(p, genre, 8) + c * p.stats.commercial * 0.25 + (1 - c) * p.prestige * 0.2 +
+        (prev && prev.writer === p.id ? 20 : 0);
+    });
+    f.writer = wr ? wr.p.id : null;
+    var dp = hire(ctx, ctx.pools.cinematographer, f, B * 0.015, function (p) {
+      return HW.ovr(p) * 0.8 + p.fame * 0.1 + G_spec(genre) * p.stats.technique * 0.1;
+    });
+    f.dp = dp ? dp.p.id : null;
+    var cm = hire(ctx, ctx.pools.composer, f, B * 0.012, function (p) { return HW.ovr(p) * 0.8 + p.fame * 0.1; });
+    f.composer = cm ? cm.p.id : null;
+
+    // roles
+    var roles = [];
+    var leadG = rng.chance(genre === 'Action' || genre === 'War' || genre === 'Western' ? 0.7 : 0.52) ? 'M' : 'F';
+    var other = leadG === 'M' ? 'F' : 'M';
+    var prevLeads = prev ? prev.cast.filter(function (x) { return x.r === 'L'; }) : [];
+    var actionish = HW.GENRES[genre].apt.action >= 0.5;
+    var leadAge = genre === 'Romance' ? [18, 48] : actionish ? [20, 58] : [16, 80];
+    roles.push({ r: 'L', g: prevLeads[0] ? w.people[prevLeads[0].p].gender : leadG, age: leadAge, share: 0.14 });
+    if (genre === 'Romance' || rng.chance(0.6)) roles.push({ r: 'L', g: prevLeads[1] ? w.people[prevLeads[1].p].gender : (genre === 'Romance' ? other : rng.chance(0.65) ? other : leadG), age: leadAge, share: 0.09 });
+    roles.push({ r: 'S', g: 'M', age: [8, 95], share: 0.04 });
+    roles.push({ r: 'S', g: 'F', age: [8, 95], share: 0.04 });
+    var extra = rng.int(0, 2);
+    for (var i = 0; i < extra; i++) roles.push({ r: 'S', g: rng.chance(0.5) ? 'M' : 'F', age: [8, 95], share: 0.025 });
+
+    var castIds = {};
+    var collab = {};
+    for (var j = dir.films.length - 1, n = 0; j >= 0 && n < 8; j--, n++) w.films[dir.films[j]].cast.forEach(function (x) { collab[x.p] = 1; });
+    var prevCast = {};
+    if (prev) prev.cast.forEach(function (x) { prevCast[x.p] = x.r; });
+    var spent = d.fee + (wr ? wr.fee : 0);
+    roles.forEach(function (role, idx) {
+      var pool = role.g === 'M' ? ctx.pools.actorM : ctx.pools.actorF;
+      var h = hire(ctx, pool, f, B * role.share, function (p) {
+        if (castIds[p.id]) return -1e9;
+        var age = Y - p.born;
+        if (age < role.age[0] || age > role.age[1]) return -1e9;
+        var st = p.stats, apt = HW.genreApt(p, genre);
+        var q = apt * 0.4 + (st.craft * 0.3 + st.intensity * 0.12 + st.range * 0.1 + st.chemistry * 0.08) * 10;
+        var sc = q * (1 - 0.3 * c) + (1 - c) * p.prestige * 0.25 + c * p.fame * (role.r === 'L' ? 0.4 : 0.15);
+        if (role.r === 'L' && genre !== 'Animation') sc += c * (st.presence - 5) * 1.5;
+        if (prevCast[p.id] === role.r) sc += 40;
+        if (collab[p.id]) sc += 4;
+        return sc;
+      });
+      if (!h) return;
+      if (castIds[h.p.id]) return;
+      castIds[h.p.id] = 1;
+      spent += h.fee;
+      f.cast.push({ p: h.p.id, r: role.r, perf: 0, fee: Math.round(h.fee * 100) / 100, cut: h.cut || undefined });
+    });
+    f.talentCost = Math.round(spent * 10) / 10;
+  }
+
+  function G_spec(genre) { return HW.GENRES[genre].spectacle; }
+
+  // ---------- release & box office ----------
+  function pickMonth(f, rng) {
+    var G = HW.GENRES[f.genre];
+    var r = rng.next();
+    if (G.spectacle >= 0.6 && f.budget > 40) return r < 0.6 ? rng.pick([4, 5, 6]) : r < 0.85 ? rng.pick([10, 11]) : rng.int(0, 11);
+    if (G.awards >= 3 && f.commercial < 0.55) return r < 0.6 ? rng.pick([9, 10, 11]) : rng.int(0, 11);
+    if (f.genre === 'Horror') return r < 0.4 ? 9 : r < 0.6 ? rng.pick([0, 1]) : rng.int(0, 11);
+    if (f.genre === 'Family' || f.genre === 'Animation') return r < 0.5 ? rng.pick([5, 6, 10, 11]) : rng.int(0, 11);
+    return rng.int(0, 11);
+  }
+  var MONTH_BO = [0.82, 0.85, 0.95, 0.97, 1.12, 1.2, 1.22, 1.0, 0.85, 0.95, 1.08, 1.15];
+
+  function releaseFilms(w, ctx) {
+    var rng = ctx.rng, Y = ctx.year;
+    ctx.films.forEach(function (f) {
+      f.month = pickMonth(f, rng);
+      f.title = makeTitle(w, rng, f);
+    });
+    ctx.films.forEach(function (f) { scoreFilm(w, ctx, f); });
+    // critics and audiences judge against what they're used to: drift the reference toward this year's median
+    var med = function (arr) { arr.sort(function (a, b) { return a - b; }); return arr[arr.length >> 1]; };
+    if (ctx.films.length) {
+      // films compete within their market segment (blockbusters vs. blockbusters, indies vs. indies)
+      ctx.seg = {};
+      ctx.films.forEach(function (f) {
+        var t = w.studios[f.studio].tier, g = ctx.seg[t] || (ctx.seg[t] = { n: 0, aud: 0, crit: 0 });
+        g.n++; g.aud += f.audience; g.crit += f.critic;
+      });
+      for (var t in ctx.seg) { ctx.seg[t].aud /= ctx.seg[t].n; ctx.seg[t].crit /= ctx.seg[t].n; }
+      w.ref.q = w.ref.q * 0.8 + 0.2 * med(ctx.films.map(function (f) { return f.sc.q; }));
+      w.ref.ent = w.ref.ent * 0.8 + 0.2 * med(ctx.films.map(function (f) { return f._ent; }));
+      ctx.films.forEach(function (f) { delete f._ent; });
+    }
+    var byMonth = {};
+    ctx.films.forEach(function (f) { (byMonth[f.month] = byMonth[f.month] || []).push(f); });
+
+    ctx.films.forEach(function (f) {
+      var G = HW.GENRES[f.genre];
+      var leads = f.cast.filter(function (x) { return x.r === 'L'; }).map(function (x) { return w.people[x.p]; });
+      var fames = leads.map(function (p) { return p.fame + (HW.has(p, 'magnet') ? 15 : 0); }).sort(function (a, b) { return b - a; });
+      var star = (fames[0] || 0) + (fames[1] || 0) * 0.4;
+      var dirFame = w.people[f.director].fame;
+      var base = 2 + Math.pow(f.budget, 0.95) * 1.7 + star * 0.55 + dirFame * 0.2;
+      var rivals = (byMonth[f.month] || []).filter(function (o) { return o !== f && o.budget >= f.budget * 0.6; }).length;
+      var seg = ctx.seg[w.studios[f.studio].tier];
+      var mult = Math.exp((f.audience - seg.aud) / 32) * Math.exp((f.critic - seg.crit) / 110) *
+        Math.pow(w.trends[f.genre], 0.9) * G.appeal * MONTH_BO[f.month] * ctx.mods.boxOffice /
+        (1 + 0.05 * rivals) * Math.exp(rng.normal(0, 0.38));
+      if (G.spectacle >= 0.6) mult *= ctx.mods.spectacleBO;
+      if (G.awards >= 3) mult *= ctx.mods.prestigeBO;
+      if (f.seqOf != null) {
+        var prev = w.films[f.seqOf];
+        mult *= clamp(prev.audience / 65, 0.7, 1.3) * [1, 1, 1.05, 0.9, 0.78, 0.68][f.seqNum] * Math.pow(0.93, ctx.seqCount[f.genre] || 0);
+        base += Math.min(prev.gross, 1200) * 0.15;
+      }
+      if (f.budget < 20 && f.critic >= 84 && rng.chance(0.35)) { mult *= rng.range(2.5, 7); f.tags.push('sleeper'); }
+      var gross = base * mult;
+      if (gross > 800) gross = 800 + (gross - 800) / (1 + (gross - 800) / 1600); // even mega-hits saturate
+      f.gross = Math.round(gross * 10) / 10;
+      var marketing = f.budget * 0.45 + 0.5;
+      var cost = f.budget * (1 + f.overrun) + marketing;
+      var revenue = f.gross * 0.5 + f.gross * 0.12 * ctx.mods.ancillary;
+      f.profit = Math.round((revenue - cost) * 10) / 10;
+      if (f.profit < -40 || (f.profit < 0 && f.gross < f.budget * 0.6 && f.budget > 30)) f.tags.push('flop');
+      if (f.gross / f.budget > 5 && f.gross > 100) f.tags.push('smash');
+
+      f.id = w.films.length;
+      w.films.push(f);
+      var s = w.studios[f.studio];
+      s.films.push(f.id);
+      s.cash = Math.round((s.cash + f.profit) * 10) / 10;
+    });
+
+    // headlines
+    var sorted = ctx.films.slice().sort(function (a, b) { return b.gross - a.gross; });
+    if (sorted[0]) {
+      var top = sorted[0];
+      var allTime = w.films.every(function (o) { return o === top || o.gross < top.gross; });
+      HW.addNews(w, Y, (allTime ? 'RECORD! ' : '') + '"' + top.title + '" (' + w.studios[top.studio].name + ') is the year\'s #1 movie with ' +
+        HW.money(top.gross) + (allTime ? ' — the biggest box office of all time.' : '.'), 'boxoffice', { f: top.id });
+    }
+    ctx.films.forEach(function (f) {
+      if (f.tags.indexOf('sleeper') >= 0) HW.addNews(w, Y, 'Sleeper hit: tiny "' + f.title + '" turns a ' + HW.money(f.budget) + ' budget into ' + HW.money(f.gross) + '.', 'boxoffice', { f: f.id });
+      if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) HW.addNews(w, Y, 'Disaster: "' + f.title + '" bombs, costing ' + w.studios[f.studio].name + ' ' + HW.money(-f.profit) + '.', 'boxoffice', { f: f.id });
+    });
+  }
+
+  function scoreFilm(w, ctx, f) {
+    var rng = ctx.rng, G = HW.GENRES[f.genre];
+    var dir = w.people[f.director];
+    var wr = f.writer != null ? w.people[f.writer] : null;
+    var dp = f.dp != null ? w.people[f.dp] : null;
+    var cm = f.composer != null ? w.people[f.composer] : null;
+    var dirHandling = (dir.stats.actorHandling - 50) * 0.12 + (HW.has(dir, 'actorsdir') ? 4 : 0);
+    var dialogue = wr ? (wr.stats.dialogue - 50) * 0.06 + (HW.has(wr, 'wordsmith') ? 2 : 0) : -3;
+
+    var actSum = 0, actW = 0, charSum = 0, charW = 0, chemTotal = 0;
+    f.cast.forEach(function (c) { chemTotal += w.people[c.p].stats.chemistry; });
+    f.cast.forEach(function (c) {
+      var p = w.people[c.p], s = p.stats;
+      var method = HW.has(p, 'method');
+      // chemistry: scene partners lift (or flatten) each other
+      var partners = f.cast.length > 1 ? (chemTotal - s.chemistry) / (f.cast.length - 1) : 5;
+      var perf = HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
+        (partners - 5) * 1.2 + dirHandling + dialogue + (method ? 3 : 0);
+      // craft is consistency: skilled actors deliver take after take; intensity swings bigger
+      var sd = 10 - s.craft * 0.5 + (method ? 3 : 0) + (s.intensity - 5) * 0.3;
+      c.perf = Math.round(clamp(perf + rng.normal(0, Math.max(2.5, sd)), 1, 99));
+      var wgt = c.r === 'L' ? 2 : 1;
+      actSum += c.perf * wgt; actW += wgt;
+      if (c.r === 'L') { charSum += (s.presence * 0.75 + s.chemistry * 0.25) * 10 + (HW.GENRES[f.genre].core.physicality || 0) * (s.physicality - 5) * 3; charW++; }
+    });
+    var acting = actW ? actSum / actW : 40;
+    var starAppeal = charW ? charSum / charW : 45;
+
+    var script = wr ? wr.stats.originality * 0.35 + wr.stats.structure * 0.35 + wr.stats.dialogue * 0.3 + specBonus(wr, f.genre, 5) : 38;
+    if (f.seqOf != null) script -= 4 + f.seqNum;
+    script += rng.normal(0, 6);
+    var direction = dir.stats.vision * 0.5 + dir.stats.craft * 0.5 + specBonus(dir, f.genre, 4) + rng.normal(0, 5);
+    var tech = dp ? dp.stats.visuals * 0.5 + dp.stats.technique * 0.3 + dp.stats.innovation * 0.2 + rng.normal(0, 5) : 40;
+    var music = cm ? cm.stats.melody * 0.4 + cm.stats.atmosphere * 0.4 + cm.stats.versatility * 0.2 + rng.normal(0, 5) : 40;
+    var spectacle = G.spectacle * clamp(Math.log(f.budget + 1) / Math.log(250), 0, 1.1) * 100 * ctx.mods.spectacle +
+      (dp ? (dp.stats.technique - 50) * 0.3 * G.spectacle : 0) + rng.normal(0, 6);
+
+    var overrun = clamp(rng.normal(0.05, 0.08) + (60 - dir.stats.efficiency) * 0.003, -0.05, 0.6);
+    var perfectionist = HW.has(dir, 'perfectionist') || (dp && HW.has(dp, 'perfectionist'));
+    if (perfectionist) { overrun += rng.range(0.1, 0.3); direction += 3; tech += 3; }
+    f.overrun = Math.round(overrun * 100) / 100;
+    var friction = f.cast.some(function (c) { return HW.has(w.people[c.p], 'diva'); }) || HW.has(dir, 'diva') ? rng.normal(-2, 3) : 0;
+    var chemistry = rng.normal(0, 3) + friction;
+
+    var quality = script * 0.3 + direction * 0.28 + acting * 0.27 + tech * 0.08 + music * 0.07 + chemistry;
+    var auteur = HW.has(dir, 'auteur');
+    var ref = w.ref || (w.ref = { q: 62, ent: 52 });
+    var critic = 52 + (quality - ref.q) * 1.8 + G.critic + (auteur ? 4 : 0) + (HW.has(dir, 'darling') ? 3 : 0) + rng.normal(0, 6);
+    var ent = script * 0.24 + direction * 0.2 + starAppeal * 0.24 + acting * 0.14 + spectacle * 0.14 +
+      (HW.has(dir, 'hitmaker') || (wr && HW.has(wr, 'hitmaker')) ? 4 : 0) + (dir.stats.commercial - 50) * 0.08 +
+      (cm && HW.has(cm, 'hummable') ? 2 : 0) + (auteur ? -3 : 0);
+    f._ent = ent;
+    var audience = 56 + (ent - ref.ent) * 1.6 + (critic - 55) * 0.1 + rng.normal(0, 6);
+
+    f.critic = Math.round(clamp(critic, 2, 99));
+    f.audience = Math.round(clamp(audience, 5, 99));
+    f.sc = {
+      q: Math.round(quality), script: Math.round(script), dir: Math.round(direction), act: Math.round(acting),
+      tech: Math.round(tech), music: Math.round(music), fx: Math.round(spectacle)
+    };
+  }
+
+  function makeTitle(w, rng, f) {
+    if (f.seqOf != null) {
+      var root = w.films[f.root];
+      var base = root.title;
+      return rng.chance(0.65) ? base + ' ' + f.seqNum : base + ': ' + rng.pick(['Part ' + roman(f.seqNum), 'Reckoning', 'Resurrection', 'Legacy', 'The Return', 'Rise', 'Endgame', 'Revenge', 'Origins', 'Homecoming']);
+    }
+    var T = HW.TITLE, used = w.usedTitles;
+    for (var i = 0; i < 20; i++) {
+      var pat = rng.pick(T.patterns[f.genre]);
+      var title = pat.replace('{adj}', rng.pick(T.adj)).replace('{noun}', rng.pick(T.noun)).replace('{place}', rng.pick(T.place))
+        .replace('{first2}', rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female))
+        .replace('{first}', rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female)).replace('{last}', rng.pick(HW.NAMES.last))
+        .replace('{verbed}', rng.pick(T.verbed)).replace('{num}', String(rng.int(1, 9) * 100 + rng.int(0, 99)));
+      if (!used[title]) { used[title] = f.year; return title; }
+      if (i > 12 && used[title] < f.year - 15) { used[title] = f.year; return title; } // a remake
+    }
+    var t2 = rng.pick(T.adj) + ' ' + rng.pick(T.noun) + ' ' + rng.pick(T.place);
+    used[t2] = f.year;
+    return t2;
+  }
+  function roman(n) { return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n); }
+
+  // ---------- careers ----------
+  function gainFame(p, d) {
+    if (d > 0) d *= Math.pow(1 - p.fame / 106, 1.3);
+    p.fame = clamp(p.fame + d, 0, 100);
+  }
+  function gainPrestige(p, d) {
+    if (d > 0) d *= Math.pow(1 - p.prestige / 106, 1.3) * (HW.has(p, 'darling') ? 1.4 : 1);
+    p.prestige = clamp(p.prestige + d, 0, 100);
+  }
+  HW.gainFame = gainFame;
+  HW.gainPrestige = gainPrestige;
+
+  function careerUpdates(w, ctx) {
+    var Y = ctx.year, rng = ctx.rng;
+    ctx.worked = {};
+    ctx.films.forEach(function (f) {
+      var boxo = clamp(Math.log2(f.gross / 60 + 0.25) * 3, -6, 13);
+      var aud = (f.audience - 60) / 12, crit = (f.critic - 60) / 7;
+      f.cast.forEach(function (c) {
+        var p = w.people[c.p], wgt = c.r === 'L' ? 1 : 0.5;
+        credit(p, f, ctx);
+        p.exp += c.r === 'L' ? 1.2 : 0.8;
+        p.gross += f.gross;
+        gainFame(p, wgt * (boxo + aud + (c.perf - 60) / 15) + (HW.has(p, 'heartthrob') && Y - p.born < 32 ? 2 : 0));
+        gainPrestige(p, wgt * (crit * 0.6 + (c.perf - 60) / 8));
+        var gd = HW.growGenres(p, f, c.perf, c.r === 'L');
+        if (!p.gLast || p.gLast.y !== Y) p.gLast = { y: Y, d: {} };
+        for (var g in gd) p.gLast.d[g] = Math.round(((p.gLast.d[g] || 0) + gd[g]) * 100) / 100;
+        if (!p.bestPerf || c.perf > p.bestPerf.v) p.bestPerf = { v: c.perf, f: f.id };
+      });
+      [['director', 1], ['writer', 0.5], ['dp', 0.3], ['composer', 0.3]].forEach(function (x) {
+        var id = f[x[0]];
+        if (id == null) return;
+        var p = w.people[id];
+        credit(p, f, ctx);
+        p.exp += 1;
+        if (x[0] === 'director') p.gross += f.gross;
+        gainFame(p, x[1] * (boxo * 0.8 + aud));
+        gainPrestige(p, x[1] * crit * 1.1);
+      });
+    });
+  }
+  function credit(p, f, ctx) {
+    if (p.films[p.films.length - 1] !== f.id) p.films.push(f.id);
+    p.lastWorked = ctx.year;
+    ctx.worked[p.id] = 1;
+  }
+
+  // ---------- studios ----------
+  function studioYearEnd(w, ctx) {
+    var Y = ctx.year, rng = ctx.rng;
+    var active = w.studios.filter(function (s) { return s.active; });
+    active.forEach(function (s) {
+      var t = TIER[s.tier];
+      var mine = ctx.films.filter(function (f) { return f.studio === s.id; });
+      s.cash -= t.overhead;
+      if (s.cash < 0) s.cash *= 1.07; // interest on debt
+      var payout = s.cash > t.reserve ? (s.cash - t.reserve) * 0.35 : 0; // parent company / shareholders take profits
+      s.cash -= payout;
+      s.cash = Math.round(s.cash * 10) / 10;
+      var gross = 0, profit = 0, crit = 0, wins = 0, noms = 0;
+      mine.forEach(function (f) { gross += f.gross; profit += f.profit; crit += f.critic; wins += f.wins; noms += f.noms; });
+      var avgCrit = mine.length ? crit / mine.length : 50;
+      s.prestige = Math.round(clamp(s.prestige * 0.75 + 0.25 * (avgCrit + wins * 4 + noms * 0.5), 0, 100));
+      s.commercial = HW.round1(clamp(s.commercial + rng.normal(0, 0.03), 0.05, 0.95) * 100) / 100;
+      s.paidOut = Math.round((s.paidOut || 0) + payout);
+      s.yearly.push({ y: Y, n: mine.length, g: Math.round(gross), p: Math.round(profit), c: Math.round(s.cash), w: wins, nm: noms, tier: s.tier });
+
+      // tier movement
+      if (s.tier === 'Indie' && s.cash > 260 && s.prestige > 50 && tierCount(w, 'Mid') < 11) promote(w, s, 'Mid', Y);
+      else if (s.tier === 'Mid' && s.cash > 950 && tierCount(w, 'Major') < 8) promote(w, s, 'Major', Y);
+      else if (s.tier === 'Major' && s.cash < -250) demote(w, s, 'Mid', Y);
+      else if (s.tier === 'Mid' && s.cash < -90) demote(w, s, 'Indie', Y);
+
+      if (s.cash < TIER[s.tier].floor) s.debtYears++; else s.debtYears = 0;
+      if (s.debtYears >= 2 || s.cash < TIER[s.tier].floor * 2) collapse(w, s, ctx);
+    });
+
+    var count = w.studios.filter(function (s) { return s.active; }).length;
+    var newOnes = Math.max(0, 20 - count);
+    if (count < 30 && rng.chance(0.15)) newOnes++;
+    for (var i = 0; i < newOnes; i++) {
+      var tier = rng.chance(0.2) ? 'Mid' : 'Indie';
+      var s = HW.createStudio(w, rng, tier, { founded: Y + 1 });
+      HW.addNews(w, Y, 'New player in town: ' + s.name + ' opens its doors as a' + (tier === 'Mid' ? ' mid-size' : 'n independent') + ' studio.', 'studio', { s: s.id });
+    }
+  }
+  function tierCount(w, tier) {
+    return w.studios.filter(function (s) { return s.active && s.tier === tier; }).length;
+  }
+  function promote(w, s, tier, Y) {
+    s.tier = tier;
+    HW.addNews(w, Y, s.name + ' rises to ' + (tier === 'Major' ? 'major-studio status' : 'mid-size studio') + ' after a run of hits.', 'studio', { s: s.id });
+  }
+  function demote(w, s, tier, Y) {
+    s.tier = tier;
+    HW.addNews(w, Y, 'Cutbacks at ' + s.name + ': the struggling studio downsizes to ' + (tier === 'Mid' ? 'a mid-size' : 'an independent') + ' operation.', 'studio', { s: s.id });
+  }
+  function collapse(w, s, ctx) {
+    var rng = ctx.rng, Y = ctx.year;
+    var buyers = w.studios.filter(function (o) { return o.active && o !== s && o.cash > 400; });
+    s.active = false;
+    s.closed = Y;
+    if (buyers.length && rng.chance(0.65)) {
+      var b = rng.weighted(buyers, function (o) { return o.cash; });
+      b.cash = Math.round(b.cash - Math.max(20, -s.cash * 0.2));
+      b.prestige = Math.round(clamp(b.prestige + (s.prestige - b.prestige) * 0.15, 0, 100));
+      s.fate = { type: 'acquired', by: b.id, y: Y };
+      HW.addNews(w, Y, b.name + ' acquires the bankrupt ' + s.name + ', absorbing its film library.', 'studio', { s: b.id });
+    } else {
+      s.fate = { type: 'closed', y: Y };
+      HW.addNews(w, Y, 'End of an era: ' + s.name + ' (founded ' + s.founded + ') shuts down after crippling losses.', 'studio', { s: s.id });
+    }
+  }
+
+  // ---------- people: decay, scandals, aging, retirement, newcomers ----------
+  function peopleYearEnd(w, ctx) {
+    var Y = ctx.year, rng = ctx.rng, N = Y + 1;
+    var counts = {};
+    HW.ROLE_KEYS.forEach(function (r) { counts[r] = 0; });
+
+    w.people.forEach(function (p) {
+      if (p.status === 'deceased') return;
+      var age = N - p.born;
+      if (p.status === 'active') {
+        // fame/prestige drift
+        if (!ctx.worked[p.id]) { p.fame = clamp(p.fame - 1.5 - p.fame * 0.06, 0, 100); p.prestige = clamp(p.prestige - 0.6, 0, 100); }
+        else p.fame = clamp(p.fame - p.fame * 0.04, 0, 100);
+        p.prestige = clamp(p.prestige - Math.max(0, p.prestige - 60) * 0.05, 0, 100);
+        if (HW.has(p, 'heartthrob') && age > 40) p.fame = clamp(p.fame - 2, 0, 100);
+
+        // scandals
+        if ((p.role === 'actor' || p.role === 'director') && p.fame > 30) {
+          var sp = HW.has(p, 'scandal') ? 0.08 : 0.005;
+          if (rng.chance(sp)) {
+            var what = rng.pick(['a messy public feud', 'a tabloid exposé', 'an on-set meltdown', 'a DUI arrest', 'a leaked recording', 'a bitter divorce', 'a contract walkout']);
+            if (rng.chance(0.2)) { HW.gainFame(p, rng.range(3, 8)); HW.addNews(w, Y, p.name + ' rides out ' + what + ' — any publicity is good publicity.', 'scandal', { p: p.id }); }
+            else { p.fame = clamp(p.fame - rng.range(5, 18), 0, 100); p.prestige = clamp(p.prestige - rng.range(2, 8), 0, 100); HW.addNews(w, Y, 'Scandal: ' + p.name + ' embroiled in ' + what + '.', 'scandal', { p: p.id }); }
+            p.scandalYear = Y;
+          }
+        }
+        p.fame = Math.round(p.fame * 10) / 10;
+        p.prestige = Math.round(p.prestige * 10) / 10;
+
+        // retirement
+        var idle = p.lastWorked == null ? N - p.debut : N - p.lastWorked;
+        var retireAge = p.role === 'actor' ? 62 : 68;
+        var rp = age < retireAge ? 0.004 : 0.03 + (age - retireAge) * 0.018;
+        if (idle >= 5 && age > 28 && p.fame < 20) rp += 0.25;
+        if (rng.chance(rp)) {
+          p.status = 'retired';
+          p.retired = Y;
+          if (p.fame > 45 || p.wins > 0) HW.addNews(w, Y, p.name + ' (' + age + ') announces retirement after ' + p.films.length + ' films' + (p.wins ? ' and ' + p.wins + ' Golden Laurel' + (p.wins > 1 ? 's' : '') : '') + '.', 'people', { p: p.id });
+        }
+      }
+      // mortality
+      var dp = age < 60 ? 0.0007 : age < 75 ? 0.006 + (age - 60) * 0.002 : 0.04 + (age - 75) * 0.013;
+      if (rng.chance(dp)) {
+        var wasActive = p.status === 'active';
+        p.status = 'deceased';
+        p.died = Y;
+        if (p.fame > 35 || p.wins > 0 || p.prestige > 60) HW.addNews(w, Y, 'Hollywood mourns ' + p.name + ', ' + (HW.ROLES[p.role].label.toLowerCase()) + ', dead at ' + (Y - p.born) + (wasActive ? '' : '') + '.', 'people', { p: p.id });
+        return;
+      }
+      if (p.status === 'active') {
+        HW.updateStats(p, N);
+        counts[p.role]++;
+      }
+    });
+
+    // newcomers keep the talent pool alive
+    var savedYear = w.year;
+    w.year = N;
+    HW.ROLE_KEYS.forEach(function (role) {
+      var target = HW.ROLES[role].target;
+      var need = Math.max(0, target - counts[role]) + rng.int(0, Math.ceil(target * 0.006));
+      for (var i = 0; i < need; i++) HW.createPerson(w, rng, role, {});
+    });
+    w.year = savedYear;
+    // spotlight a hot newcomer now and then
+    var fresh = w.people.filter(function (p) { return p.debut === N && p.role === 'actor'; });
+    if (fresh.length) {
+      var best = fresh.reduce(function (a, b) { return HW.potentialStars(b) * 100 + b.genes.craft > HW.potentialStars(a) * 100 + a.genes.craft ? b : a; });
+      if (HW.potentialStars(best) >= 4) HW.addNews(w, Y, 'Scouts are buzzing about newcomer ' + best.name + ', ' + (N - best.born) + ', tipped as a future star.', 'people', { p: best.id });
+    }
+  }
+
+  // ---------- history ----------
+  function recordHistory(w, ctx) {
+    var Y = ctx.year, gs = {};
+    HW.GENRE_KEYS.forEach(function (g) { gs[g] = { films: 0, gross: 0, budget: 0 }; });
+    var total = 0, crit = 0, top = null;
+    ctx.films.forEach(function (f) {
+      var s = gs[f.genre]; s.films++; s.gross += f.gross; s.budget += f.budget;
+      total += f.gross; crit += f.critic;
+      if (!top || f.gross > top.gross) top = f;
+    });
+    w.genreStats = gs;
+    var aw = w.awards[Y];
+    var bp = aw ? aw.cats[0] : null;
+    w.history.push({
+      y: Y, n: ctx.films.length, g: Math.round(total), c: ctx.films.length ? Math.round(crit / ctx.films.length) : 0,
+      top: top ? top.id : null, bp: bp && bp.noms.length ? bp.noms[bp.win].f : null,
+      ev: ctx.event ? ctx.event.text : null,
+      studios: w.studios.filter(function (s) { return s.active; }).length,
+      trends: JSON.parse(JSON.stringify(w.trends))
+    });
+  }
+
+  HW.money = function (m) {
+    var neg = m < 0; m = Math.abs(m);
+    var s = m >= 1000 ? '$' + (m / 1000).toFixed(2) + 'B' : m >= 10 ? '$' + Math.round(m) + 'M' : '$' + m.toFixed(1) + 'M';
+    return neg ? '-' + s : s;
+  };
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// The Golden Laurels: Hollywood's annual awards, honoring the films of each year.
+(function (HW) {
+  var clamp = HW.clamp;
+
+  HW.AWARD_CATS = [
+    { key: 'picture',    name: 'Best Picture',            type: 'film' },
+    { key: 'director',   name: 'Best Director',           type: 'crew', field: 'director', sc: 'dir' },
+    { key: 'actor',      name: 'Best Actor',              type: 'perf', g: 'M', r: 'L' },
+    { key: 'actress',    name: 'Best Actress',            type: 'perf', g: 'F', r: 'L' },
+    { key: 'supActor',   name: 'Best Supporting Actor',   type: 'perf', g: 'M', r: 'S' },
+    { key: 'supActress', name: 'Best Supporting Actress', type: 'perf', g: 'F', r: 'S' },
+    { key: 'screenplay', name: 'Best Screenplay',         type: 'crew', field: 'writer', sc: 'script' },
+    { key: 'cinema',     name: 'Best Cinematography',     type: 'crew', field: 'dp', sc: 'tech' },
+    { key: 'score',      name: 'Best Original Score',     type: 'crew', field: 'composer', sc: 'music' },
+    { key: 'vfx',        name: 'Best Visual Effects',     type: 'fx' },
+    { key: 'animated',   name: 'Best Animated Feature',   type: 'anim' }
+  ];
+
+  var MONTH_BONUS = [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 4, 6];
+
+  function academy(w, f, rng) {
+    var G = HW.GENRES[f.genre], s = w.studios[f.studio];
+    var v = f.critic * 0.75 + G.awards * 1.6 + s.prestige * 0.08 + Math.log(f.budget + 1) * 0.6 +
+      MONTH_BONUS[f.month] + f.audience * 0.08 + rng.normal(0, 4);
+    if (f.genre === 'Animation') v -= 8;
+    if (f.seqOf != null) v -= 6;
+    return v;
+  }
+
+  function narrative(w, p, Y) {
+    var v = Math.min(5, p.noms - p.wins) * 1.4 - Math.min(8, p.wins) * 1.3; // voters like to spread the love
+    if (Y - p.born > 60) v += 2;
+    if (HW.has(p, 'campaigner')) v += 3;
+    if (HW.has(p, 'darling')) v += 2;
+    if (p.scandalYear != null && Y - p.scandalYear <= 1) v -= 6;
+    return v + p.prestige * 0.05 + p.fame * 0.03;
+  }
+
+  function pickWinner(noms, rng) {
+    var top = noms[0].s;
+    var i = noms.indexOf(rng.weighted(noms, function (n) { return Math.exp((n.s - top) / 2.5); }));
+    return i < 0 ? 0 : i;
+  }
+
+  HW.runAwards = function (w, ctx) {
+    var Y = ctx.year, rng = ctx.rng, films = ctx.films;
+    if (!films.length) return;
+    var acad = {};
+    films.forEach(function (f) { acad[f.id] = academy(w, f, rng); });
+    var ceremony = { y: Y, cats: [], lifetime: null };
+
+    HW.AWARD_CATS.forEach(function (cat) {
+      var cands = [];
+      if (cat.type === 'film') {
+        films.forEach(function (f) { cands.push({ f: f.id, p: null, s: acad[f.id] }); });
+      } else if (cat.type === 'anim') {
+        var anim = films.filter(function (f) { return f.genre === 'Animation'; });
+        if (anim.length < 3) return;
+        anim.forEach(function (f) { cands.push({ f: f.id, p: null, s: f.critic * 0.8 + f.audience * 0.2 + rng.normal(0, 4) }); });
+      } else if (cat.type === 'fx') {
+        films.forEach(function (f) {
+          if (HW.GENRES[f.genre].spectacle < 0.3) return;
+          cands.push({ f: f.id, p: null, s: f.sc.fx * 0.7 + f.critic * 0.2 + Math.log(f.budget + 1) * 2 + rng.normal(0, 4) });
+        });
+      } else if (cat.type === 'crew') {
+        var best = {};
+        films.forEach(function (f) {
+          var id = f[cat.field];
+          if (id == null) return;
+          var p = w.people[id];
+          var s = f.sc[cat.sc] * 0.55 + acad[f.id] * 0.45 + narrative(w, p, Y) + rng.normal(0, 3);
+          if (!best[id] || best[id].s < s) best[id] = { f: f.id, p: id, s: s };
+        });
+        for (var k in best) cands.push(best[k]);
+      } else if (cat.type === 'perf') {
+        var bestP = {};
+        films.forEach(function (f) {
+          f.cast.forEach(function (c) {
+            var p = w.people[c.p];
+            if (c.r !== cat.r || p.gender !== cat.g) return;
+            var s = c.perf * 0.7 + acad[f.id] * 0.3 + narrative(w, p, Y) + (f.genre === 'Biopic' && c.r === 'L' ? 4 : 0) + rng.normal(0, 3);
+            if (!bestP[p.id] || bestP[p.id].s < s) bestP[p.id] = { f: f.id, p: p.id, s: s };
+          });
+        });
+        for (var k2 in bestP) cands.push(bestP[k2]);
+      }
+      if (!cands.length) return;
+      cands.sort(function (a, b) { return b.s - a.s; });
+      var noms = cands.slice(0, 5);
+      var win = pickWinner(noms, rng);
+      noms.forEach(function (n) { n.s = Math.round(n.s * 10) / 10; });
+      ceremony.cats.push({ k: cat.key, noms: noms, win: win });
+
+      noms.forEach(function (n, i) {
+        var won = i === win;
+        var f = w.films[n.f], s = w.studios[f.studio];
+        f.noms++; s.noms++;
+        if (won) { f.wins++; f.won.push(cat.key); s.wins++; if (cat.key === 'picture') s.bestPictures++; }
+        if (n.p != null) {
+          var p = w.people[n.p];
+          p.noms++;
+          HW.gainPrestige(p, won ? 10 : 3);
+          HW.gainFame(p, won ? 8 : 2);
+          if (won) p.wins++;
+        }
+        if (cat.key === 'picture' && n.p == null) {
+          // a Best Picture nomination lifts the director & cast a bit
+          var lift = won ? 3 : 1;
+          HW.gainPrestige(w.people[f.director], lift);
+          f.cast.forEach(function (c) { if (c.r === 'L') HW.gainPrestige(w.people[c.p], lift); });
+        }
+      });
+    });
+
+    // Lifetime achievement: a revered veteran, preferably one never honored
+    var vets = w.people.filter(function (p) {
+      return p.status !== 'deceased' && Y - p.born >= 65 && p.films.length >= 12 && !p.lifetime;
+    });
+    if (vets.length && rng.chance(0.75)) {
+      vets.sort(function (a, b) { return (b.prestige + b.noms * 3 - b.wins * 4) - (a.prestige + a.noms * 3 - a.wins * 4); });
+      var honoree = vets[0];
+      if (honoree.prestige > 40) {
+        honoree.lifetime = Y;
+        ceremony.lifetime = honoree.id;
+      }
+    }
+
+    w.awards[Y] = ceremony;
+    headline(w, ceremony, Y);
+  };
+
+  function headline(w, c, Y) {
+    var bp = c.cats[0];
+    if (!bp) return;
+    var f = w.films[bp.noms[bp.win].f];
+    var bits = ['"' + f.title + '" wins Best Picture at the ' + ordinal(Y - w.startYear + 1) + ' Golden Laurels'];
+    if (f.wins >= 5) bits.push('sweeping ' + f.wins + ' awards');
+    HW.addNews(w, Y, bits.join(', ') + '.', 'awards', { f: f.id });
+    ['actor', 'actress', 'director'].forEach(function (k) {
+      var cat = c.cats.filter(function (x) { return x.k === k; })[0];
+      if (!cat) return;
+      var n = cat.noms[cat.win], p = w.people[n.p];
+      var first = p.wins === 1 && p.noms >= 4 ? ' — finally, on nomination #' + p.noms : '';
+      HW.addNews(w, Y, p.name + ' takes ' + HW.catName(k) + ' for "' + w.films[n.f].title + '"' + first + '.', 'awards', { p: p.id });
+    });
+    if (c.lifetime != null) {
+      var h = w.people[c.lifetime];
+      HW.addNews(w, Y, h.name + ' receives the Lifetime Achievement Laurel.', 'awards', { p: h.id });
+    }
+  }
+
+  HW.catName = function (k) {
+    for (var i = 0; i < HW.AWARD_CATS.length; i++) if (HW.AWARD_CATS[i].key === k) return HW.AWARD_CATS[i].name;
+    return k;
+  };
+
+  function ordinal(n) {
+    var s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+  HW.ordinal = ordinal;
+
+  // All nominations for a person, newest first.
+  HW.personAwards = function (w, pid) {
+    var out = [];
+    Object.keys(w.awards).forEach(function (y) {
+      w.awards[y].cats.forEach(function (c) {
+        c.noms.forEach(function (n, i) { if (n.p === pid) out.push({ y: +y, k: c.k, f: n.f, won: i === c.win }); });
+      });
+    });
+    return out.sort(function (a, b) { return b.y - a.y; });
+  };
+
+  HW.filmAwards = function (w, fid) {
+    var f = w.films[fid], c = w.awards[f.year], out = [];
+    if (!c) return out;
+    c.cats.forEach(function (cat) {
+      cat.noms.forEach(function (n, i) { if (n.f === fid) out.push({ k: cat.k, p: n.p, won: i === cat.win }); });
+    });
+    return out;
+  };
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// Rendering: hash-routed pages built from HTML strings.
+(function (HW) {
+  var UI = HW.UI = { sorts: {}, pages: {}, filters: {} };
+
+  // ---------- helpers ----------
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  }
+  function W() { return HW.world; }
+  function lastYear() { return W().year - 1; }
+  function simulated() { return W().history.length > 0; }
+  function money(m) { return HW.money(m); }
+  function pLink(id) {
+    if (id == null) return '<span class="muted">—</span>';
+    var p = W().people[id];
+    return '<a href="#/person/' + id + '" class="lnk ' + (p.status !== 'active' ? 'inactive' : '') + '">' + esc(p.name) + '</a>';
+  }
+  function fLink(id) { var f = W().films[id]; return '<a href="#/film/' + id + '" class="lnk film">' + esc(f.title) + '</a>'; }
+  function sLink(id) {
+    var s = W().studios[id];
+    return '<a href="#/studio/' + id + '" class="lnk studio"><i class="dot" style="background:hsl(' + s.hue + ',60%,55%)"></i>' + esc(s.name) + '</a>';
+  }
+  function yLink(y) { return '<a href="#/awards/' + y + '" class="lnk">' + y + '</a>'; }
+  function num(n) { return Math.round(n).toLocaleString('en-US'); }
+  function pct(v) { return Math.round(v) + '%'; }
+  function scoreCls(v) { return v >= 80 ? 's-elite' : v >= 65 ? 's-good' : v >= 50 ? 's-ok' : v >= 35 ? 's-weak' : 's-bad'; }
+  function scoreBadge(v) { return '<span class="score ' + scoreCls(v) + '">' + v + '</span>'; }
+  // Actors are rated 1-10; crew 1-100. OVR is always 0-100 internally.
+  function ovrText(p) { var o = HW.ovr(p); return p.role === 'actor' ? (o / 10).toFixed(1) : String(o); }
+  function statText(p, v) { return p.role === 'actor' ? String(Math.round(v)) : String(v); }
+  function topGenre(p) {
+    return HW.ACTOR_GENRES.reduce(function (a, g) { return p.genre[g] > p.genre[a] ? g : a; });
+  }
+  function statLine(label, v, max, tip, extra) {
+    var pctv = v / max * 100;
+    return '<div class="statline"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span class="sl">' + label + '</span><span class="sb"><span class="' + scoreCls(pctv) + '" style="width:' + pctv + '%"></span></span><span class="sv">' + (max === 10 ? Math.round(v) : v) + '</span>' + (extra || '') + '</div>';
+  }
+  function grade(v) { return v >= 90 ? 'A+' : v >= 82 ? 'A' : v >= 75 ? 'B+' : v >= 68 ? 'B' : v >= 60 ? 'C+' : v >= 52 ? 'C' : v >= 44 ? 'D' : 'F'; }
+  function stars(n) { return '<span class="stars">' + '★★★★★'.slice(0, n) + '<span class="off">' + '★★★★★'.slice(n) + '</span></span>'; }
+  function meter(v, cls) { return '<span class="meter ' + (cls || '') + '"><span style="width:' + Math.max(0, Math.min(100, v)) + '%"></span></span>'; }
+  function tierBadge(t) { return '<span class="tier tier-' + t + '">' + t + '</span>'; }
+  function statusBadge(p) {
+    if (p.status === 'active') return '<span class="status active">Active</span>';
+    if (p.status === 'retired') return '<span class="status retired">Retired ' + p.retired + '</span>';
+    return '<span class="status deceased">† ' + p.died + '</span>';
+  }
+  function ageOf(p) { return (p.status === 'deceased' ? p.died : W().year) - p.born; }
+  function laurels(n) { return n ? '<span class="laurel" title="Golden Laurel wins">🏆 ' + n + '</span>' : ''; }
+  function card(title, body, extra) { return '<section class="card ' + (extra || '') + '"><h3>' + title + '</h3>' + body + '</section>'; }
+  function empty(msg) { return '<p class="muted empty">' + msg + '</p>'; }
+
+  // Sortable table. cols: [{h, v(row)->sortable, html(row)->cell, cls}]
+  function table(key, cols, rows, opts) {
+    opts = opts || {};
+    var st = UI.sorts[key] || (opts.sort ? { c: opts.sort[0], d: opts.sort[1] } : null);
+    if (st) {
+      var col = cols[st.c];
+      if (col && col.v) {
+        rows = rows.slice().sort(function (a, b) {
+          var x = col.v(a), y = col.v(b);
+          if (x == null) return 1; if (y == null) return -1;
+          return (x < y ? -1 : x > y ? 1 : 0) * st.d;
+        });
+      }
+    }
+    var total = rows.length, per = opts.per || 0, page = 0, pages = 1;
+    if (per) {
+      pages = Math.max(1, Math.ceil(total / per));
+      page = Math.min(UI.pages[key] || 0, pages - 1);
+      rows = rows.slice(page * per, page * per + per);
+    }
+    var h = '<div class="tablewrap"><table class="tbl"><thead><tr>';
+    if (opts.rank) h += '<th class="num">#</th>';
+    cols.forEach(function (c, i) {
+      var arrow = st && st.c === i ? (st.d > 0 ? ' ▲' : ' ▼') : '';
+      h += '<th class="' + (c.cls || '') + (c.v ? ' sortable' : '') + '"' + (c.v ? ' data-sort="' + key + ':' + i + '"' : '') + '>' + c.h + arrow + '</th>';
+    });
+    h += '</tr></thead><tbody>';
+    rows.forEach(function (r, i) {
+      h += '<tr>';
+      if (opts.rank) h += '<td class="num muted">' + (page * per + i + 1) + '</td>';
+      cols.forEach(function (c) { h += '<td class="' + (c.cls || '') + '">' + (c.html ? c.html(r) : esc(c.v(r))) + '</td>'; });
+      h += '</tr>';
+    });
+    if (!rows.length) h += '<tr><td colspan="' + (cols.length + (opts.rank ? 1 : 0)) + '" class="muted">Nothing here yet.</td></tr>';
+    h += '</tbody></table></div>';
+    if (per && pages > 1) {
+      h += '<div class="pager"><button class="btn small" data-page="' + key + ':' + (page - 1) + '"' + (page === 0 ? ' disabled' : '') + '>‹ Prev</button>' +
+        '<span>Page ' + (page + 1) + ' / ' + pages + ' <span class="muted">(' + num(total) + ')</span></span>' +
+        '<button class="btn small" data-page="' + key + ':' + (page + 1) + '"' + (page >= pages - 1 ? ' disabled' : '') + '>Next ›</button></div>';
+    }
+    return h;
+  }
+
+  function filmsOfYear(y) { return W().films.filter(function (f) { return f.year === y; }); }
+
+  // ---------- pages ----------
+  var routes = {
+    '': overview, 'studios': studiosPage, 'studio': studioPage, 'talent': talentPage, 'person': personPage,
+    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage
+  };
+
+  UI.render = function () {
+    var hash = location.hash.replace(/^#\/?/, '');
+    var parts = hash.split('/');
+    var fn = routes[parts[0]] || overview;
+    var html;
+    try { html = fn(parts[1]); } catch (e) { console.error(e); html = empty('Something went wrong rendering this page: ' + esc(e.message)); }
+    document.getElementById('app').innerHTML = html;
+    document.getElementById('yearValue').textContent = W().year;
+    var tabs = document.querySelectorAll('#tabs a');
+    var section = { studio: 'studios', person: 'talent', film: 'films' }[parts[0]] || parts[0];
+    tabs.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href').replace('#/', '') === section); });
+  };
+
+  // ---------- overview ----------
+  function overview() {
+    var w = W();
+    var h = '';
+    if (!simulated()) {
+      h += '<section class="hero"><h1>Welcome to ' + w.year + ' Hollywood</h1>' +
+        '<p>' + w.studios.length + ' studios, ' + num(w.people.filter(function (p) { return p.role === 'actor'; }).length) + ' actors and ' +
+        num(w.people.filter(function (p) { return p.role !== 'actor'; }).length) + ' directors, writers, cinematographers and composers are ready to make movies. ' +
+        'Press <b>Next Year</b> to roll the cameras: studios greenlight films, cast stars, release them, and at year\'s end the town gathers for the <b>Golden Laurels</b>.</p>' +
+        '<p class="muted">Explore every studio and every character sheet, then watch careers, franchises and empires rise and fall.</p></section>';
+      h += '<div class="grid two">' + card('Biggest stars', topPeople('actor', 'fame', 12)) + card('Most acclaimed directors', topPeople('director', 'prestige', 12)) + '</div>';
+      return h;
+    }
+    var Y = lastYear(), films = filmsOfYear(Y), hist = w.history[w.history.length - 1];
+    var aw = w.awards[Y];
+    h += '<div class="pagehead"><h1>' + Y + ' in Review</h1>' + (hist.ev ? '<div class="event">📰 ' + esc(hist.ev) + '</div>' : '') + '</div>';
+    var prev = w.history[w.history.length - 2];
+    var change = prev && prev.g ? Math.round((hist.g - prev.g) / prev.g * 100) : null;
+    h += '<div class="stats-row">' +
+      stat('Films released', films.length) +
+      stat('Total box office', money(hist.g), change != null ? (change >= 0 ? '▲ ' : '▼ ') + Math.abs(change) + '% vs ' + (Y - 1) : '') +
+      stat('Avg. critic score', hist.c) +
+      stat('Active studios', hist.studios) +
+      '</div>';
+
+    h += '<div class="grid two">';
+    // awards
+    if (aw && aw.cats.length) {
+      var rows = aw.cats.slice(0, 6).map(function (c) {
+        var n = c.noms[c.win];
+        return '<div class="aw-row"><span class="aw-cat">' + HW.catName(c.k) + '</span><span class="aw-win">' +
+          (n.p != null ? pLink(n.p) + ' <span class="muted">· ' + fLink(n.f) + '</span>' : fLink(n.f) + ' <span class="muted">· ' + sLink(w.films[n.f].studio) + '</span>') + '</span></div>';
+      }).join('');
+      h += card('🏆 ' + HW.ordinal(Y - w.startYear + 1) + ' Golden Laurels', rows + '<p><a href="#/awards/' + Y + '" class="lnk">Full ceremony →</a></p>', 'gold');
+    }
+    var top = films.slice().sort(function (a, b) { return b.gross - a.gross; }).slice(0, 10);
+    h += card('Box office top 10', table('ov-top', [
+      { h: 'Film', html: function (f) { return fLink(f.id) + '<div class="sub">' + sLink(f.studio) + '</div>'; } },
+      { h: 'Genre', v: function (f) { return f.genre; } },
+      { h: 'Gross', cls: 'num', html: function (f) { return money(f.gross); } },
+      { h: 'Critics', cls: 'num', html: function (f) { return scoreBadge(f.critic); } }
+    ], top, { rank: true }));
+    h += '</div>';
+
+    h += '<div class="grid three">';
+    var order = { event: 0, awards: 1, boxoffice: 2, studio: 3, people: 4, scandal: 5 };
+    var heads = w.news.filter(function (n) { return n.y === Y; }).sort(function (a, b) { return order[a.k] - order[b.k]; }).slice(0, 14);
+    h += card('Headlines', newsList(heads) + '<p><a href="#/news" class="lnk">All news →</a></p>');
+    h += card('Genre appetite', trendBars());
+    h += card('Studio standings ' + Y, studioStandings(Y));
+    h += '</div>';
+    h += '<div class="grid two">' + card('Biggest stars', topPeople('actor', 'fame', 10)) + card('Most acclaimed actors', topPeople('actor', 'prestige', 10)) + '</div>';
+    return h;
+  }
+  function stat(label, value, sub) {
+    return '<div class="stat"><div class="stat-v">' + value + '</div><div class="stat-l">' + label + '</div>' + (sub ? '<div class="stat-s">' + sub + '</div>' : '') + '</div>';
+  }
+  function topPeople(role, key, n) {
+    var list = W().people.filter(function (p) { return p.role === role && p.status === 'active'; })
+      .sort(function (a, b) { return b[key] - a[key]; }).slice(0, n);
+    return '<ol class="plist">' + list.map(function (p) {
+      return '<li>' + pLink(p.id) + ' <span class="muted">' + ageOf(p) + '</span>' + laurels(p.wins) + '<span class="right">' + meter(p[key], key) + ' ' + Math.round(p[key]) + '</span></li>';
+    }).join('') + '</ol>';
+  }
+  function trendBars() {
+    var t = W().trends;
+    return '<div class="bars">' + HW.GENRE_KEYS.slice().sort(function (a, b) { return t[b] - t[a]; }).map(function (g) {
+      var v = t[g];
+      return '<div class="barrow"><span class="bl">' + g + '</span><span class="bb"><span class="' + (v >= 1.15 ? 'hot' : v <= 0.8 ? 'cold' : '') + '" style="width:' + Math.min(100, v / 1.9 * 100) + '%"></span></span><span class="bv">' + v.toFixed(2) + '×</span></div>';
+    }).join('') + '</div>';
+  }
+  function studioStandings(Y) {
+    var rows = W().studios.filter(function (s) { return s.yearly.length && s.yearly[s.yearly.length - 1].y === Y; })
+      .map(function (s) { return { s: s, r: s.yearly[s.yearly.length - 1] }; })
+      .sort(function (a, b) { return b.r.g - a.r.g; }).slice(0, 10);
+    return '<ol class="plist">' + rows.map(function (x) {
+      return '<li>' + sLink(x.s.id) + '<span class="right">' + money(x.r.g) + ' <span class="' + (x.r.p >= 0 ? 'pos' : 'neg') + '">' + (x.r.p >= 0 ? '+' : '') + money(x.r.p) + '</span></span></li>';
+    }).join('') + '</ol>';
+  }
+  function newsList(items) {
+    if (!items.length) return empty('No news yet.');
+    return '<ul class="news">' + items.map(function (n) {
+      var t = esc(n.t);
+      if (n.r) {
+        if (n.r.f != null) t = '<a href="#/film/' + n.r.f + '" class="lnk plain">' + t + '</a>';
+        else if (n.r.p != null) t = '<a href="#/person/' + n.r.p + '" class="lnk plain">' + t + '</a>';
+        else if (n.r.s != null) t = '<a href="#/studio/' + n.r.s + '" class="lnk plain">' + t + '</a>';
+      }
+      return '<li class="nk-' + n.k + '"><span class="ny">' + n.y + '</span> ' + t + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  // ---------- studios ----------
+  function studiosPage() {
+    var w = W(), f = UI.filters.studios || 'active';
+    var list = w.studios.filter(function (s) { return f === 'all' || (f === 'active') === s.active; });
+    var Y = lastYear();
+    var h = '<div class="pagehead"><h1>Studios</h1>' + seg('studios', f, [['active', 'Active'], ['closed', 'Defunct'], ['all', 'All']]) + '</div>';
+    h += table('studios', [
+      { h: 'Studio', v: function (s) { return s.name; }, html: function (s) { return sLink(s.id) + (s.active ? '' : ' <span class="muted small">(' + (s.fate && s.fate.type === 'acquired' ? 'acquired ' : 'closed ') + s.closed + ')</span>'); } },
+      { h: 'Tier', v: function (s) { return { Major: 3, Mid: 2, Indie: 1 }[s.tier]; }, html: function (s) { return tierBadge(s.tier); } },
+      { h: 'Founded', cls: 'num', v: function (s) { return s.founded; } },
+      { h: 'Cash', cls: 'num', v: function (s) { return s.cash; }, html: function (s) { return '<span class="' + (s.cash < 0 ? 'neg' : '') + '">' + money(s.cash) + '</span>'; } },
+      { h: 'Prestige', cls: 'num', v: function (s) { return s.prestige; }, html: function (s) { return meter(s.prestige, 'prestige') + ' ' + s.prestige; } },
+      { h: 'Style', v: function (s) { return s.commercial; }, html: function (s) { return lean(s.commercial); } },
+      { h: Y + ' gross', cls: 'num', v: function (s) { var r = lastRec(s, Y); return r ? r.g : -1; }, html: function (s) { var r = lastRec(s, Y); return r ? money(r.g) : '—'; } },
+      { h: 'Films', cls: 'num', v: function (s) { return s.films.length; } },
+      { h: 'Career gross', cls: 'num', v: function (s) { return careerGross(s); }, html: function (s) { return money(careerGross(s)); } },
+      { h: 'Laurels', cls: 'num', v: function (s) { return s.wins; } },
+      { h: 'Best Pic.', cls: 'num', v: function (s) { return s.bestPictures; } }
+    ], list, { sort: [3, -1] });
+    return h;
+  }
+  function lastRec(s, Y) { var r = s.yearly[s.yearly.length - 1]; return r && r.y === Y ? r : null; }
+  function careerGross(s) { var g = 0; s.yearly.forEach(function (r) { g += r.g; }); return g; }
+  function lean(c) {
+    return '<span class="lean" title="' + (c < 0.4 ? 'Arthouse' : c > 0.65 ? 'Commercial' : 'Balanced') + '"><span style="left:' + c * 100 + '%"></span></span>';
+  }
+  function seg(key, cur, opts) {
+    return '<div class="seg">' + opts.map(function (o) {
+      return '<button class="' + (o[0] === cur ? 'on' : '') + '" data-filter="' + key + ':' + o[0] + '">' + o[1] + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function studioPage(id) {
+    var w = W(), s = w.studios[+id];
+    if (!s) return empty('No such studio.');
+    var prefs = HW.GENRE_KEYS.slice().sort(function (a, b) { return s.prefs[b] - s.prefs[a]; }).slice(0, 3);
+    var films = s.films.map(function (fid) { return w.films[fid]; });
+    var h = '<div class="pagehead studiohead" style="--hue:' + s.hue + '"><div><h1>' + esc(s.name) + '</h1><div class="meta">' + tierBadge(s.tier) +
+      ' Founded ' + s.founded + (s.active ? '' : ' · <b>' + (s.fate && s.fate.type === 'acquired' ? 'Acquired by ' + sLink(s.fate.by) : 'Closed') + ' in ' + s.closed + '</b>') + '</div></div></div>';
+    h += '<div class="stats-row">' + stat('Cash', money(s.cash)) + stat('Prestige', s.prestige) + stat('Films', films.length) +
+      stat('Career gross', money(careerGross(s))) + stat('Laurels', s.wins + ' <span class="small muted">/ ' + s.noms + ' noms</span>') + stat('Best Pictures', s.bestPictures) + '</div>';
+    h += '<div class="grid two">';
+    h += card('Profile', '<dl class="kv"><dt>Style</dt><dd>' + lean(s.commercial) + ' ' + (s.commercial < 0.4 ? 'Arthouse' : s.commercial > 0.65 ? 'Commercial' : 'Balanced') + '</dd>' +
+      '<dt>Signature genres</dt><dd>' + prefs.join(', ') + '</dd>' +
+      '<dt>Paid to parent co.</dt><dd>' + money(s.paidOut || 0) + '</dd>' +
+      '<dt>Biggest hit</dt><dd>' + (films.length ? fLink(films.slice().sort(function (a, b) { return b.gross - a.gross; })[0].id) : '—') + '</dd>' +
+      '<dt>Most acclaimed</dt><dd>' + (films.length ? fLink(films.slice().sort(function (a, b) { return b.critic - a.critic; })[0].id) : '—') + '</dd></dl>');
+    h += card('Year by year', table('st-years-' + s.id, [
+      { h: 'Year', v: function (r) { return r.y; } },
+      { h: 'Tier', html: function (r) { return tierBadge(r.tier); } },
+      { h: 'Films', cls: 'num', v: function (r) { return r.n; } },
+      { h: 'Gross', cls: 'num', v: function (r) { return r.g; }, html: function (r) { return money(r.g); } },
+      { h: 'Profit', cls: 'num', v: function (r) { return r.p; }, html: function (r) { return '<span class="' + (r.p >= 0 ? 'pos' : 'neg') + '">' + money(r.p) + '</span>'; } },
+      { h: 'Cash', cls: 'num', v: function (r) { return r.c; }, html: function (r) { return money(r.c); } },
+      { h: 'Laurels', cls: 'num', v: function (r) { return r.w; } }
+    ], s.yearly.slice().reverse(), { per: 15 }));
+    h += '</div>';
+    h += card('Filmography', filmTable('st-films-' + s.id, films.slice().reverse(), { studio: false }));
+    return h;
+  }
+
+  function filmTable(key, films, o) {
+    o = o || {};
+    var cols = [
+      { h: 'Year', cls: 'num', v: function (f) { return f.year; } },
+      { h: 'Title', v: function (f) { return f.title; }, html: function (f) { return fLink(f.id) + tags(f); } }
+    ];
+    if (o.studio !== false) cols.push({ h: 'Studio', v: function (f) { return W().studios[f.studio].name; }, html: function (f) { return sLink(f.studio); } });
+    cols.push(
+      { h: 'Genre', v: function (f) { return f.genre; } },
+      { h: 'Director', v: function (f) { return W().people[f.director].name; }, html: function (f) { return pLink(f.director); } },
+      { h: 'Budget', cls: 'num', v: function (f) { return f.budget; }, html: function (f) { return money(f.budget); } },
+      { h: 'Gross', cls: 'num', v: function (f) { return f.gross; }, html: function (f) { return money(f.gross); } },
+      { h: 'Critics', cls: 'num', v: function (f) { return f.critic; }, html: function (f) { return scoreBadge(f.critic); } },
+      { h: 'Audience', cls: 'num', v: function (f) { return f.audience; }, html: function (f) { return scoreBadge(f.audience); } },
+      { h: 'Laurels', cls: 'num', v: function (f) { return f.wins * 100 + f.noms; }, html: function (f) { return f.noms ? (f.wins ? '🏆' + f.wins + ' ' : '') + '<span class="muted">' + f.noms + 'n</span>' : ''; } }
+    );
+    return table(key, cols, films, { per: o.per || 25 });
+  }
+  function tags(f) {
+    var t = '';
+    if (f.won.indexOf('picture') >= 0) t += ' <span class="tag gold">Best Picture</span>';
+    if (f.tags.indexOf('smash') >= 0) t += ' <span class="tag green">Smash</span>';
+    if (f.tags.indexOf('sleeper') >= 0) t += ' <span class="tag green">Sleeper</span>';
+    if (f.tags.indexOf('flop') >= 0) t += ' <span class="tag red">Flop</span>';
+    return t;
+  }
+
+  // ---------- talent ----------
+  function talentPage() {
+    var w = W();
+    var role = UI.filters.role || 'actor', status = UI.filters.status || 'active', q = (UI.filters.q || '').toLowerCase();
+    var list = w.people.filter(function (p) {
+      return p.role === role && (status === 'all' || p.status === status) && (!q || p.name.toLowerCase().indexOf(q) >= 0);
+    });
+    var h = '<div class="pagehead"><h1>Talent</h1>' +
+      seg('role', role, HW.ROLE_KEYS.map(function (r) { return [r, HW.ROLES[r].plural]; })) + '</div>';
+    h += '<div class="toolbar">' + seg('status', status, [['active', 'Active'], ['retired', 'Retired'], ['deceased', 'Deceased'], ['all', 'All']]) +
+      '<input type="search" id="talentSearch" placeholder="Search name…" value="' + esc(UI.filters.q || '') + '"></div>';
+    var cols = [
+      { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
+      { h: 'Age', cls: 'num', v: function (p) { return ageOf(p); } },
+      { h: 'Sex', v: function (p) { return p.gender; } },
+      { h: 'OVR', cls: 'num', v: function (p) { return HW.ovr(p); }, html: function (p) { return '<span class="score ' + scoreCls(HW.ovr(p)) + '">' + ovrText(p) + '</span>'; } },
+      { h: 'Pot.', cls: 'num', v: function (p) { return HW.potentialStars(p); }, html: function (p) { return stars(HW.potentialStars(p)); } }
+    ];
+    var keyStats = { actor: HW.ROLES.actor.stats, director: ['vision', 'craft'], writer: ['originality', 'dialogue'], cinematographer: ['visuals'], composer: ['melody'] }[role];
+    keyStats.forEach(function (k) {
+      cols.push({ h: role === 'actor' ? HW.STAT_LABELS[k].slice(0, 4) + '.' : HW.STAT_LABELS[k], cls: 'num', v: function (p) { return p.stats[k]; }, html: function (p) { return statText(p, p.stats[k]); } });
+    });
+    if (role === 'actor') cols.push({ h: 'Best genre', v: function (p) { return p.genre[topGenre(p)]; }, html: function (p) { var g = topGenre(p); return HW.STAT_LABELS[g] + ' <span class="muted">' + Math.round(p.genre[g]) + '</span>'; } });
+    cols.push(
+      { h: 'Fame', cls: 'num', v: function (p) { return p.fame; }, html: function (p) { return Math.round(p.fame); } },
+      { h: 'Prestige', cls: 'num', v: function (p) { return p.prestige; }, html: function (p) { return Math.round(p.prestige); } },
+      { h: 'Films', cls: 'num', v: function (p) { return p.films.length; } },
+      { h: 'Laurels', cls: 'num', v: function (p) { return p.wins * 1000 + p.noms; }, html: function (p) { return p.noms ? (p.wins ? '🏆' + p.wins + ' ' : '') + '<span class="muted">' + p.noms + 'n</span>' : ''; } }
+    );
+    h += table('talent-' + role, cols, list, { per: 50, sort: [cols.length - 4, -1] });
+    return h;
+  }
+
+  function personPage(id) {
+    var w = W(), p = w.people[+id];
+    if (!p) return empty('No such person.');
+    var R = HW.ROLES[p.role], ovr = HW.ovr(p);
+    var awards = HW.personAwards(w, p.id);
+    var h = '<div class="sheet">';
+    h += '<div class="sheet-head"><div class="avatar g' + p.gender + '">' + initials(p.name) + '</div><div class="who"><h1>' + esc(p.name) + '</h1>' +
+      '<div class="meta">' + R.label + ' · ' + (p.gender === 'M' ? 'Male' : 'Female') + ' · Age ' + ageOf(p) + ' (b. ' + p.born + ') · Debut ' + p.debut + ' ' + statusBadge(p) + '</div>' +
+      '<div class="traits">' + (p.traits.length ? p.traits.map(function (t) { return '<span class="trait" title="' + esc(HW.TRAITS[t].desc) + '">' + HW.TRAITS[t].name + '</span>'; }).join('') : '<span class="muted small">No notable traits</span>') +
+      (p.specialty ? p.specialty.map(function (g) { return '<span class="trait spec" title="Specialty genre">' + g + '</span>'; }).join('') : '') +
+      (p.lifetime ? '<span class="trait gold" title="Lifetime Achievement Laurel">Lifetime Laurel ' + p.lifetime + '</span>' : '') + '</div></div>' +
+      '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
+
+    h += '<div class="grid sheet-grid">';
+    var actor = p.role === 'actor';
+    var statRows = R.stats.map(function (k) { return statLine(HW.STAT_LABELS[k], p.stats[k], actor ? 10 : 100, HW.STAT_DESC[k]); }).join('');
+    h += card(actor ? 'Core stats' : 'Attributes', statRows + '<p class="muted small">Peaks around age ' + p.peakAge + '. ' +
+      (actor ? 'Presence and Physicality fade with age; Craft and Chemistry deepen with experience.' : 'Attributes grow with experience and fade with age.') + '</p>');
+    if (actor) {
+      var recent = p.gLast && p.gLast.y === lastYear() ? p.gLast.d : {};
+      h += card('Genre skills', HW.ACTOR_GENRES.map(function (g) {
+        var d = recent[g], arrow = '';
+        if (d && Math.abs(d) >= 0.05) arrow = '<span class="delta ' + (d > 0 ? 'pos' : 'neg') + '">' + (d > 0 ? '▲' : '▼') + Math.abs(d).toFixed(1) + '</span>';
+        return statLine(HW.STAT_LABELS[g], p.genre[g], 10, (p.genre[g]).toFixed(2) + ' / 10', arrow);
+      }).join('') + '<p class="muted small">Genre skills grow with every role, faster when the film lands with critics, audiences and the box office. Flops can set them back. Arrows show last year\'s change.</p>');
+    }
+    var bp = p.bestPerf ? w.films[p.bestPerf.f] : null;
+    h += card('Standing', '<div class="statline"><span class="sl">Fame</span><span class="sb">' + '<span class="fame" style="width:' + p.fame + '%"></span></span><span class="sv">' + Math.round(p.fame) + '</span></div>' +
+      '<div class="statline"><span class="sl">Prestige</span><span class="sb"><span class="prestige" style="width:' + p.prestige + '%"></span></span><span class="sv">' + Math.round(p.prestige) + '</span></div>' +
+      '<dl class="kv"><dt>Asking fee</dt><dd>' + money(HW.fee(p)) + ' / film</dd>' +
+      '<dt>Films</dt><dd>' + p.films.length + '</dd>' +
+      '<dt>Career gross</dt><dd>' + money(p.gross) + '</dd>' +
+      '<dt>Golden Laurels</dt><dd>' + p.wins + ' wins / ' + p.noms + ' nominations</dd>' +
+      (bp ? '<dt>Best performance</dt><dd>' + fLink(bp.id) + ' (' + bp.year + ') — ' + grade(p.bestPerf.v) + '</dd>' : '') +
+      '<dt>Last worked</dt><dd>' + (p.lastWorked || '—') + '</dd></dl>');
+    h += card('Golden Laurels', awards.length ? '<ul class="awl">' + awards.map(function (a) {
+      return '<li class="' + (a.won ? 'won' : '') + '"><span class="ny">' + yLink(a.y) + '</span> ' + (a.won ? '🏆 <b>Won</b> ' : 'Nominated ') + HW.catName(a.k) + ' — ' + fLink(a.f) + '</li>';
+    }).join('') + '</ul>' : empty('No nominations yet.'));
+    h += card('Frequent collaborators', collaborators(p));
+    h += '</div>';
+
+    var films = p.films.map(function (fid) { return w.films[fid]; }).reverse();
+    h += card('Filmography', table('pf-' + p.id, [
+      { h: 'Year', cls: 'num', v: function (f) { return f.year; } },
+      { h: 'Title', v: function (f) { return f.title; }, html: function (f) { return fLink(f.id) + tags(f); } },
+      { h: 'Credit', v: function (f) { return creditOf(f, p.id); } },
+      { h: 'Studio', html: function (f) { return sLink(f.studio); } },
+      { h: 'Genre', v: function (f) { return f.genre; } },
+      { h: 'Perf.', cls: 'num', v: function (f) { var c = castOf(f, p.id); return c ? c.perf : null; }, html: function (f) { var c = castOf(f, p.id); return c ? '<span class="grade ' + scoreCls(c.perf) + '">' + grade(c.perf) + '</span>' : ''; } },
+      { h: 'Gross', cls: 'num', v: function (f) { return f.gross; }, html: function (f) { return money(f.gross); } },
+      { h: 'Critics', cls: 'num', v: function (f) { return f.critic; }, html: function (f) { return scoreBadge(f.critic); } }
+    ], films, { per: 30 }));
+    h += '</div>';
+    return h;
+  }
+  function initials(n) { return esc(n.split(' ').map(function (x) { return x[0]; }).slice(0, 2).join('')); }
+  function castOf(f, pid) { for (var i = 0; i < f.cast.length; i++) if (f.cast[i].p === pid) return f.cast[i]; return null; }
+  function creditOf(f, pid) {
+    var c = castOf(f, pid);
+    if (c) return c.r === 'L' ? 'Lead' : 'Supporting';
+    if (f.director === pid) return 'Director';
+    if (f.writer === pid) return 'Writer';
+    if (f.dp === pid) return 'Cinematography';
+    if (f.composer === pid) return 'Music';
+    return '';
+  }
+  function collaborators(p) {
+    var w = W(), count = {};
+    p.films.forEach(function (fid) {
+      var f = w.films[fid];
+      var ids = f.cast.map(function (c) { return c.p; }).concat([f.director, f.writer, f.dp, f.composer]);
+      ids.forEach(function (id) { if (id != null && id !== p.id) count[id] = (count[id] || 0) + 1; });
+    });
+    var top = Object.keys(count).filter(function (k) { return count[k] >= 2; }).sort(function (a, b) { return count[b] - count[a]; }).slice(0, 8);
+    if (!top.length) return empty('No repeat collaborators yet.');
+    return '<ul class="plist">' + top.map(function (id) {
+      return '<li>' + pLink(+id) + ' <span class="muted small">' + HW.ROLES[w.people[id].role].label + '</span><span class="right">' + count[id] + ' films</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  // ---------- films ----------
+  function filmsPage() {
+    var w = W();
+    if (!simulated()) return '<div class="pagehead"><h1>Films</h1></div>' + empty('No films released yet — advance a year.');
+    var y = UI.filters.filmYear != null ? UI.filters.filmYear : lastYear();
+    var genre = UI.filters.genre || 'all';
+    var list = w.films.filter(function (f) { return (y === 'all' || f.year === +y) && (genre === 'all' || f.genre === genre); });
+    var years = [];
+    for (var i = lastYear(); i >= w.startYear; i--) years.push(i);
+    var h = '<div class="pagehead"><h1>Films</h1></div><div class="toolbar">' +
+      '<select data-select="filmYear"><option value="all"' + (y === 'all' ? ' selected' : '') + '>All years</option>' + years.map(function (yy) { return '<option' + (+y === yy ? ' selected' : '') + '>' + yy + '</option>'; }).join('') + '</select>' +
+      '<select data-select="genre"><option value="all">All genres</option>' + HW.GENRE_KEYS.map(function (g) { return '<option' + (genre === g ? ' selected' : '') + '>' + g + '</option>'; }).join('') + '</select></div>';
+    h += filmTable('films', list, { per: 40 });
+    return h;
+  }
+
+  function filmPage(id) {
+    var w = W(), f = w.films[+id];
+    if (!f) return empty('No such film.');
+    var aw = HW.filmAwards(w, f.id);
+    var hue = (HW.GENRE_KEYS.indexOf(f.genre) * 360 / HW.GENRE_KEYS.length) | 0;
+    var h = '<div class="filmhead" style="--hue:' + hue + '"><div class="poster"><div class="pt">' + esc(f.title) + '</div><div class="pg">' + f.genre + '</div><div class="py">' + HW.MONTHS[f.month] + ' ' + f.year + '</div></div>' +
+      '<div class="finfo"><h1>' + esc(f.title) + '</h1><div class="meta">' + sLink(f.studio) + ' · ' + f.genre + ' · Released ' + HW.MONTHS[f.month] + ' ' + f.year + tags(f) + '</div>' +
+      '<div class="stats-row">' + stat('Budget', money(f.budget)) + stat('Worldwide gross', money(f.gross)) +
+      stat('Studio profit', '<span class="' + (f.profit >= 0 ? 'pos' : 'neg') + '">' + money(f.profit) + '</span>') +
+      stat('Critics', scoreBadge(f.critic)) + stat('Audience', scoreBadge(f.audience)) + '</div></div></div>';
+    h += '<div class="grid two">';
+    h += card('Crew', '<dl class="kv"><dt>Director</dt><dd>' + pLink(f.director) + '</dd><dt>Screenplay</dt><dd>' + pLink(f.writer) + '</dd>' +
+      '<dt>Cinematography</dt><dd>' + pLink(f.dp) + '</dd><dt>Music</dt><dd>' + pLink(f.composer) + '</dd>' +
+      (f.overrun > 0.12 ? '<dt>Production</dt><dd class="neg">Went ' + Math.round(f.overrun * 100) + '% over budget</dd>' : '') + '</dl>' +
+      '<h4>Craft breakdown</h4>' + ['script', 'dir', 'act', 'tech', 'music'].map(function (k) {
+        var v = Math.max(0, Math.min(99, f.sc[k]));
+        return '<div class="statline"><span class="sl">' + { script: 'Screenplay', dir: 'Direction', act: 'Acting', tech: 'Visuals', music: 'Score' }[k] + '</span><span class="sb"><span class="' + scoreCls(v) + '" style="width:' + v + '%"></span></span><span class="sv">' + v + '</span></div>';
+      }).join(''));
+    h += card('Cast', table('fc-' + f.id, [
+      { h: 'Actor', html: function (c) { return pLink(c.p); } },
+      { h: 'Role', html: function (c) { return c.r === 'L' ? 'Lead' : 'Supporting'; } },
+      { h: 'Fee', cls: 'num', html: function (c) { return money(c.fee) + (c.cut ? ' <span class="tag" title="Took a pay cut for this role">cut</span>' : ''); } },
+      { h: 'Performance', cls: 'num', html: function (c) { return '<span class="grade ' + scoreCls(c.perf) + '">' + grade(c.perf) + '</span> <span class="muted small">' + c.perf + '</span>'; } }
+    ], f.cast));
+    h += '</div><div class="grid two">';
+    h += card('Golden Laurels', aw.length ? '<ul class="awl">' + aw.map(function (a) {
+      return '<li class="' + (a.won ? 'won' : '') + '">' + (a.won ? '🏆 <b>Won</b> ' : 'Nominated ') + HW.catName(a.k) + (a.p != null ? ' — ' + pLink(a.p) : '') + '</li>';
+    }).join('') + '</ul>' : empty('No nominations.'));
+    var rootId = f.root != null ? f.root : f.id;
+    var chain = w.films.filter(function (x) { return x.id === rootId || x.root === rootId; });
+    h += card('Franchise', chain.length > 1 ? '<ol class="plist">' + chain.map(function (x) {
+      return '<li>' + (x.id === f.id ? '<b>' + esc(x.title) + '</b>' : fLink(x.id)) + ' <span class="muted">' + x.year + '</span><span class="right">' + money(x.gross) + ' ' + scoreBadge(x.critic) + '</span></li>';
+    }).join('') + '</ol>' : empty('A standalone film — for now.'));
+    h += '</div>';
+    return h;
+  }
+
+  // ---------- awards ----------
+  function awardsPage(y) {
+    var w = W();
+    var years = Object.keys(w.awards).map(Number).sort(function (a, b) { return a - b; });
+    var h = '<div class="pagehead"><h1>The Golden Laurels</h1></div>';
+    if (!years.length) return h + empty('The first ceremony takes place at the end of the first year.');
+    y = y ? +y : years[years.length - 1];
+    var c = w.awards[y];
+    if (!c) return h + empty('No ceremony for ' + y + '.');
+    var i = years.indexOf(y);
+    h += '<div class="toolbar yearnav">' + (i > 0 ? '<a class="btn small" href="#/awards/' + years[i - 1] + '">‹ ' + years[i - 1] + '</a>' : '<span></span>') +
+      '<h2>' + HW.ordinal(y - w.startYear + 1) + ' Golden Laurels <span class="muted">· honoring the films of ' + y + '</span></h2>' +
+      (i < years.length - 1 ? '<a class="btn small" href="#/awards/' + years[i + 1] + '">' + years[i + 1] + ' ›</a>' : '<span></span>') + '</div>';
+    h += '<div class="grid awards">';
+    c.cats.forEach(function (cat) {
+      var body = '<ol class="noms">' + cat.noms.map(function (n, idx) {
+        var won = idx === cat.win;
+        return '<li class="' + (won ? 'won' : '') + '">' + (won ? '<span class="statue">🏆</span>' : '<span class="statue off">•</span>') +
+          (n.p != null ? pLink(n.p) + '<div class="sub">' + fLink(n.f) + '</div>' : fLink(n.f) + '<div class="sub">' + sLink(w.films[n.f].studio) + '</div>') + '</li>';
+      }).join('') + '</ol>';
+      h += card(HW.catName(cat.k), body, cat.k === 'picture' ? 'gold' : '');
+    });
+    if (c.lifetime != null) h += card('Lifetime Achievement', '<p class="lifetime">' + pLink(c.lifetime) + '</p><p class="muted small">' + HW.ROLES[w.people[c.lifetime].role].label + ' · ' + w.people[c.lifetime].films.length + ' films</p>', 'gold');
+    h += '</div>';
+
+    var winners = w.people.filter(function (p) { return p.wins > 0; });
+    h += '<div class="grid two">' + card('Hall of Fame — most Laurels', table('hof', [
+      { h: 'Name', html: function (p) { return pLink(p.id); } },
+      { h: 'Role', v: function (p) { return HW.ROLES[p.role].label; } },
+      { h: 'Wins', cls: 'num', v: function (p) { return p.wins; } },
+      { h: 'Noms', cls: 'num', v: function (p) { return p.noms; } }
+    ], winners, { sort: [2, -1], per: 15, rank: true })) +
+      card('Best Picture winners', '<ul class="plist">' + years.slice().reverse().map(function (yy) {
+        var bp = w.awards[yy].cats[0];
+        var f = w.films[bp.noms[bp.win].f];
+        return '<li><span class="ny">' + yLink(yy) + '</span> ' + fLink(f.id) + '<span class="right muted small">' + esc(w.studios[f.studio].name) + '</span></li>';
+      }).join('') + '</ul>') + '</div>';
+    return h;
+  }
+
+  // ---------- history ----------
+  function historyPage() {
+    var w = W();
+    var h = '<div class="pagehead"><h1>Industry History</h1></div>';
+    if (!simulated()) return h + empty('History is yet to be written.');
+    var maxG = Math.max.apply(null, w.history.map(function (r) { return r.g; }));
+    h += card('Box office by year', '<div class="chart">' + w.history.map(function (r) {
+      return '<div class="col" title="' + r.y + ': ' + money(r.g) + '"><span style="height:' + (r.g / maxG * 100) + '%"></span><i>' + (r.y % 5 === 0 ? r.y : '') + '</i></div>';
+    }).join('') + '</div>');
+    h += table('history', [
+      { h: 'Year', cls: 'num', v: function (r) { return r.y; } },
+      { h: 'Films', cls: 'num', v: function (r) { return r.n; } },
+      { h: 'Total gross', cls: 'num', v: function (r) { return r.g; }, html: function (r) { return money(r.g); } },
+      { h: 'Avg critic', cls: 'num', v: function (r) { return r.c; } },
+      { h: 'Top grosser', html: function (r) { return r.top != null ? fLink(r.top) + ' <span class="muted small">' + money(w.films[r.top].gross) + '</span>' : '—'; } },
+      { h: 'Best Picture', html: function (r) { return r.bp != null ? fLink(r.bp) : '—'; } },
+      { h: 'Hottest genre', html: function (r) { return r.trends ? HW.GENRE_KEYS.reduce(function (a, g) { return r.trends[g] > r.trends[a] ? g : a; }) : ''; } },
+      { h: 'Event', html: function (r) { return r.ev ? '<span class="small">' + esc(r.ev) + '</span>' : ''; } }
+    ], w.history.slice().reverse(), { per: 25 });
+    return h;
+  }
+
+  // ---------- records ----------
+  function recordsPage() {
+    var w = W();
+    var h = '<div class="pagehead"><h1>All-Time Records</h1></div>';
+    if (!simulated()) return h + empty('No records yet.');
+    var films = w.films;
+    function topFilms(fn, n) { return films.slice().sort(function (a, b) { return fn(b) - fn(a); }).slice(0, n); }
+    var mini = function (key, list, valH) {
+      return table(key, [
+        { h: 'Film', html: function (f) { return fLink(f.id) + '<div class="sub">' + f.year + ' · ' + sLink(f.studio) + '</div>'; } },
+        { h: '', cls: 'num', html: valH }
+      ], list, { rank: true });
+    };
+    h += '<div class="grid three">';
+    h += card('Highest grossing', mini('r1', topFilms(function (f) { return f.gross; }, 15), function (f) { return money(f.gross); }));
+    h += card('Best reviewed', mini('r2', topFilms(function (f) { return f.critic * 1000 + f.audience; }, 15), function (f) { return scoreBadge(f.critic); }));
+    h += card('Most Laurels', mini('r3', topFilms(function (f) { return f.wins * 100 + f.noms; }, 15), function (f) { return '🏆' + f.wins + ' <span class="muted">/' + f.noms + '</span>'; }));
+    h += card('Most profitable', mini('r4', topFilms(function (f) { return f.profit; }, 15), function (f) { return '<span class="pos">' + money(f.profit) + '</span>'; }));
+    h += card('Biggest bombs', mini('r5', topFilms(function (f) { return -f.profit; }, 15), function (f) { return '<span class="neg">' + money(f.profit) + '</span>'; }));
+    // franchises
+    var fr = {};
+    films.forEach(function (f) { var r = f.root != null ? f.root : f.id; (fr[r] = fr[r] || []).push(f); });
+    var frList = Object.keys(fr).filter(function (k) { return fr[k].length > 1; }).map(function (k) {
+      return { root: +k, n: fr[k].length, g: fr[k].reduce(function (a, f) { return a + f.gross; }, 0) };
+    }).sort(function (a, b) { return b.g - a.g; }).slice(0, 15);
+    h += card('Biggest franchises', table('r6', [
+      { h: 'Franchise', html: function (x) { return fLink(x.root) + '<div class="sub">' + x.n + ' films</div>'; } },
+      { h: '', cls: 'num', html: function (x) { return money(x.g); } }
+    ], frList, { rank: true }));
+    h += '</div>';
+    function topP(key, fn, valH, filter) {
+      var list = w.people.filter(filter || function () { return true; }).sort(function (a, b) { return fn(b) - fn(a); }).slice(0, 15);
+      return table(key, [{ h: 'Name', html: function (p) { return pLink(p.id) + '<div class="sub">' + HW.ROLES[p.role].label + '</div>'; } }, { h: '', cls: 'num', html: valH }], list, { rank: true });
+    }
+    h += '<div class="grid three">';
+    h += card('Box office kings (actors)', topP('r7', function (p) { return p.gross; }, function (p) { return money(p.gross); }, function (p) { return p.role === 'actor'; }));
+    h += card('Most prolific', topP('r8', function (p) { return p.films.length; }, function (p) { return p.films.length + ' films'; }));
+    h += card('Always the nominee', topP('r9', function (p) { return p.noms - p.wins * 3; }, function (p) { return p.noms + ' noms, ' + p.wins + ' wins'; }, function (p) { return p.noms > 0; }));
+    h += '</div>';
+    return h;
+  }
+
+  // ---------- news ----------
+  function newsPage() {
+    var w = W(), k = UI.filters.newsKind || 'all';
+    var list = w.news.filter(function (n) { return k === 'all' || n.k === k; }).slice(-300).reverse();
+    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['event', 'Industry']]) + '</div>' +
+      card('Latest', newsList(list));
+  }
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// Boot, persistence (IndexedDB), and input handling.
+(function (HW) {
+  var DB = 'hollywood-dynasty', STORE = 'saves', KEY = 'current';
+  var busy = false, autoTimer = null;
+
+  function openDb() {
+    return new Promise(function (res, rej) {
+      if (!window.indexedDB) return rej(new Error('IndexedDB unavailable'));
+      var r = indexedDB.open(DB, 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore(STORE); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function save() {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(JSON.stringify(HW.world), KEY);
+        tx.oncomplete = function () { res(); };
+        tx.onerror = function () { rej(tx.error); };
+      });
+    }).catch(function (e) { console.warn('Save failed', e); toast('Could not save: ' + e.message); });
+  }
+  function load() {
+    return openDb().then(function (db) {
+      return new Promise(function (res) {
+        var r = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
+        r.onsuccess = function () { res(r.result ? JSON.parse(r.result) : null); };
+        r.onerror = function () { res(null); };
+      });
+    }).catch(function () { return null; });
+  }
+
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(function () { t.hidden = true; }, 3200);
+  }
+  HW.toast = toast;
+
+  function progress(frac) {
+    var p = document.getElementById('progress');
+    p.classList.toggle('on', frac != null);
+    document.getElementById('progressBar').style.width = ((frac || 0) * 100) + '%';
+  }
+
+  function advance(n) {
+    if (busy) return Promise.resolve();
+    busy = true;
+    document.body.classList.add('busy');
+    var done = 0;
+    return new Promise(function (resolve) {
+      function step() {
+        HW.simulateYear(HW.world);
+        done++;
+        progress(done / n);
+        if (done < n) setTimeout(step, 0);
+        else {
+          save().then(function () {
+            busy = false;
+            document.body.classList.remove('busy');
+            progress(null);
+            HW.UI.render();
+            resolve();
+          });
+        }
+      }
+      setTimeout(step, 0);
+    });
+  }
+
+  function setAuto(on) {
+    var btn = document.getElementById('autoBtn');
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    btn.classList.toggle('on', on);
+    btn.textContent = on ? '■ Stop' : '⟳ Auto';
+    if (!on) return;
+    var tick = function () {
+      advance(1).then(function () {
+        if (!btn.classList.contains('on')) return;
+        autoTimer = setTimeout(tick, +document.getElementById('autoSpeed').value);
+      });
+    };
+    tick();
+  }
+
+  function newWorld() {
+    var start = parseInt(document.getElementById('newStart').value, 10) || 1980;
+    var seedTxt = document.getElementById('newSeed').value.trim();
+    var seed = seedTxt ? hash(seedTxt) : undefined;
+    setAuto(false);
+    HW.world = HW.newWorld({ startYear: start, seed: seed });
+    HW.UI.sorts = {}; HW.UI.pages = {}; HW.UI.filters = {};
+    save();
+    closeMenu();
+    location.hash = '#/';
+    HW.UI.render();
+    toast('A new Hollywood is born — seed ' + HW.world.seed);
+  }
+  function hash(s) {
+    if (/^\d+$/.test(s)) return +s;
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+
+  function exportSave() {
+    var blob = new Blob([JSON.stringify(HW.world)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hollywood-dynasty-' + HW.world.year + '.json';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+  function importSave(file) {
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var w = JSON.parse(r.result);
+        if (!w || !w.people || !w.studios || !w.films) throw new Error('not a Hollywood Dynasty save');
+        if (w.version !== 2) throw new Error('this save is from an older version');
+        setAuto(false);
+        HW.world = w;
+        save();
+        closeMenu();
+        location.hash = '#/';
+        HW.UI.render();
+        toast('Save loaded — year ' + w.year);
+      } catch (e) { toast('Import failed: ' + e.message); }
+    };
+    r.readAsText(file);
+  }
+
+  function openMenu() {
+    var w = HW.world;
+    document.getElementById('saveInfo').textContent = 'Seed ' + w.seed + ' · started ' + w.startYear + ' · ' + w.films.length.toLocaleString() + ' films, ' + w.people.length.toLocaleString() + ' people on record. Autosaves in this browser after every year.';
+    document.getElementById('menu').hidden = false;
+  }
+  function closeMenu() { document.getElementById('menu').hidden = true; }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-action],[data-sort],[data-page],[data-filter],[data-go]');
+    if (!t) return;
+    if (t.dataset.go) { location.hash = t.dataset.go; return; }
+    if (t.dataset.sort) {
+      var p = t.dataset.sort.split(':'), key = p[0], col = +p[1], cur = HW.UI.sorts[key];
+      HW.UI.sorts[key] = { c: col, d: cur && cur.c === col ? -cur.d : (t.classList.contains('num') ? -1 : 1) };
+      HW.UI.render(); return;
+    }
+    if (t.dataset.page) { var q = t.dataset.page.split(':'); HW.UI.pages[q[0]] = Math.max(0, +q[1]); HW.UI.render(); window.scrollTo(0, 0); return; }
+    if (t.dataset.filter) {
+      var f = t.dataset.filter.split(':');
+      HW.UI.filters[f[0]] = f[1];
+      Object.keys(HW.UI.pages).forEach(function (k) { if (/^talent|^films|^studios/.test(k)) HW.UI.pages[k] = 0; });
+      HW.UI.render(); return;
+    }
+    switch (t.dataset.action) {
+      case 'advance': setAuto(false); advance(+t.dataset.years); break;
+      case 'auto': setAuto(!document.getElementById('autoBtn').classList.contains('on')); break;
+      case 'menu': openMenu(); break;
+      case 'closeMenu': closeMenu(); break;
+      case 'new': if (confirm('Start a new world? Your current save will be replaced.')) newWorld(); break;
+      case 'export': exportSave(); break;
+    }
+  });
+  document.getElementById('menu').addEventListener('click', function (e) { if (e.target.id === 'menu') closeMenu(); });
+  document.getElementById('importFile').addEventListener('change', function (e) { if (e.target.files[0]) importSave(e.target.files[0]); e.target.value = ''; });
+
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.select) {
+      HW.UI.filters[t.dataset.select] = t.value;
+      HW.UI.pages.films = 0;
+      HW.UI.render();
+    }
+  });
+  var searchTimer;
+  document.addEventListener('input', function (e) {
+    if (e.target.id !== 'talentSearch') return;
+    clearTimeout(searchTimer);
+    var v = e.target.value;
+    searchTimer = setTimeout(function () {
+      HW.UI.filters.q = v;
+      HW.UI.pages['talent-' + (HW.UI.filters.role || 'actor')] = 0;
+      HW.UI.render();
+      var el = document.getElementById('talentSearch');
+      if (el) { el.focus(); el.setSelectionRange(v.length, v.length); }
+    }, 200);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.key === ' ' || e.key === 'n') { e.preventDefault(); advance(1); }
+    if (e.key === 'Escape') closeMenu();
+  });
+  window.addEventListener('hashchange', function () { HW.UI.render(); window.scrollTo(0, 0); });
+
+  load().then(function (w) {
+    HW.world = w && w.version === 2 ? w : HW.newWorld({ startYear: 1980 });
+    if (w && w.version !== 2) toast('Actor stats were redesigned, so older saves can\'t load. A fresh world has started.');
+    if (HW.world !== w) save();
+    HW.UI.render();
+  });
+})(globalThis.HW = globalThis.HW || {});
+</script>
+</body>
+</html>

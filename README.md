@@ -4,7 +4,7 @@ A Hollywood industry simulator. Set up a world, press **Next Year**, and watch t
 
 ## Running
 
-Open `index.html` in a browser. There's no build step and nothing to install. The game autosaves to your browser (IndexedDB) after every simulated year. Use the ☰ menu to start a new world (with a start year and an optional seed) or to export and import save files.
+Open `index.html` in a browser; there is nothing to install. `hollywood-dynasty.html` is the whole game in a single file, easy to share; regenerate it with `python3 build.py` after editing the code. The game autosaves to your browser (IndexedDB) after every simulated year. Use the ☰ menu to start a new world (with a start year and an optional seed) or to export and import save files.
 
 Keys: `Space` / `N` advances one year.
 
