@@ -1,7 +1,9 @@
 // Boot, persistence (IndexedDB), and input handling.
 (function (HW) {
-  var DB = 'hollywood-dynasty', STORE = 'saves', KEY = 'current';
+  // Two save slots: 'current' is the sandbox world, 'career' is the career-mode world. 'mode' remembers which is open.
+  var DB = 'hollywood-dynasty', STORE = 'saves';
   var busy = false, autoTimer = null;
+  HW.careerMeta = null;
 
   function openDb() {
     return new Promise(function (res, rej) {
@@ -12,25 +14,93 @@
       r.onerror = function () { rej(r.error); };
     });
   }
-  function save() {
+  function put(entries) {
     return openDb().then(function (db) {
       return new Promise(function (res, rej) {
-        var tx = db.transaction(STORE, 'readwrite');
-        tx.objectStore(STORE).put(JSON.stringify(HW.world), KEY);
+        var tx = db.transaction(STORE, 'readwrite'), st = tx.objectStore(STORE);
+        for (var k in entries) st.put(entries[k], k);
         tx.oncomplete = function () { res(); };
         tx.onerror = function () { rej(tx.error); };
       });
-    }).catch(function (e) { console.warn('Save failed', e); toast('Could not save: ' + e.message); });
+    });
   }
-  function load() {
+  function get(key) {
     return openDb().then(function (db) {
       return new Promise(function (res) {
-        var r = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
-        r.onsuccess = function () { res(r.result ? JSON.parse(r.result) : null); };
+        var r = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
+        r.onsuccess = function () { res(r.result == null ? null : r.result); };
         r.onerror = function () { res(null); };
       });
     }).catch(function () { return null; });
   }
+  function isCareer(w) { return !!(w && w.mode === 'career'); }
+  function save() {
+    var w = HW.world, e = { mode: isCareer(w) ? 'career' : 'sandbox' };
+    e[isCareer(w) ? 'career' : 'current'] = JSON.stringify(w);
+    if (isCareer(w)) e.careerMeta = HW.careerMeta = { agency: w.career.agency, year: w.year, over: !!w.career.over };
+    return put(e).catch(function (err) { console.warn('Save failed', err); toast('Could not save: ' + err.message); });
+  }
+  HW.save = save;
+  function parse(txt) { try { var w = txt ? JSON.parse(txt) : null; return w && w.version === 2 ? w : null; } catch (e) { return null; } }
+
+  function resetView() { HW.UI.sorts = {}; HW.UI.pages = {}; HW.UI.filters = {}; }
+  // Switch between the sandbox and career worlds; each keeps its own save.
+  HW.switchMode = function (mode) {
+    if (busy) return;
+    setAuto(false);
+    HW.UI.closeCeremony();
+    return save().then(function () { return get(mode === 'career' ? 'career' : 'current'); }).then(function (txt) {
+      var w = parse(txt);
+      if (!w && mode === 'career') { toast('No career in progress.'); return; }
+      HW.world = w || HW.newWorld({ startYear: 1980 });
+      resetView();
+      return put({ mode: mode }).then(function () {
+        location.hash = mode === 'career' ? '#/career' : '#/';
+        HW.UI.render();
+        toast(mode === 'career' ? 'Welcome back to ' + HW.world.career.agency + '.' : 'Back to the sandbox.');
+      });
+    });
+  };
+  // Delete the career save and return to the sandbox.
+  HW.abandonCareer = function () {
+    if (busy) return;
+    HW.UI.closeCeremony();
+    HW.careerMeta = null;
+    return put({ career: null, careerMeta: null, mode: 'sandbox' }).then(function () { return get('current'); }).then(function (txt) {
+      HW.world = parse(txt) || HW.newWorld({ startYear: 1980 });
+      resetView();
+      location.hash = '#/career';
+      HW.UI.render();
+      toast('Career abandoned.');
+    });
+  };
+  HW.startCareer = function (opts) {
+    if (busy) return;
+    setAuto(false);
+    var start = function () {
+      HW.world = HW.Career.newCareer(opts);
+      resetView();
+      save();
+      location.hash = '#/career';
+      HW.UI.render();
+      toast(HW.world.career.agency + ' opens its doors in ' + HW.world.year + '.');
+    };
+    // keep the sandbox safe before replacing the open world
+    if (isCareer(HW.world)) start(); else save().then(start);
+  };
+
+  // Chrome that depends on the mode: career banner, hidden multi-year controls.
+  function updateChrome() {
+    var w = HW.world, banner = document.getElementById('modeBanner');
+    document.body.classList.toggle('career-mode', isCareer(w));
+    if (!isCareer(w)) { banner.hidden = true; return; }
+    var c = w.career;
+    banner.hidden = false;
+    banner.innerHTML = '<span class="mb-tag">Career Mode</span><b>' + HW.UI.h.esc(c.agency) + '</b><span class="muted">' + HW.money(c.cash) + ' · reputation ' + c.rep + ' · ' + c.clients.length + ' client' + (c.clients.length === 1 ? '' : 's') + '</span>' +
+      (c.over ? '<span class="neg">Agency folded</span>' : '') +
+      '<span class="mb-actions"><a class="btn small" href="#/career">Agency</a><button class="btn small ghost" data-action="toSandbox">Back to sandbox</button></span>';
+  }
+  HW.UI.afterRender = updateChrome;
 
   // per-viewer preference, kept in browser storage
   function ceremonyWanted() {
@@ -61,6 +131,14 @@
 
   function advance(n) {
     if (busy) return Promise.resolve();
+    if (isCareer(HW.world)) {
+      // the agency plays one year at a time: offers have to be answered
+      var car = HW.world.career;
+      n = 1;
+      if (car.over) { toast('Your agency has folded. Start a new career from the Career Mode tab.'); return Promise.resolve(); }
+      var idle = car.clients.filter(function (c) { return (car.offers[c.id] || []).length && !(car.accepted[c.id] || []).length; });
+      if (idle.length && !confirm(idle.length + ' client' + (idle.length > 1 ? 's have' : ' has') + ' no role this year and will sit idle (they won\'t like it). Continue?')) return Promise.resolve();
+    }
     busy = true;
     document.body.classList.add('busy');
     var done = 0;
@@ -109,7 +187,7 @@
     var seed = seedTxt ? hash(seedTxt) : undefined;
     setAuto(false);
     HW.world = HW.newWorld({ startYear: start, seed: seed });
-    HW.UI.sorts = {}; HW.UI.pages = {}; HW.UI.filters = {};
+    resetView();
     save();
     closeMenu();
     location.hash = '#/';
@@ -138,6 +216,7 @@
         var w = JSON.parse(r.result);
         if (!w || !w.people || !w.studios || !w.films) throw new Error('not a Hollywood Dynasty save');
         if (w.version !== 2) throw new Error('this save is from an older version');
+        if (isCareer(w) && !w.career) throw new Error('damaged career save');
         setAuto(false);
         HW.world = w;
         save();
@@ -186,7 +265,9 @@
       case 'auto': setAuto(!document.getElementById('autoBtn').classList.contains('on')); break;
       case 'menu': openMenu(); break;
       case 'closeMenu': closeMenu(); break;
-      case 'new': if (confirm('Start a new world? Your current save will be replaced.')) newWorld(); break;
+      case 'new': if (confirm('Start a new sandbox world? Your sandbox save will be replaced' + (HW.careerMeta ? ' (your career is kept)' : '') + '.')) newWorld(); break;
+      case 'toSandbox': HW.switchMode('sandbox'); break;
+      case 'toCareer': HW.switchMode('career'); break;
       case 'export': exportSave(); break;
       case 'ceremony': HW.UI.startCeremony(+t.dataset.year); break;
       case 'cerNext': HW.UI.ceremonyNext(); break;
@@ -233,10 +314,15 @@
   document.addEventListener('touchstart', function (e) { if (e.touches[0]) HW.UI.chartHover({ target: e.target, clientX: e.touches[0].clientX }); }, { passive: true });
   window.addEventListener('hashchange', function () { HW.UI.render(); window.scrollTo(0, 0); });
 
-  load().then(function (w) {
-    HW.world = w && w.version === 2 ? w : HW.newWorld({ startYear: 1980 });
-    if (w && w.version !== 2) toast('Actor stats were redesigned, so older saves can\'t load. A fresh world has started.');
-    if (HW.world !== w) save();
-    HW.UI.render();
+  Promise.all([get('mode'), get('careerMeta')]).then(function (r) {
+    HW.careerMeta = r[1];
+    var mode = r[0] === 'career' && r[1] ? 'career' : 'sandbox';
+    return get(mode === 'career' ? 'career' : 'current').then(function (txt) {
+      var w = parse(txt);
+      if (txt && !w) toast('That save is from an older version and can\'t load. A fresh world has started.');
+      HW.world = w || HW.newWorld({ startYear: 1980 });
+      if (!w) save();
+      HW.UI.render();
+    });
   });
 })(globalThis.HW = globalThis.HW || {});

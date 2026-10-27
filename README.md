@@ -67,6 +67,19 @@ Every film page explains its result. It shows a verdict (*Smash hit*, *Hit*, *So
 
 Each genre has its own vocabulary and title patterns, plus hand-written titles: Westerns get *Showdown at Silver Creek*, sci-fi gets *Last Light on Callisto*, comedies get *Who Invited Virginia?*. Recently used words and patterns are avoided, and an old title that comes back is marked as a remake.
 
+## Career Mode
+
+The **🎬 Career Mode** tab at the far right starts a separate single-player game in which you run a talent agency. A career has **its own world and its own save**, so your sandbox world is never touched. A banner at the top shows you're in Career Mode, and **Back to sandbox** returns you to your sandbox world.
+
+- **Open auditions:** pick up to three founding clients for free from a dozen hopefuls and journeymen.
+- **Offers:** each year every client gets role offers, each showing the studio and its tier, genre, budget, lead or supporting role, director, fee (flagged when it's under their asking price), script buzz and genre fit. Sequel offers come in when a client led a hit. Accept up to two per client (one for Reclusive actors, three for Workhorses), then advance the year. Accepted offers become real productions in the simulation. Clients only work through offers you accept.
+- **Money:** you earn 10% of your clients' fees and pay a small yearly overhead. If the agency runs out of money, it folds.
+- **Investments:** coaching raises a core stat or genre skill (once a year per client), a publicity push raises fame, and a For Your Consideration campaign helps a client's performance with Golden Laurel voters.
+- **Loyalty:** it rises with lead roles, hits, nominations and wins, and falls with idle years, flops, underpaid roles and supporting parts for established stars. Clients below 30 loyalty may fire you, and big stars can be poached by rival agencies when your reputation lags behind them.
+- **Reputation:** built from your top clients' fame and awards. It decides who will sign with you (fame up to reputation + 25) and how many clients you can hold.
+- **Agency screens:** this year's offers, client management, scouting (every actor in town, with signing costs), milestones, the agency log, year-by-year finances and former clients. Your clients are followed automatically, so they appear in the yearly digest and are flagged at the ceremony.
+- Career Mode advances one year at a time.
+
 ## How a year plays out
 
 1. **Industry events** may fire: strikes, recessions, booms, a craze for one genre or fatigue with another, VFX breakthroughs. Genre appetite drifts, and copies whatever made money last year.
@@ -87,5 +100,7 @@ Each genre has its own vocabulary and title patterns, plus hand-written titles: 
 | `js/awards.js` | The Golden Laurels |
 | `js/stories.js` | Career history, arcs, bios, turning points |
 | `js/relations.js` | Partnerships, duos, feuds, rivalries |
+| `js/career.js` | Career Mode game logic (agency, offers, clients) |
+| `js/career-ui.js` | Career Mode screens |
 | `js/ui.js` | Hash-routed pages, follow digest, ceremony |
 | `js/main.js` | Boot, saving, input |

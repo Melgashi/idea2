@@ -29,6 +29,7 @@
     peopleYearEnd(w, ctx);
     HW.detectStories(w, ctx);
     recordHistory(w, ctx);
+    if (w.career) HW.Career.afterYear(w, ctx);
     w.year++;
     w.rngState = rng.s;
     return ctx;
@@ -80,9 +81,11 @@
 
   function produceFilms(w, ctx) {
     var rng = ctx.rng, Y = ctx.year;
+    // career mode: agency clients only work through offers the player accepted
+    var clients = w.career ? HW.Career.clientSet(w) : {};
     // some people sit the year out
     w.people.forEach(function (p) {
-      if (p.status !== 'active') return;
+      if (p.status !== 'active' || clients[p.id]) return;
       var restP = HW.has(p, 'reclusive') ? 0.5 : 0.08;
       if (rng.chance(restP)) ctx.resting[p.id] = 1;
     });
@@ -90,7 +93,7 @@
     var pools = {};
     HW.ROLE_KEYS.forEach(function (r) { pools[r] = []; });
     w.people.forEach(function (p) {
-      if (p.status === 'active' && !ctx.resting[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
+      if (p.status === 'active' && !ctx.resting[p.id] && !clients[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
     });
     ctx.pools = pools;
     // index active relationships by person for fast casting lookups
@@ -118,7 +121,11 @@
     });
     // bigger productions get first pick of talent (with some shuffle)
     projects.sort(function (a, b) { return b.budget * rng.range(0.7, 1.3) - a.budget * rng.range(0.7, 1.3); });
+    // projects built around accepted career-mode offers are staffed first
+    var forced = w.career ? HW.Career.forcedProjects(w, ctx, function (s) { return planProject(w, ctx, s); }) : [];
+    forced.forEach(function (f) { staffProject(w, ctx, f); });
     projects.forEach(function (f) { staffProject(w, ctx, f); });
+    projects = forced.concat(projects);
     ctx.seqCount = {}; // audiences tire of too many sequels in one genre
     projects.forEach(function (f) { if (f.seqOf != null) ctx.seqCount[f.genre] = (ctx.seqCount[f.genre] || 0) + 1; });
     ctx.films = projects.filter(function (f) { return f.director != null && f.cast.length > 0; });
@@ -198,7 +205,12 @@
     var prev = f.seqOf != null ? w.films[f.seqOf] : null;
     var B = f.budget;
 
-    var d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
+    var d = null, fd = f.forced ? w.people[f.forced.dir] : null;
+    if (fd && fd.status === 'active' && (ctx.booked[fd.id] || 0) < capFor(fd)) {
+      ctx.booked[fd.id] = (ctx.booked[fd.id] || 0) + 1;
+      d = { p: fd, fee: HW.fee(fd) };
+    } else if (f.forced) f.forced.dirSwap = true;
+    if (!d) d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
       var q = (p.stats.vision + p.stats.craft) / 2;
       return q * 0.65 + specBonus(p, genre, 8) + c * (p.stats.commercial * 0.25 + p.fame * 0.15) +
         (1 - c) * p.prestige * 0.3 + (prev && prev.director === p.id ? 30 : 0);
@@ -252,6 +264,17 @@
     var prevCast = {};
     if (prev) prev.cast.forEach(function (x) { prevCast[x.p] = x.r; });
     var spent = d.fee + (wr ? wr.fee : 0);
+    if (f.forced) {
+      // the agency's client takes the role they signed for
+      var cp = w.people[f.forced.p], fi = 0;
+      for (var ri = 0; ri < roles.length; ri++) if (roles[ri].r === f.forced.r) { fi = ri; break; }
+      roles.splice(fi, 1);
+      castIds[cp.id] = 1;
+      addTies(cp.id);
+      ctx.booked[cp.id] = (ctx.booked[cp.id] || 0) + 1;
+      spent += f.forced.fee;
+      f.cast.push({ p: cp.id, r: f.forced.r, perf: 0, fee: f.forced.fee });
+    }
     roles.forEach(function (role, idx) {
       var pool = role.g === 'M' ? ctx.pools.actorM : ctx.pools.actorF;
       var h = hire(ctx, pool, f, B * role.share, function (p) {

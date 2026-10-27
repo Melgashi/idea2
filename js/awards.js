@@ -31,6 +31,7 @@
     var v = Math.min(5, p.noms - p.wins) * 1.4 - Math.min(8, p.wins) * 1.3; // voters like to spread the love
     if (Y - p.born > 60) v += 2;
     if (HW.has(p, 'campaigner')) v += 3;
+    if (p.campaign === Y) v += 6; // career mode: the agency paid for a For Your Consideration push
     if (HW.has(p, 'darling')) v += 2;
     if (p.scandalYear != null && Y - p.scandalYear <= 1) v -= 6;
     return v + p.prestige * 0.05 + p.fame * 0.03;

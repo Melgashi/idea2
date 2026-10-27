@@ -100,6 +100,9 @@
     'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage, 'following': followingPage
   };
 
+  // other modules (career mode) register their own pages and reuse the helpers below
+  UI.addRoute = function (name, fn) { routes[name] = fn; };
+
   UI.render = function () {
     var hash = location.hash.replace(/^#\/?/, '');
     var parts = hash.split('/');
@@ -111,6 +114,7 @@
     var tabs = document.querySelectorAll('#tabs a');
     var section = { studio: 'studios', person: 'talent', film: 'films' }[parts[0]] || parts[0];
     tabs.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href').replace('#/', '') === section); });
+    if (UI.afterRender) UI.afterRender();
   };
 
   // ---------- overview ----------
@@ -953,4 +957,9 @@
     }
     el.innerHTML = head + progress + '<div class="cer-body">' + body + '</div><div class="cer-foot">' + foot + '</div>';
   }
+  UI.h = {
+    esc: esc, pLink: pLink, fLink: fLink, sLink: sLink, money: money, card: card, empty: empty, table: table, stat: stat,
+    stars: stars, scoreBadge: scoreBadge, scoreCls: scoreCls, grade: grade, tierBadge: tierBadge, ovrText: ovrText,
+    statLine: statLine, topGenre: topGenre, sparkline: sparkline, starBtn: starBtn, digest: digest, meter: meter, seg: seg, ageOf: ageOf
+  };
 })(globalThis.HW = globalThis.HW || {});
