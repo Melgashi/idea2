@@ -42,6 +42,27 @@ Every actor's and director's fame and prestige is recorded each year, so careers
 - **Turning points** are detected as they happen (breakouts, comebacks, falling stars, new A-listers) and reported in the news and on the overview, along with a rotating "Where are they now?" look at faded stars.
 - Most lead roles are written for actors under 40, so stars tend to break out young and get pushed aside as they age, unless they find a second act.
 
+### Following
+
+Star (☆) any actor, director or studio on their page or in the Talent and Studios tables. Each year the overview opens with **Your people**, a digest of what happened to everyone you follow: films and grosses, performance grades, nominations and wins, scandals, new partnerships or feuds, turning points, retirements, and for studios their rank, profit, biggest hit and any bombs. The **★ Following** tab shows past years' digests too.
+
+### The Golden Laurels ceremony
+
+After each single-year advance, the ceremony plays as an event: minor awards first and Best Picture last, opening each envelope in turn. Nominees are shown with their record ("4 previous nominations, never won", "facing rival…", "★ you follow"). Skip to Best Picture, skip straight to the winners, or replay any year from the Golden Laurels tab. Turn it off in the ☰ menu. It never plays during Auto or multi-year jumps.
+
+### Relationships
+
+- **Creative partners**: a director and actor who make three good films together. The director keeps casting them, and they perform better together.
+- **Screen duos**: co-leads audiences love, who get cast together again.
+- **Feuds**: they break out on troubled productions (divas, flops, blown budgets) and can end a partnership. Feuding people refuse to work together until they reconcile.
+- **Rivalries**: stars of a similar age who keep meeting in the same Laurel category. The press loves them, and beating your rival makes headlines.
+
+Relationships appear on character sheets, in bios, in the news and in your digest.
+
+### Film titles
+
+Each genre has its own vocabulary and title patterns, plus hand-written titles: Westerns get *Showdown at Silver Creek*, sci-fi gets *Last Light on Callisto*, comedies get *Who Invited Virginia?*. Recently used words and patterns are avoided, and an old title that comes back is marked as a remake.
+
 ## How a year plays out
 
 1. **Industry events** may fire: strikes, recessions, booms, a craze for one genre or fatigue with another, VFX breakthroughs. Genre appetite drifts, and copies whatever made money last year.
@@ -60,5 +81,7 @@ Every actor's and director's fame and prestige is recorded each year, so careers
 | `js/world.js` | World and person generation, aging, OVR, fees |
 | `js/sim.js` | The yearly simulation |
 | `js/awards.js` | The Golden Laurels |
-| `js/ui.js` | Hash-routed pages |
+| `js/stories.js` | Career history, arcs, bios, turning points |
+| `js/relations.js` | Partnerships, duos, feuds, rivalries |
+| `js/ui.js` | Hash-routed pages, follow digest, ceremony |
 | `js/main.js` | Boot, saving, input |

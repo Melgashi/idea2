@@ -24,6 +24,7 @@
     releaseFilms(w, ctx);
     careerUpdates(w, ctx);
     HW.runAwards(w, ctx);
+    HW.relationsYear(w, ctx);
     studioYearEnd(w, ctx);
     peopleYearEnd(w, ctx);
     HW.detectStories(w, ctx);
@@ -92,6 +93,14 @@
       if (p.status === 'active' && !ctx.resting[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
     });
     ctx.pools = pools;
+    // index active relationships by person for fast casting lookups
+    ctx.relBy = {};
+    for (var rk in (w.rel || {})) {
+      var rr = w.rel[rk];
+      if (rr.end != null) continue;
+      (ctx.relBy[rr.a] = ctx.relBy[rr.a] || []).push({ o: rr.b, t: rr.t });
+      (ctx.relBy[rr.b] = ctx.relBy[rr.b] || []).push({ o: rr.a, t: rr.t });
+    }
     ctx.fees = [];
     w.people.forEach(function (p) { if (p.status === 'active') ctx.fees[p.id] = HW.fee(p); });
     ctx.pools.actorM = pools.actor.filter(function (p) { return p.gender === 'M'; });
@@ -232,6 +241,12 @@
     for (var i = 0; i < extra; i++) roles.push({ r: 'S', g: rng.chance(0.5) ? 'M' : 'F', age: [8, 95], share: 0.025 });
 
     var castIds = {};
+    // relationship ties to the director and to everyone cast so far: id -> strongest tie
+    var ties = {};
+    var addTies = function (id) {
+      (ctx.relBy[id] || []).forEach(function (x) { if (ties[x.o] !== 'feud') ties[x.o] = x.t; });
+    };
+    addTies(dir.id);
     var collab = {};
     for (var j = dir.films.length - 1, n = 0; j >= 0 && n < 8; j--, n++) w.films[dir.films[j]].cast.forEach(function (x) { collab[x.p] = 1; });
     var prevCast = {};
@@ -249,11 +264,15 @@
         if (role.r === 'L' && genre !== 'Animation') sc += c * (st.presence - 5) * 1.5;
         if (prevCast[p.id] === role.r) sc += 40;
         if (collab[p.id]) sc += 4;
+        // relationships: feuds rule people out, partners and duos get the call
+        var rt = ties[p.id];
+        if (rt) { if (rt === 'feud') return -1e9; sc += rt === 'partner' ? 10 : rt === 'duo' ? 8 : 0; }
         return sc;
       });
       if (!h) return;
       if (castIds[h.p.id]) return;
       castIds[h.p.id] = 1;
+      addTies(h.p.id);
       spent += h.fee;
       f.cast.push({ p: h.p.id, r: role.r, perf: 0, fee: Math.round(h.fee * 100) / 100, cut: h.cut || undefined });
     });
@@ -365,7 +384,10 @@
       var method = HW.has(p, 'method');
       // chemistry: scene partners lift (or flatten) each other
       var partners = f.cast.length > 1 ? (chemTotal - s.chemistry) / (f.cast.length - 1) : 5;
-      var perf = HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
+      var bond = 0, rdir = HW.relOf(w, p.id, dir.id);
+      if (rdir && rdir.t === 'partner') bond += 3;
+      f.cast.forEach(function (o) { var ro = o.p !== p.id && HW.relOf(w, p.id, o.p); if (ro && ro.t === 'duo') bond += 2; if (ro && ro.t === 'rival') bond += 1; });
+      var perf = bond + HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
         (partners - 5) * 1.2 + dirHandling + dialogue + (method ? 3 : 0);
       // craft is consistency: skilled actors deliver take after take; intensity swings bigger
       var sd = 10 - s.craft * 0.5 + (method ? 3 : 0) + (s.intensity - 5) * 0.3;
@@ -411,25 +433,73 @@
     };
   }
 
+  var SEQ_SUBTITLES = ['Reckoning', 'Resurrection', 'Legacy', 'The Return', 'Rise', 'Endgame', 'Revenge', 'Origins', 'Homecoming',
+    'Unfinished Business', 'No Escape', 'Judgment Day', 'Blood Ties', 'The Next Chapter', 'Fallout', 'Redemption', 'Aftermath', 'Retribution'];
+
+  var BORROWS = { 'Drama': 1, 'Comedy': 1, 'Romance': 1, 'Thriller': 1, 'Crime': 1, 'Biopic': 1 };
+
   function makeTitle(w, rng, f) {
+    var fresh = freshness(w, f.year);
     if (f.seqOf != null) {
-      var root = w.films[f.root];
-      var base = root.title;
-      return rng.chance(0.65) ? base + ' ' + f.seqNum : base + ': ' + rng.pick(['Part ' + roman(f.seqNum), 'Reckoning', 'Resurrection', 'Legacy', 'The Return', 'Rise', 'Endgame', 'Revenge', 'Origins', 'Homecoming']);
+      var base = w.films[f.root].title, r = rng.next();
+      if (r < 0.45) return base + ' ' + f.seqNum;
+      if (r < 0.6) return base + ' ' + roman(f.seqNum);
+      var sub = pickFresh(rng, SEQ_SUBTITLES, fresh);
+      return base + ': ' + sub;
     }
-    var T = HW.TITLE, used = w.usedTitles;
-    for (var i = 0; i < 20; i++) {
-      var pat = rng.pick(T.patterns[f.genre]);
-      var title = pat.replace('{adj}', rng.pick(T.adj)).replace('{noun}', rng.pick(T.noun)).replace('{place}', rng.pick(T.place))
-        .replace('{first2}', rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female))
-        .replace('{first}', rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female)).replace('{last}', rng.pick(HW.NAMES.last))
-        .replace('{verbed}', rng.pick(T.verbed)).replace('{num}', String(rng.int(1, 9) * 100 + rng.int(0, 99)));
-      if (!used[title]) { used[title] = f.year; return title; }
-      if (i > 12 && used[title] < f.year - 15) { used[title] = f.year; return title; } // a remake
+    var T = HW.TITLE, G = T.genres[f.genre], used = w.usedTitles;
+    for (var i = 0; i < 25; i++) {
+      var pat = pickFresh(rng, G.pat, fresh, 'pat:' + f.genre + ':');
+      var picked = [];
+      var bank = function (k) {
+        // everyday words suit grounded genres; genre films stick to their own vocabulary
+        var own = G[k] || [], shared = BORROWS[f.genre] ? T.shared[k] || [] : [];
+        var src = own.length && (!shared.length || rng.chance(0.75)) ? own : shared;
+        var word = pickFresh(rng, src, fresh);
+        picked.push(word);
+        return word;
+      };
+      var title = pat.replace(/\{(\w+)\}/g, function (m, k) {
+        switch (k) {
+          case 'A': case 'N': case 'P': return bank(k);
+          case 'Ns': return plural(T, bank('N'));
+          case 'F': case 'F2': return rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female);
+          case 'L': return rng.pick(HW.NAMES.last);
+          case 'Ls': var l = rng.pick(HW.NAMES.last); return /(s|x|z|ch|sh)$/.test(l) ? l + 'es' : l + 's';
+          case 'V': return pickFresh(rng, G.V, fresh);
+          case 'Num': return String(rng.int(1, 9) * 100 + rng.int(0, 99));
+          case 'X': return pickFresh(rng, G.X.length ? G.X : [f.genre], fresh);
+        }
+        return m;
+      }).replace(/-/g, ' ').replace(/\bA ([AEIOU])/g, 'An $1');
+      if (!used[title]) {
+        used[title] = f.year;
+        picked.concat([pat]).forEach(function (wd, j) { var key = j === picked.length ? 'pat:' + f.genre + ':' + wd : wd; fresh[key] = (fresh[key] || 0) + 1; });
+        return title;
+      }
+      if (i > 18 && used[title] < f.year - 20) { used[title] = f.year; f.tags.push('remake'); return title; }
     }
-    var t2 = rng.pick(T.adj) + ' ' + rng.pick(T.noun) + ' ' + rng.pick(T.place);
+    var t2 = pickFresh(rng, T.shared.A, fresh) + ' ' + pickFresh(rng, T.shared.N, fresh) + ' ' + f.year;
     used[t2] = f.year;
     return t2;
+  }
+  // Recently used words/patterns are less likely to be picked again; memory halves each year.
+  function freshness(w, year) {
+    if (!w.titleMemory || w.titleMemory.y !== year) {
+      var old = w.titleMemory ? w.titleMemory.m : {}, m = {};
+      for (var k in old) if (old[k] > 0.2) m[k] = old[k] * 0.5;
+      w.titleMemory = { y: year, m: m };
+    }
+    return w.titleMemory.m;
+  }
+  function pickFresh(rng, arr, fresh, prefix) {
+    return rng.weighted(arr, function (x) { return 1 / (1 + 2.5 * (fresh[(prefix || '') + x] || 0)); });
+  }
+  function plural(T, n) {
+    if (T.plural[n]) return T.plural[n];
+    if (/(s|x|z|ch|sh)$/.test(n)) return n + 'es';
+    if (/[^aeiou]y$/.test(n)) return n.slice(0, -1) + 'ies';
+    return n + 's';
   }
   function roman(n) { return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n); }
 

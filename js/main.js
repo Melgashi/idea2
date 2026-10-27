@@ -32,6 +32,19 @@
     }).catch(function () { return null; });
   }
 
+  // per-viewer preference, kept in browser storage
+  function ceremonyWanted() {
+    var box = document.getElementById('watchCeremony');
+    return box ? box.checked : true;
+  }
+  try {
+    var pref = localStorage.getItem('hd-watch-ceremony');
+    if (pref === '0') document.getElementById('watchCeremony').checked = false;
+  } catch (e) { /* storage unavailable */ }
+  document.getElementById('watchCeremony').addEventListener('change', function (e) {
+    try { localStorage.setItem('hd-watch-ceremony', e.target.checked ? '1' : '0'); } catch (err) { /* ignore */ }
+  });
+
   function toast(msg) {
     var t = document.getElementById('toast');
     t.textContent = msg; t.hidden = false;
@@ -62,7 +75,11 @@
             busy = false;
             document.body.classList.remove('busy');
             progress(null);
+            HW.UI.filters.digestYear = null;
             HW.UI.render();
+            var Y = HW.world.year - 1, updates = HW.UI.digestCount(Y);
+            if (updates) toast('★ ' + updates + ' update' + (updates > 1 ? 's' : '') + ' about people you follow');
+            if (n === 1 && !autoTimer && !document.getElementById('autoBtn').classList.contains('on') && ceremonyWanted()) HW.UI.startCeremony(Y);
             resolve();
           });
         }
@@ -141,8 +158,16 @@
   function closeMenu() { document.getElementById('menu').hidden = true; }
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-action],[data-sort],[data-page],[data-filter],[data-go]');
+    if (e.target.closest('#ceremony a') && !e.target.closest('[data-action]')) HW.UI.closeCeremony(); // following a link leaves the show
+    var t = e.target.closest('[data-action],[data-sort],[data-page],[data-filter],[data-go],[data-follow]');
     if (!t) return;
+    if (t.dataset.follow) {
+      var fp = t.dataset.follow.split(':');
+      var on = HW.UI.toggleFollow(fp[0], +fp[1]);
+      var nm = fp[0] === 'p' ? HW.world.people[+fp[1]].name : HW.world.studios[+fp[1]].name;
+      toast(on ? 'Following ' + nm + '. Their year will show up in your digest.' : 'Unfollowed ' + nm + '.');
+      save(); HW.UI.render(); return;
+    }
     if (t.dataset.go) { location.hash = t.dataset.go; return; }
     if (t.dataset.sort) {
       var p = t.dataset.sort.split(':'), key = p[0], col = +p[1], cur = HW.UI.sorts[key];
@@ -163,6 +188,11 @@
       case 'closeMenu': closeMenu(); break;
       case 'new': if (confirm('Start a new world? Your current save will be replaced.')) newWorld(); break;
       case 'export': exportSave(); break;
+      case 'ceremony': HW.UI.startCeremony(+t.dataset.year); break;
+      case 'cerNext': HW.UI.ceremonyNext(); break;
+      case 'cerSkip': HW.UI.ceremonySkip(false); break;
+      case 'cerPicture': HW.UI.ceremonySkip(true); break;
+      case 'cerClose': HW.UI.closeCeremony(); break;
     }
   });
   document.getElementById('menu').addEventListener('click', function (e) { if (e.target.id === 'menu') closeMenu(); });
@@ -191,6 +221,11 @@
   });
   document.addEventListener('keydown', function (e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (HW.UI.ceremonyOpen()) {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); HW.UI.ceremonyNext(); }
+      if (e.key === 'Escape') HW.UI.closeCeremony();
+      return;
+    }
     if (e.key === ' ' || e.key === 'n') { e.preventDefault(); advance(1); }
     if (e.key === 'Escape') closeMenu();
   });

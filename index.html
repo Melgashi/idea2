@@ -31,6 +31,7 @@
     <a href="#/films">Films</a>
     <a href="#/awards">Golden Laurels</a>
     <a href="#/stories">Stories</a>
+    <a href="#/following">★ Following</a>
     <a href="#/history">History</a>
     <a href="#/records">Records</a>
     <a href="#/news">News</a>
@@ -55,6 +56,11 @@
         <p class="muted small" id="saveInfo"></p>
       </div>
       <div class="menu-section">
+        <h3>Golden Laurels</h3>
+        <label><span>Watch the ceremony after each year</span><input type="checkbox" id="watchCeremony" checked></label>
+        <p class="muted small">Plays after single-year advances, not during Auto or multi-year jumps.</p>
+      </div>
+      <div class="menu-section">
         <h3>Auto-play speed</h3>
         <select id="autoSpeed">
           <option value="2500">Slow (2.5s / year)</option>
@@ -65,6 +71,7 @@
       <button class="btn ghost close" data-action="closeMenu">Close</button>
     </div>
   </div>
+  <div class="modal ceremony" id="ceremony" hidden><div class="cer-card" id="cerCard" role="dialog" aria-label="Golden Laurels ceremony"></div></div>
   <div class="toast" id="toast" hidden></div>
 
   <script src="js/rng.js"></script>
@@ -73,6 +80,7 @@
   <script src="js/sim.js"></script>
   <script src="js/awards.js"></script>
   <script src="js/stories.js"></script>
+  <script src="js/relations.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

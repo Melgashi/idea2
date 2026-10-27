@@ -191,6 +191,22 @@
     } else if (aw.length >= 3) out.push(He + ' has been nominated for ' + aw.length + ' Golden Laurels without ever winning.');
     if (p.lifetime) out.push('The Academy honored ' + his + ' career with a Lifetime Achievement Laurel in ' + p.lifetime + '.');
 
+    if (HW.relsOf) {
+      var rels = HW.relsOf(w, p.id), P = w.people;
+      var best = rels.filter(function (x) { return x.r.t === 'partner' || x.r.t === 'duo'; }).sort(function (a, b) { return b.r.n - a.r.n; })[0];
+      if (best) {
+        var o = P[best.other];
+        out.push(best.r.t === 'partner'
+          ? (o.role === 'director' ? 'Director ' + o.name + ' became ' + his + ' great creative partner' : He + ' became the favorite actor of ' + o.name) + ' (' + best.r.n + ' films together).'
+          : He + ' and ' + o.name + ' became one of the screen\'s great pairings (' + best.r.n + ' films together).');
+      }
+      rels.filter(function (x) { return x.r.t === 'feud'; }).slice(0, 1).forEach(function (x) {
+        out.push('A bitter feud with ' + P[x.other].name + ' began in ' + x.r.since + (x.r.end != null ? ' and lasted until ' + x.r.end : ' and has never healed') + '.');
+      });
+      rels.filter(function (x) { return x.r.t === 'rival'; }).slice(0, 1).forEach(function (x) {
+        out.push('The press made much of ' + his + ' rivalry with ' + P[x.other].name + '.');
+      });
+    }
     var tc = HW.typecast(w, p);
     if (tc) out.push(Math.round(tc.share * 100) + '% of ' + his + ' films were ' + tc.genre.toLowerCase() + (actor ? ' roles' : '') + '. Hollywood rarely let ' + (p.gender === 'M' ? 'him' : 'her') + ' play anything else.');
 

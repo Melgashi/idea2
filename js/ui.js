@@ -97,7 +97,7 @@
   // ---------- pages ----------
   var routes = {
     '': overview, 'studios': studiosPage, 'studio': studioPage, 'talent': talentPage, 'person': personPage,
-    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage
+    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage, 'following': followingPage
   };
 
   UI.render = function () {
@@ -127,6 +127,7 @@
       return h;
     }
     var Y = lastYear(), films = filmsOfYear(Y), hist = w.history[w.history.length - 1];
+    var digestHtml = followCount() ? card('★ Your people in ' + Y, digest(Y, 6) + '<p><a href="#/following" class="lnk">Everyone you follow →</a></p>', 'follow') : '';
     var aw = w.awards[Y];
     h += '<div class="pagehead"><h1>' + Y + ' in Review</h1>' + (hist.ev ? '<div class="event">📰 ' + esc(hist.ev) + '</div>' : '') + '</div>';
     var prev = w.history[w.history.length - 2];
@@ -137,6 +138,7 @@
       stat('Avg. critic score', hist.c) +
       stat('Active studios', hist.studios) +
       '</div>';
+    h += digestHtml;
 
     h += '<div class="grid two">';
     // awards
@@ -213,7 +215,7 @@
     var Y = lastYear();
     var h = '<div class="pagehead"><h1>Studios</h1>' + seg('studios', f, [['active', 'Active'], ['closed', 'Defunct'], ['all', 'All']]) + '</div>';
     h += table('studios', [
-      { h: 'Studio', v: function (s) { return s.name; }, html: function (s) { return sLink(s.id) + (s.active ? '' : ' <span class="muted small">(' + (s.fate && s.fate.type === 'acquired' ? 'acquired ' : 'closed ') + s.closed + ')</span>'); } },
+      { h: 'Studio', v: function (s) { return s.name; }, html: function (s) { return starBtn('s', s.id) + sLink(s.id) + (s.active ? '' : ' <span class="muted small">(' + (s.fate && s.fate.type === 'acquired' ? 'acquired ' : 'closed ') + s.closed + ')</span>'); } },
       { h: 'Tier', v: function (s) { return { Major: 3, Mid: 2, Indie: 1 }[s.tier]; }, html: function (s) { return tierBadge(s.tier); } },
       { h: 'Founded', cls: 'num', v: function (s) { return s.founded; } },
       { h: 'Cash', cls: 'num', v: function (s) { return s.cash; }, html: function (s) { return '<span class="' + (s.cash < 0 ? 'neg' : '') + '">' + money(s.cash) + '</span>'; } },
@@ -243,7 +245,7 @@
     if (!s) return empty('No such studio.');
     var prefs = HW.GENRE_KEYS.slice().sort(function (a, b) { return s.prefs[b] - s.prefs[a]; }).slice(0, 3);
     var films = s.films.map(function (fid) { return w.films[fid]; });
-    var h = '<div class="pagehead studiohead" style="--hue:' + s.hue + '"><div><h1>' + esc(s.name) + '</h1><div class="meta">' + tierBadge(s.tier) +
+    var h = '<div class="pagehead studiohead" style="--hue:' + s.hue + '"><div><h1>' + esc(s.name) + ' ' + starBtn('s', s.id, true) + '</h1><div class="meta">' + tierBadge(s.tier) +
       ' Founded ' + s.founded + (s.active ? '' : ' · <b>' + (s.fate && s.fate.type === 'acquired' ? 'Acquired by ' + sLink(s.fate.by) : 'Closed') + ' in ' + s.closed + '</b>') + '</div></div></div>';
     h += '<div class="stats-row">' + stat('Cash', money(s.cash)) + stat('Prestige', s.prestige) + stat('Films', films.length) +
       stat('Career gross', money(careerGross(s))) + stat('Laurels', s.wins + ' <span class="small muted">/ ' + s.noms + ' noms</span>') + stat('Best Pictures', s.bestPictures) + '</div>';
@@ -290,6 +292,7 @@
     if (f.won.indexOf('picture') >= 0) t += ' <span class="tag gold">Best Picture</span>';
     if (f.tags.indexOf('smash') >= 0) t += ' <span class="tag green">Smash</span>';
     if (f.tags.indexOf('sleeper') >= 0) t += ' <span class="tag green">Sleeper</span>';
+    if (f.tags.indexOf('remake') >= 0) t += ' <span class="tag">Remake</span>';
     if (f.tags.indexOf('flop') >= 0) t += ' <span class="tag red">Flop</span>';
     return t;
   }
@@ -306,7 +309,7 @@
     h += '<div class="toolbar">' + seg('status', status, [['active', 'Active'], ['retired', 'Retired'], ['deceased', 'Deceased'], ['all', 'All']]) +
       '<input type="search" id="talentSearch" placeholder="Search name…" value="' + esc(UI.filters.q || '') + '"></div>';
     var cols = [
-      { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
+      { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return starBtn('p', p.id) + pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
       { h: 'Age', cls: 'num', v: function (p) { return ageOf(p); } },
       { h: 'Sex', v: function (p) { return p.gender; } },
       { h: 'OVR', cls: 'num', v: function (p) { return HW.ovr(p); }, html: function (p) { return '<span class="score ' + scoreCls(HW.ovr(p)) + '">' + ovrText(p) + '</span>'; } },
@@ -339,7 +342,7 @@
       '<div class="traits">' + (p.traits.length ? p.traits.map(function (t) { return '<span class="trait" title="' + esc(HW.TRAITS[t].desc) + '">' + HW.TRAITS[t].name + '</span>'; }).join('') : '<span class="muted small">No notable traits</span>') +
       (p.specialty ? p.specialty.map(function (g) { return '<span class="trait spec" title="Specialty genre">' + g + '</span>'; }).join('') : '') +
       (p.lifetime ? '<span class="trait gold" title="Lifetime Achievement Laurel">Lifetime Laurel ' + p.lifetime + '</span>' : '') + '</div></div>' +
-      '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
+      starBtn('p', p.id, true) + '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
 
     if (p.hf && p.hf.length) {
       var arc = HW.careerArc(p);
@@ -372,6 +375,7 @@
       return '<li class="' + (a.won ? 'won' : '') + '"><span class="ny">' + yLink(a.y) + '</span> ' + (a.won ? '🏆 <b>Won</b> ' : 'Nominated ') + HW.catName(a.k) + ' — ' + fLink(a.f) + '</li>';
     }).join('') + '</ul>' : empty('No nominations yet.'));
     h += card('Frequent collaborators', collaborators(p));
+    h += card('Relationships', relationships(p));
     h += '</div>';
 
     var films = p.films.map(function (fid) { return w.films[fid]; }).reverse();
@@ -479,6 +483,7 @@
     h += '<div class="toolbar yearnav">' + (i > 0 ? '<a class="btn small" href="#/awards/' + years[i - 1] + '">‹ ' + years[i - 1] + '</a>' : '<span></span>') +
       '<h2>' + HW.ordinal(y - w.startYear + 1) + ' Golden Laurels <span class="muted">· honoring the films of ' + y + '</span></h2>' +
       (i < years.length - 1 ? '<a class="btn small" href="#/awards/' + years[i + 1] + '">' + years[i + 1] + ' ›</a>' : '<span></span>') + '</div>';
+    h += '<p class="center"><button class="btn" data-action="ceremony" data-year="' + y + '">▶ Watch the ceremony</button></p>';
     h += '<div class="grid awards">';
     c.cats.forEach(function (cat) {
       var body = '<ol class="noms">' + cat.noms.map(function (n, idx) {
@@ -571,6 +576,130 @@
   }
 
   // ---------- news ----------
+  // ---------- relationships ----------
+  var REL_ICON = { partner: '🎬', duo: '🤝', feud: '⚡', rival: '⚔' };
+  function relationships(p) {
+    var w = W(), rels = HW.relsOf ? HW.relsOf(w, p.id) : [];
+    if (!rels.length) return empty('No partnerships, feuds or rivalries yet.');
+    rels.sort(function (a, b) { return (a.r.end == null ? 0 : 1) - (b.r.end == null ? 0 : 1) || b.r.since - a.r.since; });
+    return '<ul class="plist">' + rels.map(function (x) {
+      var r = x.r, T = HW.REL_TYPES[r.t];
+      var span = r.end == null ? 'since ' + r.since : r.since + '–' + r.end;
+      var extra = r.t === 'partner' || r.t === 'duo' ? r.n + ' films' : r.t === 'rival' && r.n > 1 ? r.n + ' showdowns' : '';
+      return '<li class="' + (r.end != null ? 'ended' : '') + '"><span class="rel rel-' + r.t + '" title="' + esc(T.desc) + '">' + REL_ICON[r.t] + ' ' + T.label + '</span> ' + pLink(x.other) +
+        '<span class="right muted small">' + [extra, span].filter(Boolean).join(' · ') + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  // ---------- following ----------
+  function follows() { var w = W(); return w.follows || (w.follows = { p: {}, s: {} }); }
+  function isFollowed(t, id) { return !!follows()[t][id]; }
+  function followCount() { var f = follows(); return Object.keys(f.p).length + Object.keys(f.s).length; }
+  UI.isFollowed = isFollowed;
+  UI.toggleFollow = function (t, id) {
+    var f = follows();
+    if (f[t][id]) delete f[t][id]; else f[t][id] = 1;
+    return !!f[t][id];
+  };
+  function starBtn(t, id, big) {
+    var on = isFollowed(t, id);
+    return '<button class="star' + (on ? ' on' : '') + (big ? ' big' : '') + '" data-follow="' + t + ':' + id + '" title="' + (on ? 'Unfollow' : 'Follow') + '" aria-pressed="' + on + '">' + (on ? '★' : '☆') + '</button>';
+  }
+
+  // What happened to everyone you follow in year Y. Computed from the world, nothing extra is stored.
+  function digestItems(Y) {
+    var w = W(), f = follows(), items = [];
+    Object.keys(f.p).forEach(function (id) {
+      var p = w.people[id], lines = [], score = 0;
+      if (!p) return;
+      p.films.forEach(function (fid) {
+        var film = w.films[fid];
+        if (film.year !== Y) return;
+        var c = castOf(film, p.id), role = c ? (c.r === 'L' ? 'led' : 'supported in') : creditOf(film, p.id).toLowerCase() === 'director' ? 'directed' : 'worked on';
+        lines.push(cap(role) + ' ' + fLink(fid) + ' — ' + money(film.gross) + ', critics ' + film.critic + (c ? ', performance ' + grade(c.perf) : '') + tags(film));
+        score += 1 + film.gross / 500;
+      });
+      HW.personAwards(w, p.id).forEach(function (a) {
+        if (a.y !== Y) return;
+        lines.push((a.won ? '🏆 <b>Won</b> ' : 'Nominated for ') + HW.catName(a.k) + ' (' + fLink(a.f) + ')');
+        score += a.won ? 6 : 2;
+      });
+      if (p.lifetime === Y) { lines.push('🏆 Lifetime Achievement Laurel'); score += 5; }
+      (p.marks || []).forEach(function (m) { if (m[0] === Y) { lines.push(STORY_LABEL[m[1]] + '!'); score += 4; } });
+      if ((p.scandals || []).indexOf(Y) >= 0) { lines.push('⚠ Caught up in a scandal'); score += 3; }
+      if (HW.relsOf) HW.relsOf(w, p.id).forEach(function (x) {
+        var T = HW.REL_TYPES[x.r.t];
+        if (x.r.since === Y) { lines.push(REL_ICON[x.r.t] + ' New ' + T.label.toLowerCase() + ': ' + pLink(x.other)); score += 2; }
+        else if (x.r.end === Y && x.r.t === 'feud') { lines.push('Made peace with ' + pLink(x.other)); score += 1; }
+      });
+      if (p.retired === Y) { lines.push('Retired after ' + p.films.length + ' films'); score += 4; }
+      if (p.died === Y) { lines.push('† Died aged ' + (Y - p.born)); score += 5; }
+      var i = p.hf ? Y - p.h0 : -1;
+      if (i >= 1 && p.hf[i] != null) {
+        var d = p.hf[i] - p.hf[i - 1];
+        if (Math.abs(d) >= 4) lines.push('Fame ' + p.hf[i - 1] + ' → ' + p.hf[i] + ' <span class="' + (d > 0 ? 'pos' : 'neg') + '">' + (d > 0 ? '▲' : '▼') + Math.abs(d) + '</span>');
+      }
+      if (!lines.length && (p.status === 'active' || p.retired === Y || p.died === Y)) lines.push('<span class="muted">A quiet year.</span>');
+      if (lines.length) items.push({ who: pLink(p.id), sub: HW.ROLES[p.role].label + ', ' + (Y - p.born), lines: lines, score: score });
+    });
+    Object.keys(f.s).forEach(function (id) {
+      var s = w.studios[id], lines = [], score = 0;
+      if (!s) return;
+      var recs = s.yearly, r = null, prev = null;
+      for (var k = recs.length - 1; k >= 0; k--) if (recs[k].y === Y) { r = recs[k]; prev = recs[k - 1]; break; }
+      if (r) {
+        var rank = 1 + w.studios.filter(function (o) { return o.yearly.some(function (x) { return x.y === Y && x.g > r.g; }); }).length;
+        lines.push(r.n + ' releases, ' + money(r.g) + ' gross (#' + rank + ' in town), ' + '<span class="' + (r.p >= 0 ? 'pos' : 'neg') + '">' + (r.p >= 0 ? '+' : '') + money(r.p) + '</span> profit');
+        var mine = s.films.map(function (fid) { return w.films[fid]; }).filter(function (x) { return x.year === Y; });
+        if (mine.length) {
+          var top = mine.reduce(function (a, b) { return b.gross > a.gross ? b : a; });
+          lines.push('Biggest release: ' + fLink(top.id) + ' (' + money(top.gross) + ')' + tags(top));
+          var bomb = mine.filter(function (x) { return x.tags.indexOf('flop') >= 0; })[0];
+          if (bomb) lines.push('Bombed: ' + fLink(bomb.id));
+        }
+        if (r.w) lines.push('🏆 ' + r.w + ' Golden Laurel' + (r.w > 1 ? 's' : '') + ' from ' + r.nm + ' nominations');
+        if (prev && prev.tier !== r.tier) lines.push((({ Major: 3, Mid: 2, Indie: 1 })[r.tier] > ({ Major: 3, Mid: 2, Indie: 1 })[prev.tier] ? 'Promoted to ' : 'Downsized to ') + r.tier);
+        score = 2 + r.w * 2 + r.g / 1000;
+      }
+      if (s.closed === Y) { lines.push(s.fate && s.fate.type === 'acquired' ? 'Acquired by ' + sLink(s.fate.by) : 'Shut down'); score += 6; }
+      if (lines.length) items.push({ who: sLink(s.id), sub: s.tier + ' studio', lines: lines, score: score });
+    });
+    return items.sort(function (a, b) { return b.score - a.score; });
+  }
+  UI.digestCount = function (Y) { return digestItems(Y).filter(function (x) { return x.score > 0; }).length; };
+  function digest(Y, limit) {
+    var items = digestItems(Y);
+    if (!items.length) return empty('Nothing to report about the people you follow.');
+    var more = limit && items.length > limit ? items.length - limit : 0;
+    if (limit) items = items.slice(0, limit);
+    return '<div class="digest">' + items.map(function (it) {
+      return '<div class="dg"><div class="dg-who">' + it.who + ' <span class="muted small">' + it.sub + '</span></div><ul>' + it.lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
+    }).join('') + '</div>' + (more ? '<p class="muted small">…and ' + more + ' more.</p>' : '');
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function followingPage() {
+    var w = W(), f = follows();
+    var h = '<div class="pagehead"><h1>★ Following</h1></div>';
+    if (!followCount()) return h + card('Follow your favorites', '<p>Press <span class="star on static">★</span> next to any actor, director or studio, on their page or in the Talent and Studios tables. Each year you\'ll get a digest of what happened to them: films, box office, awards, scandals, feuds and turning points.</p>');
+    if (simulated()) {
+      var years = [];
+      for (var y = lastYear(); y >= w.startYear; y--) years.push(y);
+      var Y = UI.filters.digestYear ? +UI.filters.digestYear : lastYear();
+      h += '<div class="toolbar"><span class="muted">Digest for</span><select data-select="digestYear">' + years.map(function (yy) { return '<option' + (yy === Y ? ' selected' : '') + '>' + yy + '</option>'; }).join('') + '</select></div>';
+      h += card('Your people in ' + Y, digest(Y), 'follow');
+    }
+    var ppl = Object.keys(f.p).map(function (id) { return w.people[id]; });
+    var sts = Object.keys(f.s).map(function (id) { return w.studios[id]; });
+    h += '<div class="grid two">' + card('People (' + ppl.length + ')', ppl.length ? '<ul class="plist">' + ppl.map(function (p) {
+      return '<li>' + starBtn('p', p.id) + pLink(p.id) + ' <span class="muted small">' + HW.ROLES[p.role].label + ' · ' + ageOf(p) + ' · ' + (p.hf ? HW.careerArc(p).label : '') + '</span><span class="right">' + sparkline(p) + '</span></li>';
+    }).join('') + '</ul>' : empty('No people followed.')) +
+      card('Studios (' + sts.length + ')', sts.length ? '<ul class="plist">' + sts.map(function (s) {
+        return '<li>' + starBtn('s', s.id) + sLink(s.id) + ' ' + tierBadge(s.tier) + '<span class="right">' + money(s.cash) + '</span></li>';
+      }).join('') + '</ul>' : empty('No studios followed.')) + '</div>';
+    return h;
+  }
+
   // ---------- stories ----------
   function arcBadge(arc, small) {
     return '<span class="arc arc-' + arc.k + (small ? ' sm' : '') + '" title="' + esc(arc.desc) + '">' + esc(arc.label) + '</span>';
@@ -695,7 +824,115 @@
   function newsPage() {
     var w = W(), k = UI.filters.newsKind || 'all';
     var list = w.news.filter(function (n) { return k === 'all' || n.k === k; }).slice(-300).reverse();
-    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['story', 'Stories'], ['event', 'Industry']]) + '</div>' +
+    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['story', 'Stories'], ['rel', 'Relationships'], ['event', 'Industry']]) + '</div>' +
       card('Latest', newsList(list));
+  }
+  // ---------- the ceremony ----------
+  // Plays a year's Golden Laurels one category at a time, minor awards first, Best Picture last.
+  var CER_ORDER = ['vfx', 'score', 'cinema', 'animated', 'screenplay', 'supActress', 'supActor', 'lifetime', 'director', 'actress', 'actor', 'picture'];
+  var cer = null;
+
+  UI.ceremonyOpen = function () { return !!cer; };
+  UI.startCeremony = function (y) {
+    var w = W(), c = w.awards[y];
+    if (!c || !c.cats.length) return;
+    var steps = [];
+    CER_ORDER.forEach(function (k) {
+      if (k === 'lifetime') { if (c.lifetime != null) steps.push({ k: 'lifetime' }); return; }
+      var cat = c.cats.filter(function (x) { return x.k === k; })[0];
+      if (cat) steps.push({ k: k, cat: cat });
+    });
+    cer = { y: y, steps: steps, i: -1, open: false };
+    document.getElementById('ceremony').hidden = false;
+    document.body.classList.add('noscroll');
+    renderCeremony();
+  };
+  UI.ceremonyNext = function () {
+    if (!cer) return;
+    var st = cer.steps[cer.i];
+    if (st && st.k !== 'lifetime' && !cer.open) return openEnvelope();
+    if (cer.i >= cer.steps.length) return UI.closeCeremony();
+    cer.i++; cer.open = false;
+    renderCeremony();
+  };
+  UI.ceremonySkip = function (toPicture) {
+    if (!cer) return;
+    if (toPicture) { cer.i = cer.steps.length - 1; cer.open = false; }
+    else { cer.i = cer.steps.length; }
+    renderCeremony();
+  };
+  UI.closeCeremony = function () {
+    cer = null;
+    document.getElementById('ceremony').hidden = true;
+    document.body.classList.remove('noscroll');
+  };
+  function openEnvelope() {
+    var card = document.querySelector('#cerCard .envelope');
+    cer.open = 'opening';
+    if (card) card.classList.add('opening');
+    setTimeout(function () { if (cer && cer.open === 'opening') { cer.open = true; renderCeremony(); } }, 1100);
+  }
+  // The nominee's record going into this ceremony.
+  function nomNote(p, y, k) {
+    var past = HW.personAwards(W(), p.id).filter(function (a) { return a.y < y; });
+    var wins = past.filter(function (a) { return a.won; }).length;
+    var bits = [];
+    if (isFollowed('p', p.id)) bits.push('★ you follow');
+    if (!past.length) bits.push('first nomination');
+    else if (!wins) bits.push(past.length + ' previous nomination' + (past.length > 1 ? 's' : '') + ', never won');
+    else bits.push(wins + ' previous win' + (wins > 1 ? 's' : ''));
+    if (HW.relsOf) {
+      var c = W().awards[y].cats.filter(function (x) { return x.k === k; })[0];
+      HW.relsOf(W(), p.id).forEach(function (x) {
+        if (x.r.t === 'rival' && x.r.since <= y && (x.r.end == null || x.r.end >= y) && c && c.noms.some(function (n) { return n.p === x.other; })) bits.push('⚔ facing rival ' + esc(W().people[x.other].name));
+      });
+    }
+    return bits.join(' · ');
+  }
+  function renderCeremony() {
+    var w = W(), el = document.getElementById('cerCard'), y = cer.y, n = cer.steps.length;
+    var head = '<div class="cer-top"><span class="cer-title">The ' + HW.ordinal(y - w.startYear + 1) + ' Golden Laurels</span><span class="muted small">honoring the films of ' + y + '</span>' +
+      '<button class="btn ghost small" data-action="cerClose" aria-label="Close">✕</button></div>';
+    var progress = '<div class="cer-progress"><span style="width:' + (Math.max(0, cer.i) / n * 100) + '%"></span></div>';
+    var body = '', foot = '';
+    if (cer.i < 0) {
+      body = '<div class="cer-intro"><div class="cer-statue">🏆</div><h2>Hollywood\'s biggest night</h2><p>' + n + ' awards tonight. The stars are seated, the envelopes are sealed.</p></div>';
+      foot = '<button class="btn primary" data-action="cerNext">Raise the curtain</button> <button class="btn ghost" data-action="cerSkip">Just show the winners</button>';
+    } else if (cer.i >= n) {
+      var c = w.awards[y];
+      body = '<h2 class="cer-cat">The winners</h2><ul class="cer-sum">' + c.cats.map(function (cat) {
+        var nm = cat.noms[cat.win];
+        return '<li><span class="muted">' + HW.catName(cat.k) + '</span><span>' + (nm.p != null ? pLink(nm.p) + ' · ' : '') + fLink(nm.f) + '</span></li>';
+      }).join('') + (c.lifetime != null ? '<li><span class="muted">Lifetime Achievement</span><span>' + pLink(c.lifetime) + '</span></li>' : '') + '</ul>';
+      foot = '<button class="btn primary" data-action="cerClose">Close</button> <a class="btn ghost" href="#/awards/' + y + '" data-action="cerClose">Full results</a>';
+    } else {
+      var st = cer.steps[cer.i];
+      if (st.k === 'lifetime') {
+        var hp = w.people[w.awards[y].lifetime];
+        body = '<div class="cer-intro"><div class="cer-statue">🏆</div><div class="cer-cat">Lifetime Achievement</div><h2>' + pLink(hp.id) + '</h2><p class="muted">' +
+          HW.ROLES[hp.role].label + ' · ' + hp.films.length + ' films · ' + hp.wins + ' Golden Laurel' + (hp.wins === 1 ? '' : 's') + '</p><p>The room rises to its feet.</p></div>';
+        foot = '<button class="btn primary" data-action="cerNext">Next award ›</button>';
+      } else {
+        var cat = st.cat, opened = cer.open === true;
+        body = '<div class="cer-cat">' + (opened ? '' : 'And the Golden Laurel for') + '</div><h2 class="cer-name">' + HW.catName(st.k) + (opened ? '' : ' goes to…') + '</h2>';
+        body += '<ol class="cer-noms">' + cat.noms.map(function (nm, i) {
+          var p = nm.p != null ? w.people[nm.p] : null, film = w.films[nm.f], won = opened && i === cat.win;
+          var who = p ? pLink(p.id) : fLink(film.id);
+          var sub = p ? fLink(film.id) : sLink(film.studio);
+          var note = p ? nomNote(p, y, st.k) : (isFollowed('s', film.studio) ? '★ your studio' : '');
+          return '<li class="' + (won ? 'won' : opened ? 'lost' : '') + '">' + (won ? '<span class="cer-win">🏆</span>' : '') + '<div class="cer-who">' + who + '</div><div class="sub">' + sub + (note ? ' · ' + note : '') + '</div></li>';
+        }).join('') + '</ol>';
+        if (!opened) body += '<div class="envelope' + (cer.open === 'opening' ? ' opening' : '') + '"><span>✉</span></div>';
+        else {
+          var wn = cat.noms[cat.win], wp = wn.p != null ? w.people[wn.p] : null;
+          var line = wp && wp.wins === 1 && HW.personAwards(w, wp.id).filter(function (a) { return a.y < y; }).length >= 3 ? 'At last! ' : '';
+          body += '<p class="cer-verdict">' + line + (wp ? esc(wp.name) + ' wins for "' + esc(w.films[wn.f].title) + '"' : '"' + esc(w.films[wn.f].title) + '" takes it') + '.</p>';
+        }
+        foot = opened ? '<button class="btn primary" data-action="cerNext">' + (cer.i === n - 1 ? 'See all winners ›' : 'Next award ›') + '</button>'
+          : '<button class="btn primary" data-action="cerNext">Open the envelope</button>';
+        if (cer.i < n - 1) foot += ' <button class="btn ghost" data-action="cerPicture">Skip to Best Picture</button>';
+      }
+    }
+    el.innerHTML = head + progress + '<div class="cer-body">' + body + '</div><div class="cer-foot">' + foot + '</div>';
   }
 })(globalThis.HW = globalThis.HW || {});

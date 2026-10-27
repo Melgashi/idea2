@@ -145,34 +145,146 @@
     Sapphire Sequoia Solstice Sparrow Summit Tidal Topaz Twilight Uptown Valiant Willow Zenith`);
   HW.STUDIO_SUFFIX = ['Pictures', 'Films', 'Studios', 'Entertainment', 'Media', 'Productions', 'Film Group', 'Cinema'];
 
+  // Film titles. Tokens: {A} adjective, {N} noun, {Ns} plural noun, {P} place, {F}/{F2} first names,
+  // {L} surname, {Ls} family plural, {V} comedy verb, {Num} number, {X} a hand-written title.
+  // Each genre has its own vocabulary; {A}/{N}/{P} sometimes borrow from the shared pool.
   HW.TITLE = {
-    adj: words(`Last Silent Broken Golden Dark Hidden Lost Final Eternal Burning Crimson Wild Hollow Savage Secret
-      Fallen Midnight Frozen Restless Distant Bitter Sweet Shattered Endless Iron Velvet Scarlet Electric Lonely
-      Perfect Forgotten Wicked Little Infinite Deadly Brave Quiet Crooked Twisted Blue Black White Electric`),
-    noun: words(`Heart Shadow River City Kingdom Dream Storm Fire Road Sky Night Promise Truth Game Empire Garden
-      Mirror Echo Horizon Highway Witness Code Signal Harvest Winter Summer Ocean Island Frontier Hunter Machine
-      Legacy Season Ghost Angel Stranger Detective Prophet Outlaw Crown Star Moon Sun Line Hour Letter Song Dance`),
-    place: words(`Paris Brooklyn Memphis Tokyo Avalon Eden Babylon Mars Atlantis Nowhere Tomorrow Yesterday Vegas
-      Montana Havana Berlin Rome Casablanca Shanghai Chinatown Harlem Sunset Malibu Arcadia Neptune Orion`),
-    patterns: {
-      'Drama':     ['The {adj} {noun}', '{noun} of {place}', 'A {noun} in {place}', '{adj} {noun}s', 'Before the {noun}'],
-      'Comedy':    ['{first} Gets {verbed}', 'The {noun} Party', 'Meet the {last}s', 'My Big {adj} {noun}', '{first} & {first2}'],
-      'Action':    ['{adj} {noun}', '{noun} Protocol', 'Operation {noun}', 'Code {adj}', 'Maximum {noun}', '{noun} Strike'],
-      'Sci-Fi':    ['{noun} of {place}', 'Beyond the {noun}', 'The {noun} Paradox', 'Project {place}', '{place} Rising'],
-      'Horror':    ['The {noun} Beneath', 'It Came from {place}', '{adj} {noun}', 'Don\'t Open the {noun}', 'The Hollowing'],
-      'Romance':   ['Love in {place}', 'A {adj} {noun}', '{first} & {first2}', 'Letters to {first}', 'The {noun} Between Us'],
-      'Thriller':  ['The {noun} Witness', '{adj} Silence', 'No {noun} Left', 'The {last} Affair', 'Dead {noun}'],
-      'Fantasy':   ['The {noun} of {place}', '{adj} Kingdom', 'The {adj} Crown', 'Quest for {place}', 'Realm of {noun}s'],
-      'Animation': ['{first} the {noun}', 'The Little {noun}', 'Tales of {place}', '{noun} Pals', 'The {adj} Adventure'],
-      'War':       ['Battle of {place}', '{adj} Front', 'The Road to {place}', 'Brothers of the {noun}', 'Hill {num}'],
-      'Western':   ['The {adj} Rider', '{noun} at Dawn', 'Showdown at {place}', 'The {last} Gang', 'Dust and {noun}'],
-      'Musical':   ['{place} Nights', 'Sing for {first}', 'The {noun} Song', '{adj} Melody', 'Dancing in {place}'],
-      'Biopic':    ['{first} {last}', 'The {last} Story', '{last}', 'Becoming {first}', 'The Man Called {last}'],
-      'Crime':     ['The {last} Job', '{place} Confidential', 'Blood and {noun}', 'The {adj} Score', 'Family {noun}'],
-      'Family':    ['A {noun} for {first}', 'The {noun} Who Saved {place}', 'Home for the {noun}', 'Our {adj} {noun}'],
-      'Superhero': ['Captain {noun}', 'The {adj} {noun}', '{noun}man', 'League of {noun}s', 'Rise of the {noun}', '{noun} Force']
+    shared: {
+      A: words(`Last Silent Broken Golden Hidden Lost Final Burning Wild Secret Midnight Restless Distant Bitter
+        Shattered Endless Lonely Perfect Forgotten Little Quiet Crooked Blue Long Hard Late Cold`),
+      N: words(`Heart River City Dream Storm Road Night Promise Truth Game Garden Mirror Horizon Highway Season
+        Letter Song Hour Line Summer Winter Ocean Island Harvest Distance Silence Memory Weekend`),
+      P: words(`Paris Brooklyn Memphis Tokyo Havana Berlin Rome Casablanca Chicago Harlem Malibu Tucson Reno Lisbon
+        Marseille Naples Detroit Galveston Saigon Manila Cairo Montreal Juarez Bakersfield Sacramento`)
     },
-    verbed: words(`Married Lost Fired Elected Even Lucky Famous Grounded Hitched Hired Even Schooled`)
+    plural: { Thief: 'Thieves', Wolf: 'Wolves', Knife: 'Knives', Child: 'Children', Man: 'Men', Woman: 'Women',
+      Sky: 'Skies', City: 'Cities', Enemy: 'Enemies', Lady: 'Ladies', Story: 'Stories', Echo: 'Echoes', Hero: 'Heroes', Glory: 'Glories' },
+    genres: {
+      'Drama': {
+        A: words(`Quiet Ordinary Fragile Borrowed Unspoken Narrow Tender Honest Patient Second Small Gentle Imperfect`),
+        N: words(`Inheritance Kitchen Field Daughter Son Father Mother Brother Sister Window Porch Orchard Mill Winter Grace Absence Harbor`),
+        P: words(`Ohio Nebraska Galway Duluth Kansas Maine Wichita Allentown`),
+        pat: ['The {A} {N}', '{N} in {P}', 'A {N} for {F}', 'All the {A} {Ns}', 'What {F} Knew', 'The Last {N} in {P}', '{F}\'s {N}', 'Before the {N}', '{X}', '{X}'],
+        X: ['The Weight of Water', 'Everything We Kept', 'Small Mercies', 'A Long Way From Home', 'The Year of Rain', 'Late Light', 'What Remains',
+          'The Good Neighbor', 'Ordinary People Again', 'Salt and Bread', 'The House on Elm Street', 'Sunday Dinner', 'Strangers at the Table', 'The Quiet Years']
+      },
+      'Comedy': {
+        A: words(`Big Bad Total Absolute Accidental Awkward Crazy Perfect Wrong Fake Last-Minute Terrible Lucky`),
+        N: words(`Wedding Weekend Roommate Boss Neighbor Vacation Heist Reunion Babysitter Substitute Intern Ex Road-Trip Funeral Bachelor`),
+        P: words(`Vegas Cleveland Florida Jersey Cancun Branson Atlantic-City`),
+        pat: ['{F} Gets {V}', 'Meet the {Ls}', 'My {A} {N}', 'The {A} {N}', '{F} & {F2}', 'Who Invited {F}?', 'Weekend in {P}', 'The {N} from Hell', '{X}', '{X}'],
+        V: words(`Married Fired Elected Lucky Famous Grounded Hitched Hired Schooled Dumped Promoted Even Audited`),
+        X: ['Nobody Panic', 'Bad Sport', 'Totally Fine', 'Dad Mode', 'Don\'t Tell Mom', 'Bridesmaids Revenge', 'Plus One', 'Out of Office',
+          'Parental Guidance', 'Hold My Calls', 'The Worst Best Man', 'Not Again', 'Two Weeks Notice', 'Spring Break Forever']
+      },
+      'Action': {
+        A: words(`Maximum Lethal Rapid Hard Zero Direct Total Black Rogue Double Steel Blind Kill`),
+        N: words(`Protocol Target Impact Velocity Force Strike Payload Extraction Fury Vendetta Breach Siege Countdown Ransom Point`),
+        P: words(`Bangkok Hong-Kong Rio Istanbul Moscow Marseille Caracas`),
+        pat: ['{A} {N}', 'Operation {N}', 'Code {A}', '{N} in {P}', 'Die Another {N}', '{F} {L}: {N}', 'The {N} Option', '{X}', '{X}'],
+        X: ['No Way Back', 'Hard Target', 'Seven Hours to Midnight', 'Bulletproof', 'The Long Kill', 'Dead Drop', 'Point Blank', 'Fast Lane',
+          'Last Man Standing', 'Under Siege', 'Red Line', 'Burn Notice', 'Countdown to Zero', 'Wolf Pack']
+      },
+      'Sci-Fi': {
+        A: words(`Quantum Silent Dark Synthetic Orbital Distant Final Hollow Artificial Parallel Red Cold Deep`),
+        N: words(`Signal Paradox Horizon Colony Protocol Frontier Orbit Machine Singularity Transmission Pulse Echo Ark Station Drift`),
+        P: words(`Mars Europa Titan Andromeda Kepler Io Orion Neptune Proxima Callisto Vega`),
+        pat: ['{N} of {P}', 'Beyond {P}', 'The {N} Paradox', 'Project {P}', '{P} Rising', 'The {A} {N}', '{P}: {A} {N}', 'Last Light on {P}', '{X}', '{X}'],
+        X: ['Event Horizon', 'Dark Matter', 'Ghost in the Signal', 'Cold Sleep', 'The Long Dark', 'Ark Seven', 'Zero Gravity', 'Deep Field',
+          'The Algorithm', 'After Earth', 'Tomorrow\'s Children', 'Ground Control', 'Second Sun', 'The Sleepers']
+      },
+      'Horror': {
+        A: words(`Hollow Rotten Pale Whispering Crawling Hungry Bleeding Silent Wicked Grim Black Cursed`),
+        N: words(`House Hollow Cellar Doll Thing Mother Wraith Harvest Ritual Grove Visitor Wake Barn Chapel Coven Lullaby`),
+        P: words(`Salem Ravenswood Black-Lake Hollow-Creek Elmwood Graves-Point Wolf-Hill`),
+        pat: ['The {N} Beneath', 'It Came from {P}', 'The {A} {N}', 'Don\'t Open the {N}', 'The {N} at {P}', '{A} {N}', 'Something in the {N}', '{X}', '{X}'],
+        X: ['They Come at Night', 'Do Not Answer', 'The Hollowing', 'Teeth', 'Night Feeders', 'Stay Inside', 'The Unwelcome', 'Bloodline',
+          'Hush Little Baby', 'Under the Floor', 'The Ninth Night', 'Skin', 'Room 13', 'Don\'t Look Back']
+      },
+      'Romance': {
+        A: words(`Sweet Endless Unexpected Second Summer Secret Perfect Wild Little Lovely Stolen`),
+        N: words(`Kiss Heart Promise Proposal Letter Valentine Dance Season Affair Vow Postcard Bouquet`),
+        P: words(`Paris Venice Capri Provence Savannah Charleston Santorini Seville Vienna`),
+        pat: ['Love in {P}', 'The {A} {N}', '{F} & {F2}', 'Letters to {F}', 'A {N} in {P}', 'Falling for {F}', 'One {A} {N}', 'Always, {F}', '{X}', '{X}'],
+        X: ['Say Yes', 'The Wedding Season', 'Before Sunrise Again', 'Meant to Be', 'Second Chances', 'Still Yours', 'Head Over Heels',
+          'The Notebook Years', 'Love, Actually Maybe', 'Something Borrowed', 'Kiss Me Twice', 'Ever After', 'If Only', 'Crazy for You']
+      },
+      'Thriller': {
+        A: words(`Dead Silent Cold Clean Perfect Blind Final Hidden Dangerous Fatal Burnt`),
+        N: words(`Witness Alibi Silence Confession Stranger Motive Suspect Evidence Passenger Tenant Informant Pact Verdict`),
+        P: words(`Zurich Geneva Prague Washington Lisbon Vienna Baltimore`),
+        pat: ['The {N}', 'The {A} {N}', 'No {N} Left', 'The {L} Affair', 'Dead {N}', 'The {N} in Room {Num}', '{N} in {P}', '{X}', '{X}'],
+        X: ['Gone Quiet', 'The Girl Who Wasn\'t There', 'Rear Window Down', 'Closed Circuit', 'Double Blind', 'The Night Manager',
+          'Missing Hours', 'Sleepwalker', 'Shadow of a Doubt', 'Trust No One', 'Third Floor', 'The Insider', 'Blackout', 'Unknown Caller']
+      },
+      'Fantasy': {
+        A: words(`Iron Silver Shadow Ember Elder Thorned Gilded Fallen Sunken Hollow Moonlit`),
+        N: words(`Crown Throne Blade Dragon Kingdom Realm Sorcerer Grail Oath Rune Citadel Wyrm Prophecy Gate`),
+        P: words(`Avalon Eldoria Valemoor Thornwick Myrr Caer-Dun Ashgard Lyonesse Ondra`),
+        pat: ['The {N} of {P}', 'The {A} {N}', 'Quest for {P}', 'Realm of {Ns}', 'The Last {N}', 'Chronicles of {P}', '{P}: The {A} {N}', '{X}', '{X}'],
+        X: ['The Ninth Gate', 'Dragonsbane', 'Sword of Dawn', 'The Witch Queen', 'Ember and Ash', 'Kingsfall', 'The Hollow Crown',
+          'Stormborn', 'The Wizard\'s Apprentice', 'Of Wolves and Kings', 'The Lantern Bearer', 'Thronebreaker', 'Moonblade', 'Spellbound']
+      },
+      'Animation': {
+        A: words(`Little Brave Tiny Magic Super Silly Lost Lucky Fuzzy Grumpy`),
+        N: words(`Fox Penguin Robot Dragon Mouse Bear Turtle Owl Toaster Cloud Bug Snail Rocket Kitten`),
+        P: words(`Puddleton Toyland Gumdrop-Hills Snowpeak Treetop Bubbleville`),
+        pat: ['{F} the {N}', 'The {A} {N}', 'Tales of {P}', '{N} Pals', 'The {A} {N} Adventure', '{F} and the {A} {N}', 'Welcome to {P}', '{X}', '{X}'],
+        X: ['Up and Away', 'Paws!', 'Robo Buddies', 'The Snail Who Raced', 'Monster Nanny', 'Hoot!', 'Moon Mice', 'Sock Puppets',
+          'Dino Daycare', 'Big Feet', 'Lost in Toyland', 'Mr. Blip', 'Pond Life', 'Cloudy Days']
+      },
+      'War': {
+        A: words(`Bloody Long Last Iron Burning Frozen Broken Final Forgotten`),
+        N: words(`Front Line Ridge Brothers Company Winter Beach Bridge River Harvest Hill Valley Retreat Trench`),
+        P: words(`Normandy Ardennes Anzio Bastogne Okinawa Tobruk Verdun Inchon Arnhem Khe-Sanh Midway Leyte`),
+        pat: ['Battle of {P}', 'The {A} {N}', 'The Road to {P}', 'Hill {Num}', 'Brothers of {P}', '{A} Front', 'Bridge at {P}', 'Letters from {P}', '{X}', '{X}'],
+        X: ['No Man\'s Land', 'The Longest Night', 'Band of Strangers', 'Dawn Patrol', 'Hamburger Hill', 'Iron Rain', 'The Thin Line',
+          'Fury Road', 'Twelve Came Home', 'The Forgotten Company', 'Behind Enemy Lines', 'Over the Top', 'Last Rites', 'Into the Fire']
+      },
+      'Western': {
+        A: words(`Dusty Lonesome High Bitter Crooked Long Dead Wild Red Pale Lawless`),
+        N: words(`Rider Gun Saddle Mesa Canyon Sheriff Outlaw Bounty Drifter Rattlesnake Gallows Stagecoach Posse Horse Trail`),
+        P: words(`Tombstone Dodge-City Laredo Abilene Deadwood El-Paso Yuma Cheyenne Santa-Fe Silver-Creek Red-Rock`),
+        pat: ['The {A} {N}', '{N} at Dawn', 'Showdown at {P}', 'The {L} Gang', 'Ride to {P}', '{A} Noon', 'The Man from {P}', 'A Horse Named {F}', '{X}', '{X}'],
+        X: ['Dust and Glory', 'Three Graves West', 'Six Bullets', 'Hang Them High', 'The Long Ride', 'Rattlesnake Pass', 'Once Upon the Frontier',
+          'Wanted', 'No Country for Saints', 'The Last Posse', 'Whiskey and Gunsmoke', 'Riders of the Purple Sage', 'True Grit Again', 'Big Sky']
+      },
+      'Musical': {
+        A: words(`Starlight Golden Neon Sweet Swinging Broadway Electric Moonlit`),
+        N: words(`Song Melody Rhythm Number Ballroom Serenade Encore Showboat Jukebox Tune Revue Waltz`),
+        P: words(`Broadway Harlem Paris Vegas Havana Rio Memphis New-Orleans`),
+        pat: ['{P} Nights', 'Sing for {F}', 'The {N} Song', '{A} {N}', 'Dancing in {P}', '{A} Serenade', '{F}!', '{X}', '{X}'],
+        X: ['Hello, Broadway', 'Footlights', 'Swing Time', 'Jukebox Hearts', 'Top Hat Tonight', 'Stage Door', 'Let\'s Dance',
+          'Moonlight Revue', 'Showtime', 'Rhythm and Blues', 'The Big Number', 'Encore!', 'Singin\' Again', 'All That Jazz']
+      },
+      'Biopic': {
+        pat: ['{F} {L}', 'The {L} Story', '{L}', 'Becoming {F}', 'The Man Called {L}', 'The Woman Called {L}', '{F}: A Life', 'The Ballad of {F} {L}', 'Mr. {L}', 'Mrs. {L}'],
+        A: [], N: [], P: [], X: []
+      },
+      'Crime': {
+        A: words(`Dirty Clean Bloody Big Crooked Cold Hot Last Sweet Lucky`),
+        N: words(`Job Score Heist Racket Syndicate Family Hustle Money Deal Getaway Payday Takedown Connection`),
+        P: words(`Chicago Miami Boston Jersey Philly Detroit Brooklyn Las-Vegas New-Orleans`),
+        pat: ['The {L} Job', '{P} Confidential', 'Blood and {N}', 'The {A} {N}', 'Family {N}', 'The {P} {N}', '{A} Money', 'Kings of {P}', '{X}', '{X}'],
+        X: ['Mean Streets Again', 'Made Men', 'The Getaway Driver', 'Dirty Money', 'Snitch', 'Small Time', 'The Count', 'Cold Cash',
+          'Wise Guys', 'Payback', 'The Takedown', 'Rackets', 'Night Shift', 'Blood Brothers']
+      },
+      'Family': {
+        A: words(`Little Magic Lucky Brave Wonderful Amazing Secret`),
+        N: words(`Dog Puppy Pony Treehouse Christmas Summer Camp Wish Dragon Snowman Grandpa`),
+        P: words(`Maple-Falls Pine-Hollow Willow-Creek Sunnyside`),
+        pat: ['A {N} for {F}', 'The {N} Who Saved {P}', 'Home for the {N}', 'Our {A} {N}', '{F}\'s {A} {N}', 'The {A} {N}', 'Summer at {P}', '{X}', '{X}'],
+        X: ['Homeward Bound', 'Good Boy', 'The Big Snow', 'Grandpa\'s Garage', 'Camp Chaos', 'Lost and Found', 'A Very Merry Mix-Up',
+          'The Treehouse Gang', 'Kid Detectives', 'Snow Day', 'Beethoven\'s Puppy', 'The Wish List', 'Ponies!', 'Sleepover']
+      },
+      'Superhero': {
+        A: words(`Mighty Crimson Iron Midnight Atomic Silver Dark Invincible Ultra Amazing`),
+        N: words(`Guardian Sentinel Avenger Phantom Titan Vigilante Comet Valkyrie Falcon Paladin Specter Hornet Raven`),
+        P: words(`Metro-City Gotham Star-City Central-City Bay-City`),
+        pat: ['Captain {P}', 'The {A} {N}', '{N}', '{A} {N}', 'Rise of the {N}', '{N}: {A} Dawn', 'The {N} Saga', '{N} and the {A} {N}', '{X}'],
+        X: ['Ultraforce', 'The Defenders', 'Nightwing Rising', 'Justice Squad', 'Kid Thunder', 'Masked', 'Origins', 'Hero Complex', 'Shieldmaiden', 'Doctor Nova']
+      }
+    }
   };
 
   HW.MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

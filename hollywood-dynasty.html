@@ -316,6 +316,60 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
 .spark { display: block; }
 .spark polyline { fill: none; stroke: #bd8a2c; stroke-width: 1.5; stroke-linejoin: round; }
 .news li.nk-story { border-left-color: var(--green); }
+
+/* following */
+.star { background: none; border: 0; color: #6b5f50; cursor: pointer; font-size: 15px; padding: 0 5px 0 0; line-height: 1; vertical-align: -1px; }
+.star:hover { color: var(--gold2); }
+.star.on, .star.static { color: var(--gold); }
+.star.big { font-size: 26px; padding: 0 8px; }
+.card.follow { border-color: #6b5426; }
+.digest { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.dg { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.dg-who { font-weight: 600; margin-bottom: 4px; }
+.dg ul { margin: 0; padding-left: 16px; }
+.dg li { padding: 2px 0; font-size: 13px; }
+
+/* relationships */
+.rel { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
+.rel-partner { color: var(--gold2); border-color: #6b5426; }
+.rel-duo { color: var(--green); border-color: #2f5a3d; }
+.rel-feud { color: #e7a7a0; border-color: #6a2e28; }
+.rel-rival { color: #c9b2ec; border-color: #4a3a66; }
+.plist li.ended { opacity: .6; }
+.news li.nk-rel { border-left-color: #c9b2ec; }
+.center { text-align: center; }
+
+/* ceremony */
+body.noscroll { overflow: hidden; }
+.modal.ceremony { background: radial-gradient(ellipse at top, rgba(80,55,15,.55), rgba(0,0,0,.85) 70%); }
+.cer-card { width: min(640px, 100%); max-height: 92vh; overflow: auto; background: linear-gradient(180deg, #2a2112, #17130d); border: 1px solid #8a6a2c; border-radius: 14px; padding: 18px 22px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.cer-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cer-top .btn { margin-left: auto; }
+.cer-title { font-family: Georgia, serif; color: var(--gold2); font-size: 18px; letter-spacing: 1px; text-transform: uppercase; }
+.cer-progress { height: 3px; background: #2c261d; border-radius: 2px; margin: 10px 0 16px; overflow: hidden; }
+.cer-progress span { display: block; height: 100%; background: var(--gold); transition: width .4s; }
+.cer-body { min-height: 300px; }
+.cer-intro { text-align: center; padding: 24px 0; }
+.cer-intro h2 { font-size: 26px; margin: 8px 0; }
+.cer-statue { font-size: 64px; filter: drop-shadow(0 0 18px rgba(227,181,82,.6)); }
+.cer-cat { text-align: center; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; min-height: 16px; }
+.cer-name { text-align: center; font-size: 28px; color: var(--gold2); margin: 4px 0 16px; }
+.cer-noms { list-style: none; margin: 0; padding: 0; }
+.cer-noms li { position: relative; padding: 9px 12px 9px 40px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; background: rgba(0,0,0,.2); transition: opacity .4s, transform .4s; }
+.cer-noms li.lost { opacity: .4; }
+.cer-noms li.won { border-color: var(--gold); background: rgba(227,181,82,.12); transform: scale(1.02); animation: glow 1.2s ease-out; }
+.cer-noms li.won .lnk { color: var(--gold2); font-weight: 700; }
+.cer-win { position: absolute; left: 12px; top: 9px; }
+.cer-who { font-size: 15px; }
+@keyframes glow { from { box-shadow: 0 0 0 0 rgba(227,181,82,.7); } to { box-shadow: 0 0 0 14px rgba(227,181,82,0); } }
+.envelope { text-align: center; font-size: 46px; margin-top: 10px; color: var(--gold2); }
+.envelope.opening span { display: inline-block; animation: tear 1.1s ease-in-out; }
+@keyframes tear { 0% { transform: rotate(0); } 15% { transform: rotate(-12deg) scale(1.1); } 30% { transform: rotate(10deg) scale(1.15); } 45% { transform: rotate(-8deg) scale(1.2); } 70% { transform: scale(1.4); opacity: 1; } 100% { transform: scale(2.2) translateY(-20px); opacity: 0; } }
+.cer-verdict { text-align: center; font-family: Georgia, serif; font-size: 18px; color: var(--gold2); margin: 14px 0 0; }
+.cer-sum { list-style: none; padding: 0; margin: 0; }
+.cer-sum li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #3a2f1c; flex-wrap: wrap; }
+.cer-foot { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) { .envelope.opening span, .cer-noms li.won { animation: none; } }
 </style>
 </head>
 <body>
@@ -343,6 +397,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     <a href="#/films">Films</a>
     <a href="#/awards">Golden Laurels</a>
     <a href="#/stories">Stories</a>
+    <a href="#/following">★ Following</a>
     <a href="#/history">History</a>
     <a href="#/records">Records</a>
     <a href="#/news">News</a>
@@ -367,6 +422,11 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
         <p class="muted small" id="saveInfo"></p>
       </div>
       <div class="menu-section">
+        <h3>Golden Laurels</h3>
+        <label><span>Watch the ceremony after each year</span><input type="checkbox" id="watchCeremony" checked></label>
+        <p class="muted small">Plays after single-year advances, not during Auto or multi-year jumps.</p>
+      </div>
+      <div class="menu-section">
         <h3>Auto-play speed</h3>
         <select id="autoSpeed">
           <option value="2500">Slow (2.5s / year)</option>
@@ -377,6 +437,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       <button class="btn ghost close" data-action="closeMenu">Close</button>
     </div>
   </div>
+  <div class="modal ceremony" id="ceremony" hidden><div class="cer-card" id="cerCard" role="dialog" aria-label="Golden Laurels ceremony"></div></div>
   <div class="toast" id="toast" hidden></div>
 
   <script>
@@ -568,34 +629,146 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     Sapphire Sequoia Solstice Sparrow Summit Tidal Topaz Twilight Uptown Valiant Willow Zenith`);
   HW.STUDIO_SUFFIX = ['Pictures', 'Films', 'Studios', 'Entertainment', 'Media', 'Productions', 'Film Group', 'Cinema'];
 
+  // Film titles. Tokens: {A} adjective, {N} noun, {Ns} plural noun, {P} place, {F}/{F2} first names,
+  // {L} surname, {Ls} family plural, {V} comedy verb, {Num} number, {X} a hand-written title.
+  // Each genre has its own vocabulary; {A}/{N}/{P} sometimes borrow from the shared pool.
   HW.TITLE = {
-    adj: words(`Last Silent Broken Golden Dark Hidden Lost Final Eternal Burning Crimson Wild Hollow Savage Secret
-      Fallen Midnight Frozen Restless Distant Bitter Sweet Shattered Endless Iron Velvet Scarlet Electric Lonely
-      Perfect Forgotten Wicked Little Infinite Deadly Brave Quiet Crooked Twisted Blue Black White Electric`),
-    noun: words(`Heart Shadow River City Kingdom Dream Storm Fire Road Sky Night Promise Truth Game Empire Garden
-      Mirror Echo Horizon Highway Witness Code Signal Harvest Winter Summer Ocean Island Frontier Hunter Machine
-      Legacy Season Ghost Angel Stranger Detective Prophet Outlaw Crown Star Moon Sun Line Hour Letter Song Dance`),
-    place: words(`Paris Brooklyn Memphis Tokyo Avalon Eden Babylon Mars Atlantis Nowhere Tomorrow Yesterday Vegas
-      Montana Havana Berlin Rome Casablanca Shanghai Chinatown Harlem Sunset Malibu Arcadia Neptune Orion`),
-    patterns: {
-      'Drama':     ['The {adj} {noun}', '{noun} of {place}', 'A {noun} in {place}', '{adj} {noun}s', 'Before the {noun}'],
-      'Comedy':    ['{first} Gets {verbed}', 'The {noun} Party', 'Meet the {last}s', 'My Big {adj} {noun}', '{first} & {first2}'],
-      'Action':    ['{adj} {noun}', '{noun} Protocol', 'Operation {noun}', 'Code {adj}', 'Maximum {noun}', '{noun} Strike'],
-      'Sci-Fi':    ['{noun} of {place}', 'Beyond the {noun}', 'The {noun} Paradox', 'Project {place}', '{place} Rising'],
-      'Horror':    ['The {noun} Beneath', 'It Came from {place}', '{adj} {noun}', 'Don\'t Open the {noun}', 'The Hollowing'],
-      'Romance':   ['Love in {place}', 'A {adj} {noun}', '{first} & {first2}', 'Letters to {first}', 'The {noun} Between Us'],
-      'Thriller':  ['The {noun} Witness', '{adj} Silence', 'No {noun} Left', 'The {last} Affair', 'Dead {noun}'],
-      'Fantasy':   ['The {noun} of {place}', '{adj} Kingdom', 'The {adj} Crown', 'Quest for {place}', 'Realm of {noun}s'],
-      'Animation': ['{first} the {noun}', 'The Little {noun}', 'Tales of {place}', '{noun} Pals', 'The {adj} Adventure'],
-      'War':       ['Battle of {place}', '{adj} Front', 'The Road to {place}', 'Brothers of the {noun}', 'Hill {num}'],
-      'Western':   ['The {adj} Rider', '{noun} at Dawn', 'Showdown at {place}', 'The {last} Gang', 'Dust and {noun}'],
-      'Musical':   ['{place} Nights', 'Sing for {first}', 'The {noun} Song', '{adj} Melody', 'Dancing in {place}'],
-      'Biopic':    ['{first} {last}', 'The {last} Story', '{last}', 'Becoming {first}', 'The Man Called {last}'],
-      'Crime':     ['The {last} Job', '{place} Confidential', 'Blood and {noun}', 'The {adj} Score', 'Family {noun}'],
-      'Family':    ['A {noun} for {first}', 'The {noun} Who Saved {place}', 'Home for the {noun}', 'Our {adj} {noun}'],
-      'Superhero': ['Captain {noun}', 'The {adj} {noun}', '{noun}man', 'League of {noun}s', 'Rise of the {noun}', '{noun} Force']
+    shared: {
+      A: words(`Last Silent Broken Golden Hidden Lost Final Burning Wild Secret Midnight Restless Distant Bitter
+        Shattered Endless Lonely Perfect Forgotten Little Quiet Crooked Blue Long Hard Late Cold`),
+      N: words(`Heart River City Dream Storm Road Night Promise Truth Game Garden Mirror Horizon Highway Season
+        Letter Song Hour Line Summer Winter Ocean Island Harvest Distance Silence Memory Weekend`),
+      P: words(`Paris Brooklyn Memphis Tokyo Havana Berlin Rome Casablanca Chicago Harlem Malibu Tucson Reno Lisbon
+        Marseille Naples Detroit Galveston Saigon Manila Cairo Montreal Juarez Bakersfield Sacramento`)
     },
-    verbed: words(`Married Lost Fired Elected Even Lucky Famous Grounded Hitched Hired Even Schooled`)
+    plural: { Thief: 'Thieves', Wolf: 'Wolves', Knife: 'Knives', Child: 'Children', Man: 'Men', Woman: 'Women',
+      Sky: 'Skies', City: 'Cities', Enemy: 'Enemies', Lady: 'Ladies', Story: 'Stories', Echo: 'Echoes', Hero: 'Heroes', Glory: 'Glories' },
+    genres: {
+      'Drama': {
+        A: words(`Quiet Ordinary Fragile Borrowed Unspoken Narrow Tender Honest Patient Second Small Gentle Imperfect`),
+        N: words(`Inheritance Kitchen Field Daughter Son Father Mother Brother Sister Window Porch Orchard Mill Winter Grace Absence Harbor`),
+        P: words(`Ohio Nebraska Galway Duluth Kansas Maine Wichita Allentown`),
+        pat: ['The {A} {N}', '{N} in {P}', 'A {N} for {F}', 'All the {A} {Ns}', 'What {F} Knew', 'The Last {N} in {P}', '{F}\'s {N}', 'Before the {N}', '{X}', '{X}'],
+        X: ['The Weight of Water', 'Everything We Kept', 'Small Mercies', 'A Long Way From Home', 'The Year of Rain', 'Late Light', 'What Remains',
+          'The Good Neighbor', 'Ordinary People Again', 'Salt and Bread', 'The House on Elm Street', 'Sunday Dinner', 'Strangers at the Table', 'The Quiet Years']
+      },
+      'Comedy': {
+        A: words(`Big Bad Total Absolute Accidental Awkward Crazy Perfect Wrong Fake Last-Minute Terrible Lucky`),
+        N: words(`Wedding Weekend Roommate Boss Neighbor Vacation Heist Reunion Babysitter Substitute Intern Ex Road-Trip Funeral Bachelor`),
+        P: words(`Vegas Cleveland Florida Jersey Cancun Branson Atlantic-City`),
+        pat: ['{F} Gets {V}', 'Meet the {Ls}', 'My {A} {N}', 'The {A} {N}', '{F} & {F2}', 'Who Invited {F}?', 'Weekend in {P}', 'The {N} from Hell', '{X}', '{X}'],
+        V: words(`Married Fired Elected Lucky Famous Grounded Hitched Hired Schooled Dumped Promoted Even Audited`),
+        X: ['Nobody Panic', 'Bad Sport', 'Totally Fine', 'Dad Mode', 'Don\'t Tell Mom', 'Bridesmaids Revenge', 'Plus One', 'Out of Office',
+          'Parental Guidance', 'Hold My Calls', 'The Worst Best Man', 'Not Again', 'Two Weeks Notice', 'Spring Break Forever']
+      },
+      'Action': {
+        A: words(`Maximum Lethal Rapid Hard Zero Direct Total Black Rogue Double Steel Blind Kill`),
+        N: words(`Protocol Target Impact Velocity Force Strike Payload Extraction Fury Vendetta Breach Siege Countdown Ransom Point`),
+        P: words(`Bangkok Hong-Kong Rio Istanbul Moscow Marseille Caracas`),
+        pat: ['{A} {N}', 'Operation {N}', 'Code {A}', '{N} in {P}', 'Die Another {N}', '{F} {L}: {N}', 'The {N} Option', '{X}', '{X}'],
+        X: ['No Way Back', 'Hard Target', 'Seven Hours to Midnight', 'Bulletproof', 'The Long Kill', 'Dead Drop', 'Point Blank', 'Fast Lane',
+          'Last Man Standing', 'Under Siege', 'Red Line', 'Burn Notice', 'Countdown to Zero', 'Wolf Pack']
+      },
+      'Sci-Fi': {
+        A: words(`Quantum Silent Dark Synthetic Orbital Distant Final Hollow Artificial Parallel Red Cold Deep`),
+        N: words(`Signal Paradox Horizon Colony Protocol Frontier Orbit Machine Singularity Transmission Pulse Echo Ark Station Drift`),
+        P: words(`Mars Europa Titan Andromeda Kepler Io Orion Neptune Proxima Callisto Vega`),
+        pat: ['{N} of {P}', 'Beyond {P}', 'The {N} Paradox', 'Project {P}', '{P} Rising', 'The {A} {N}', '{P}: {A} {N}', 'Last Light on {P}', '{X}', '{X}'],
+        X: ['Event Horizon', 'Dark Matter', 'Ghost in the Signal', 'Cold Sleep', 'The Long Dark', 'Ark Seven', 'Zero Gravity', 'Deep Field',
+          'The Algorithm', 'After Earth', 'Tomorrow\'s Children', 'Ground Control', 'Second Sun', 'The Sleepers']
+      },
+      'Horror': {
+        A: words(`Hollow Rotten Pale Whispering Crawling Hungry Bleeding Silent Wicked Grim Black Cursed`),
+        N: words(`House Hollow Cellar Doll Thing Mother Wraith Harvest Ritual Grove Visitor Wake Barn Chapel Coven Lullaby`),
+        P: words(`Salem Ravenswood Black-Lake Hollow-Creek Elmwood Graves-Point Wolf-Hill`),
+        pat: ['The {N} Beneath', 'It Came from {P}', 'The {A} {N}', 'Don\'t Open the {N}', 'The {N} at {P}', '{A} {N}', 'Something in the {N}', '{X}', '{X}'],
+        X: ['They Come at Night', 'Do Not Answer', 'The Hollowing', 'Teeth', 'Night Feeders', 'Stay Inside', 'The Unwelcome', 'Bloodline',
+          'Hush Little Baby', 'Under the Floor', 'The Ninth Night', 'Skin', 'Room 13', 'Don\'t Look Back']
+      },
+      'Romance': {
+        A: words(`Sweet Endless Unexpected Second Summer Secret Perfect Wild Little Lovely Stolen`),
+        N: words(`Kiss Heart Promise Proposal Letter Valentine Dance Season Affair Vow Postcard Bouquet`),
+        P: words(`Paris Venice Capri Provence Savannah Charleston Santorini Seville Vienna`),
+        pat: ['Love in {P}', 'The {A} {N}', '{F} & {F2}', 'Letters to {F}', 'A {N} in {P}', 'Falling for {F}', 'One {A} {N}', 'Always, {F}', '{X}', '{X}'],
+        X: ['Say Yes', 'The Wedding Season', 'Before Sunrise Again', 'Meant to Be', 'Second Chances', 'Still Yours', 'Head Over Heels',
+          'The Notebook Years', 'Love, Actually Maybe', 'Something Borrowed', 'Kiss Me Twice', 'Ever After', 'If Only', 'Crazy for You']
+      },
+      'Thriller': {
+        A: words(`Dead Silent Cold Clean Perfect Blind Final Hidden Dangerous Fatal Burnt`),
+        N: words(`Witness Alibi Silence Confession Stranger Motive Suspect Evidence Passenger Tenant Informant Pact Verdict`),
+        P: words(`Zurich Geneva Prague Washington Lisbon Vienna Baltimore`),
+        pat: ['The {N}', 'The {A} {N}', 'No {N} Left', 'The {L} Affair', 'Dead {N}', 'The {N} in Room {Num}', '{N} in {P}', '{X}', '{X}'],
+        X: ['Gone Quiet', 'The Girl Who Wasn\'t There', 'Rear Window Down', 'Closed Circuit', 'Double Blind', 'The Night Manager',
+          'Missing Hours', 'Sleepwalker', 'Shadow of a Doubt', 'Trust No One', 'Third Floor', 'The Insider', 'Blackout', 'Unknown Caller']
+      },
+      'Fantasy': {
+        A: words(`Iron Silver Shadow Ember Elder Thorned Gilded Fallen Sunken Hollow Moonlit`),
+        N: words(`Crown Throne Blade Dragon Kingdom Realm Sorcerer Grail Oath Rune Citadel Wyrm Prophecy Gate`),
+        P: words(`Avalon Eldoria Valemoor Thornwick Myrr Caer-Dun Ashgard Lyonesse Ondra`),
+        pat: ['The {N} of {P}', 'The {A} {N}', 'Quest for {P}', 'Realm of {Ns}', 'The Last {N}', 'Chronicles of {P}', '{P}: The {A} {N}', '{X}', '{X}'],
+        X: ['The Ninth Gate', 'Dragonsbane', 'Sword of Dawn', 'The Witch Queen', 'Ember and Ash', 'Kingsfall', 'The Hollow Crown',
+          'Stormborn', 'The Wizard\'s Apprentice', 'Of Wolves and Kings', 'The Lantern Bearer', 'Thronebreaker', 'Moonblade', 'Spellbound']
+      },
+      'Animation': {
+        A: words(`Little Brave Tiny Magic Super Silly Lost Lucky Fuzzy Grumpy`),
+        N: words(`Fox Penguin Robot Dragon Mouse Bear Turtle Owl Toaster Cloud Bug Snail Rocket Kitten`),
+        P: words(`Puddleton Toyland Gumdrop-Hills Snowpeak Treetop Bubbleville`),
+        pat: ['{F} the {N}', 'The {A} {N}', 'Tales of {P}', '{N} Pals', 'The {A} {N} Adventure', '{F} and the {A} {N}', 'Welcome to {P}', '{X}', '{X}'],
+        X: ['Up and Away', 'Paws!', 'Robo Buddies', 'The Snail Who Raced', 'Monster Nanny', 'Hoot!', 'Moon Mice', 'Sock Puppets',
+          'Dino Daycare', 'Big Feet', 'Lost in Toyland', 'Mr. Blip', 'Pond Life', 'Cloudy Days']
+      },
+      'War': {
+        A: words(`Bloody Long Last Iron Burning Frozen Broken Final Forgotten`),
+        N: words(`Front Line Ridge Brothers Company Winter Beach Bridge River Harvest Hill Valley Retreat Trench`),
+        P: words(`Normandy Ardennes Anzio Bastogne Okinawa Tobruk Verdun Inchon Arnhem Khe-Sanh Midway Leyte`),
+        pat: ['Battle of {P}', 'The {A} {N}', 'The Road to {P}', 'Hill {Num}', 'Brothers of {P}', '{A} Front', 'Bridge at {P}', 'Letters from {P}', '{X}', '{X}'],
+        X: ['No Man\'s Land', 'The Longest Night', 'Band of Strangers', 'Dawn Patrol', 'Hamburger Hill', 'Iron Rain', 'The Thin Line',
+          'Fury Road', 'Twelve Came Home', 'The Forgotten Company', 'Behind Enemy Lines', 'Over the Top', 'Last Rites', 'Into the Fire']
+      },
+      'Western': {
+        A: words(`Dusty Lonesome High Bitter Crooked Long Dead Wild Red Pale Lawless`),
+        N: words(`Rider Gun Saddle Mesa Canyon Sheriff Outlaw Bounty Drifter Rattlesnake Gallows Stagecoach Posse Horse Trail`),
+        P: words(`Tombstone Dodge-City Laredo Abilene Deadwood El-Paso Yuma Cheyenne Santa-Fe Silver-Creek Red-Rock`),
+        pat: ['The {A} {N}', '{N} at Dawn', 'Showdown at {P}', 'The {L} Gang', 'Ride to {P}', '{A} Noon', 'The Man from {P}', 'A Horse Named {F}', '{X}', '{X}'],
+        X: ['Dust and Glory', 'Three Graves West', 'Six Bullets', 'Hang Them High', 'The Long Ride', 'Rattlesnake Pass', 'Once Upon the Frontier',
+          'Wanted', 'No Country for Saints', 'The Last Posse', 'Whiskey and Gunsmoke', 'Riders of the Purple Sage', 'True Grit Again', 'Big Sky']
+      },
+      'Musical': {
+        A: words(`Starlight Golden Neon Sweet Swinging Broadway Electric Moonlit`),
+        N: words(`Song Melody Rhythm Number Ballroom Serenade Encore Showboat Jukebox Tune Revue Waltz`),
+        P: words(`Broadway Harlem Paris Vegas Havana Rio Memphis New-Orleans`),
+        pat: ['{P} Nights', 'Sing for {F}', 'The {N} Song', '{A} {N}', 'Dancing in {P}', '{A} Serenade', '{F}!', '{X}', '{X}'],
+        X: ['Hello, Broadway', 'Footlights', 'Swing Time', 'Jukebox Hearts', 'Top Hat Tonight', 'Stage Door', 'Let\'s Dance',
+          'Moonlight Revue', 'Showtime', 'Rhythm and Blues', 'The Big Number', 'Encore!', 'Singin\' Again', 'All That Jazz']
+      },
+      'Biopic': {
+        pat: ['{F} {L}', 'The {L} Story', '{L}', 'Becoming {F}', 'The Man Called {L}', 'The Woman Called {L}', '{F}: A Life', 'The Ballad of {F} {L}', 'Mr. {L}', 'Mrs. {L}'],
+        A: [], N: [], P: [], X: []
+      },
+      'Crime': {
+        A: words(`Dirty Clean Bloody Big Crooked Cold Hot Last Sweet Lucky`),
+        N: words(`Job Score Heist Racket Syndicate Family Hustle Money Deal Getaway Payday Takedown Connection`),
+        P: words(`Chicago Miami Boston Jersey Philly Detroit Brooklyn Las-Vegas New-Orleans`),
+        pat: ['The {L} Job', '{P} Confidential', 'Blood and {N}', 'The {A} {N}', 'Family {N}', 'The {P} {N}', '{A} Money', 'Kings of {P}', '{X}', '{X}'],
+        X: ['Mean Streets Again', 'Made Men', 'The Getaway Driver', 'Dirty Money', 'Snitch', 'Small Time', 'The Count', 'Cold Cash',
+          'Wise Guys', 'Payback', 'The Takedown', 'Rackets', 'Night Shift', 'Blood Brothers']
+      },
+      'Family': {
+        A: words(`Little Magic Lucky Brave Wonderful Amazing Secret`),
+        N: words(`Dog Puppy Pony Treehouse Christmas Summer Camp Wish Dragon Snowman Grandpa`),
+        P: words(`Maple-Falls Pine-Hollow Willow-Creek Sunnyside`),
+        pat: ['A {N} for {F}', 'The {N} Who Saved {P}', 'Home for the {N}', 'Our {A} {N}', '{F}\'s {A} {N}', 'The {A} {N}', 'Summer at {P}', '{X}', '{X}'],
+        X: ['Homeward Bound', 'Good Boy', 'The Big Snow', 'Grandpa\'s Garage', 'Camp Chaos', 'Lost and Found', 'A Very Merry Mix-Up',
+          'The Treehouse Gang', 'Kid Detectives', 'Snow Day', 'Beethoven\'s Puppy', 'The Wish List', 'Ponies!', 'Sleepover']
+      },
+      'Superhero': {
+        A: words(`Mighty Crimson Iron Midnight Atomic Silver Dark Invincible Ultra Amazing`),
+        N: words(`Guardian Sentinel Avenger Phantom Titan Vigilante Comet Valkyrie Falcon Paladin Specter Hornet Raven`),
+        P: words(`Metro-City Gotham Star-City Central-City Bay-City`),
+        pat: ['Captain {P}', 'The {A} {N}', '{N}', '{A} {N}', 'Rise of the {N}', '{N}: {A} Dawn', 'The {N} Saga', '{N} and the {A} {N}', '{X}'],
+        X: ['Ultraforce', 'The Defenders', 'Nightwing Rising', 'Justice Squad', 'Kid Thunder', 'Masked', 'Origins', 'Hero Complex', 'Shieldmaiden', 'Doctor Nova']
+      }
+    }
   };
 
   HW.MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -926,6 +1099,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     releaseFilms(w, ctx);
     careerUpdates(w, ctx);
     HW.runAwards(w, ctx);
+    HW.relationsYear(w, ctx);
     studioYearEnd(w, ctx);
     peopleYearEnd(w, ctx);
     HW.detectStories(w, ctx);
@@ -994,6 +1168,14 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       if (p.status === 'active' && !ctx.resting[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
     });
     ctx.pools = pools;
+    // index active relationships by person for fast casting lookups
+    ctx.relBy = {};
+    for (var rk in (w.rel || {})) {
+      var rr = w.rel[rk];
+      if (rr.end != null) continue;
+      (ctx.relBy[rr.a] = ctx.relBy[rr.a] || []).push({ o: rr.b, t: rr.t });
+      (ctx.relBy[rr.b] = ctx.relBy[rr.b] || []).push({ o: rr.a, t: rr.t });
+    }
     ctx.fees = [];
     w.people.forEach(function (p) { if (p.status === 'active') ctx.fees[p.id] = HW.fee(p); });
     ctx.pools.actorM = pools.actor.filter(function (p) { return p.gender === 'M'; });
@@ -1134,6 +1316,12 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     for (var i = 0; i < extra; i++) roles.push({ r: 'S', g: rng.chance(0.5) ? 'M' : 'F', age: [8, 95], share: 0.025 });
 
     var castIds = {};
+    // relationship ties to the director and to everyone cast so far: id -> strongest tie
+    var ties = {};
+    var addTies = function (id) {
+      (ctx.relBy[id] || []).forEach(function (x) { if (ties[x.o] !== 'feud') ties[x.o] = x.t; });
+    };
+    addTies(dir.id);
     var collab = {};
     for (var j = dir.films.length - 1, n = 0; j >= 0 && n < 8; j--, n++) w.films[dir.films[j]].cast.forEach(function (x) { collab[x.p] = 1; });
     var prevCast = {};
@@ -1151,11 +1339,15 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
         if (role.r === 'L' && genre !== 'Animation') sc += c * (st.presence - 5) * 1.5;
         if (prevCast[p.id] === role.r) sc += 40;
         if (collab[p.id]) sc += 4;
+        // relationships: feuds rule people out, partners and duos get the call
+        var rt = ties[p.id];
+        if (rt) { if (rt === 'feud') return -1e9; sc += rt === 'partner' ? 10 : rt === 'duo' ? 8 : 0; }
         return sc;
       });
       if (!h) return;
       if (castIds[h.p.id]) return;
       castIds[h.p.id] = 1;
+      addTies(h.p.id);
       spent += h.fee;
       f.cast.push({ p: h.p.id, r: role.r, perf: 0, fee: Math.round(h.fee * 100) / 100, cut: h.cut || undefined });
     });
@@ -1267,7 +1459,10 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       var method = HW.has(p, 'method');
       // chemistry: scene partners lift (or flatten) each other
       var partners = f.cast.length > 1 ? (chemTotal - s.chemistry) / (f.cast.length - 1) : 5;
-      var perf = HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
+      var bond = 0, rdir = HW.relOf(w, p.id, dir.id);
+      if (rdir && rdir.t === 'partner') bond += 3;
+      f.cast.forEach(function (o) { var ro = o.p !== p.id && HW.relOf(w, p.id, o.p); if (ro && ro.t === 'duo') bond += 2; if (ro && ro.t === 'rival') bond += 1; });
+      var perf = bond + HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
         (partners - 5) * 1.2 + dirHandling + dialogue + (method ? 3 : 0);
       // craft is consistency: skilled actors deliver take after take; intensity swings bigger
       var sd = 10 - s.craft * 0.5 + (method ? 3 : 0) + (s.intensity - 5) * 0.3;
@@ -1313,25 +1508,73 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     };
   }
 
+  var SEQ_SUBTITLES = ['Reckoning', 'Resurrection', 'Legacy', 'The Return', 'Rise', 'Endgame', 'Revenge', 'Origins', 'Homecoming',
+    'Unfinished Business', 'No Escape', 'Judgment Day', 'Blood Ties', 'The Next Chapter', 'Fallout', 'Redemption', 'Aftermath', 'Retribution'];
+
+  var BORROWS = { 'Drama': 1, 'Comedy': 1, 'Romance': 1, 'Thriller': 1, 'Crime': 1, 'Biopic': 1 };
+
   function makeTitle(w, rng, f) {
+    var fresh = freshness(w, f.year);
     if (f.seqOf != null) {
-      var root = w.films[f.root];
-      var base = root.title;
-      return rng.chance(0.65) ? base + ' ' + f.seqNum : base + ': ' + rng.pick(['Part ' + roman(f.seqNum), 'Reckoning', 'Resurrection', 'Legacy', 'The Return', 'Rise', 'Endgame', 'Revenge', 'Origins', 'Homecoming']);
+      var base = w.films[f.root].title, r = rng.next();
+      if (r < 0.45) return base + ' ' + f.seqNum;
+      if (r < 0.6) return base + ' ' + roman(f.seqNum);
+      var sub = pickFresh(rng, SEQ_SUBTITLES, fresh);
+      return base + ': ' + sub;
     }
-    var T = HW.TITLE, used = w.usedTitles;
-    for (var i = 0; i < 20; i++) {
-      var pat = rng.pick(T.patterns[f.genre]);
-      var title = pat.replace('{adj}', rng.pick(T.adj)).replace('{noun}', rng.pick(T.noun)).replace('{place}', rng.pick(T.place))
-        .replace('{first2}', rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female))
-        .replace('{first}', rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female)).replace('{last}', rng.pick(HW.NAMES.last))
-        .replace('{verbed}', rng.pick(T.verbed)).replace('{num}', String(rng.int(1, 9) * 100 + rng.int(0, 99)));
-      if (!used[title]) { used[title] = f.year; return title; }
-      if (i > 12 && used[title] < f.year - 15) { used[title] = f.year; return title; } // a remake
+    var T = HW.TITLE, G = T.genres[f.genre], used = w.usedTitles;
+    for (var i = 0; i < 25; i++) {
+      var pat = pickFresh(rng, G.pat, fresh, 'pat:' + f.genre + ':');
+      var picked = [];
+      var bank = function (k) {
+        // everyday words suit grounded genres; genre films stick to their own vocabulary
+        var own = G[k] || [], shared = BORROWS[f.genre] ? T.shared[k] || [] : [];
+        var src = own.length && (!shared.length || rng.chance(0.75)) ? own : shared;
+        var word = pickFresh(rng, src, fresh);
+        picked.push(word);
+        return word;
+      };
+      var title = pat.replace(/\{(\w+)\}/g, function (m, k) {
+        switch (k) {
+          case 'A': case 'N': case 'P': return bank(k);
+          case 'Ns': return plural(T, bank('N'));
+          case 'F': case 'F2': return rng.pick(rng.chance(0.5) ? HW.NAMES.male : HW.NAMES.female);
+          case 'L': return rng.pick(HW.NAMES.last);
+          case 'Ls': var l = rng.pick(HW.NAMES.last); return /(s|x|z|ch|sh)$/.test(l) ? l + 'es' : l + 's';
+          case 'V': return pickFresh(rng, G.V, fresh);
+          case 'Num': return String(rng.int(1, 9) * 100 + rng.int(0, 99));
+          case 'X': return pickFresh(rng, G.X.length ? G.X : [f.genre], fresh);
+        }
+        return m;
+      }).replace(/-/g, ' ').replace(/\bA ([AEIOU])/g, 'An $1');
+      if (!used[title]) {
+        used[title] = f.year;
+        picked.concat([pat]).forEach(function (wd, j) { var key = j === picked.length ? 'pat:' + f.genre + ':' + wd : wd; fresh[key] = (fresh[key] || 0) + 1; });
+        return title;
+      }
+      if (i > 18 && used[title] < f.year - 20) { used[title] = f.year; f.tags.push('remake'); return title; }
     }
-    var t2 = rng.pick(T.adj) + ' ' + rng.pick(T.noun) + ' ' + rng.pick(T.place);
+    var t2 = pickFresh(rng, T.shared.A, fresh) + ' ' + pickFresh(rng, T.shared.N, fresh) + ' ' + f.year;
     used[t2] = f.year;
     return t2;
+  }
+  // Recently used words/patterns are less likely to be picked again; memory halves each year.
+  function freshness(w, year) {
+    if (!w.titleMemory || w.titleMemory.y !== year) {
+      var old = w.titleMemory ? w.titleMemory.m : {}, m = {};
+      for (var k in old) if (old[k] > 0.2) m[k] = old[k] * 0.5;
+      w.titleMemory = { y: year, m: m };
+    }
+    return w.titleMemory.m;
+  }
+  function pickFresh(rng, arr, fresh, prefix) {
+    return rng.weighted(arr, function (x) { return 1 / (1 + 2.5 * (fresh[(prefix || '') + x] || 0)); });
+  }
+  function plural(T, n) {
+    if (T.plural[n]) return T.plural[n];
+    if (/(s|x|z|ch|sh)$/.test(n)) return n + 'es';
+    if (/[^aeiou]y$/.test(n)) return n.slice(0, -1) + 'ies';
+    return n + 's';
   }
   function roman(n) { return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n); }
 
@@ -1931,6 +2174,22 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     } else if (aw.length >= 3) out.push(He + ' has been nominated for ' + aw.length + ' Golden Laurels without ever winning.');
     if (p.lifetime) out.push('The Academy honored ' + his + ' career with a Lifetime Achievement Laurel in ' + p.lifetime + '.');
 
+    if (HW.relsOf) {
+      var rels = HW.relsOf(w, p.id), P = w.people;
+      var best = rels.filter(function (x) { return x.r.t === 'partner' || x.r.t === 'duo'; }).sort(function (a, b) { return b.r.n - a.r.n; })[0];
+      if (best) {
+        var o = P[best.other];
+        out.push(best.r.t === 'partner'
+          ? (o.role === 'director' ? 'Director ' + o.name + ' became ' + his + ' great creative partner' : He + ' became the favorite actor of ' + o.name) + ' (' + best.r.n + ' films together).'
+          : He + ' and ' + o.name + ' became one of the screen\'s great pairings (' + best.r.n + ' films together).');
+      }
+      rels.filter(function (x) { return x.r.t === 'feud'; }).slice(0, 1).forEach(function (x) {
+        out.push('A bitter feud with ' + P[x.other].name + ' began in ' + x.r.since + (x.r.end != null ? ' and lasted until ' + x.r.end : ' and has never healed') + '.');
+      });
+      rels.filter(function (x) { return x.r.t === 'rival'; }).slice(0, 1).forEach(function (x) {
+        out.push('The press made much of ' + his + ' rivalry with ' + P[x.other].name + '.');
+      });
+    }
     var tc = HW.typecast(w, p);
     if (tc) out.push(Math.round(tc.share * 100) + '% of ' + his + ' films were ' + tc.genre.toLowerCase() + (actor ? ' roles' : '') + '. Hollywood rarely let ' + (p.gender === 'M' ? 'him' : 'her') + ' play anything else.');
 
@@ -1942,6 +2201,144 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     return out;
   };
   function His(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
+// Relationships: director–actor partnerships, star duos, feuds and rivalries.
+// w.rel maps "lowId-highId" to { a, b, t, since, n, end }. Ended relationships stay for history.
+// w.pairs tracks raw collaboration history: key -> [films, criticSum, audienceSum, lastYear].
+(function (HW) {
+  HW.REL_TYPES = {
+    partner: { label: 'Creative partner', desc: 'A director and actor who keep making good films together.' },
+    duo:     { label: 'Screen duo', desc: 'Co-stars audiences love to see together.' },
+    feud:    { label: 'Feud', desc: 'Refuse to work together.' },
+    rival:   { label: 'Rival', desc: 'Competing for the same roles, the same awards and the same headlines.' }
+  };
+
+  function key(a, b) { return a < b ? a + '-' + b : b + '-' + a; }
+  HW.relKey = key;
+
+  // The active relationship between two people, or null.
+  HW.relOf = function (w, a, b) {
+    var r = w.rel && w.rel[key(a, b)];
+    return r && r.end == null ? r : null;
+  };
+
+  HW.relsOf = function (w, pid) {
+    var out = [];
+    for (var k in (w.rel || {})) {
+      var r = w.rel[k];
+      if (r.a === pid || r.b === pid) out.push({ r: r, other: r.a === pid ? r.b : r.a });
+    }
+    return out;
+  };
+
+  function start(w, a, b, t, Y, n) {
+    var k = key(a, b);
+    w.rel[k] = { a: Math.min(a, b), b: Math.max(a, b), t: t, since: Y, n: n || 0, end: null };
+    return w.rel[k];
+  }
+
+  function leadsOf(f) { return f.cast.filter(function (c) { return c.r === 'L'; }).map(function (c) { return c.p; }); }
+
+  // Yearly pass, after films are released and the Laurels handed out.
+  HW.relationsYear = function (w, ctx) {
+    var Y = ctx.year, rng = ctx.rng;
+    w.rel = w.rel || {};
+    w.pairs = w.pairs || {};
+    var P = w.people;
+    var feuds = 0;
+
+    ctx.films.forEach(function (f) {
+      var leads = leadsOf(f);
+      var pairs = leads.map(function (l) { return [f.director, l, 'dir']; });
+      if (leads.length >= 2) pairs.push([leads[0], leads[1], 'co']);
+      pairs.forEach(function (pr) {
+        var k = key(pr[0], pr[1]);
+        var h = w.pairs[k] || (w.pairs[k] = [0, 0, 0, 0]);
+        h[0]++; h[1] += f.critic; h[2] += f.audience; h[3] = Y;
+        var r = w.rel[k];
+        if (r && r.end == null && (r.t === 'partner' || r.t === 'duo')) r.n = h[0];
+        // a third good outing together forms a partnership / duo
+        if (h[0] >= 3 && (!r || r.end != null) && !(r && r.t === 'feud' && r.end == null)) {
+          var crit = h[1] / h[0], aud = h[2] / h[0];
+          if (pr[2] === 'dir' && (crit >= 58 || aud >= 62)) {
+            start(w, pr[0], pr[1], 'partner', Y, h[0]);
+            HW.addNews(w, Y, 'Dream team: director ' + P[pr[0]].name + ' and ' + P[pr[1]].name + ' reunite for "' + f.title + '", their ' + HW.ordinal(h[0]) + ' film together.', 'rel', { p: pr[1], p2: pr[0] });
+          } else if (pr[2] === 'co' && aud >= 60) {
+            start(w, pr[0], pr[1], 'duo', Y, h[0]);
+            HW.addNews(w, Y, P[pr[0]].name + ' and ' + P[pr[1]].name + ' are Hollywood\'s favorite screen pairing after "' + f.title + '".', 'rel', { p: pr[0], p2: pr[1] });
+          }
+        }
+      });
+
+      // troubled sets breed feuds
+      if (feuds >= 3) return;
+      var crew = [f.director].concat(leads);
+      var hot = crew.filter(function (id) { return HW.has(P[id], 'diva') || HW.has(P[id], 'scandal'); });
+      var chance = 0.015 + hot.length * 0.09 + (f.tags.indexOf('flop') >= 0 || f.critic < 35 ? 0.06 : 0) + (f.overrun > 0.25 ? 0.05 : 0);
+      if (crew.length < 2 || !rng.chance(chance)) return;
+      var a = hot.length ? rng.pick(hot) : rng.pick(crew);
+      var others = crew.filter(function (id) { return id !== a; });
+      var b = rng.pick(others);
+      var ex = w.rel[key(a, b)];
+      if (ex && ex.end == null && ex.t === 'feud') return;
+      var broke = ex && ex.end == null && (ex.t === 'partner' || ex.t === 'duo');
+      if (ex && ex.end == null) ex.end = Y;
+      start(w, a, b, 'feud', Y);
+      feuds++;
+      var cause = f.overrun > 0.25 ? 'budget blowouts' : f.tags.indexOf('flop') >= 0 ? 'the blame game over its failure' : rng.pick(['creative differences', 'billing', 'a shouting match on set', 'rewrites', 'who gets top billing', 'an explosive table read']);
+      HW.addNews(w, Y, (broke ? 'Partnership over: ' : 'Feud: ') + P[a].name + ' and ' + P[b].name + ' fall out on "' + f.title + '" over ' + cause + '.', 'rel', { p: a, p2: b });
+    });
+
+    // rivalries: stars who keep meeting at the Laurels
+    var aw = w.awards[Y], born = 0;
+    var hasRival = function (id) { return (HW.relsOf(w, id)).some(function (x) { return x.r.t === 'rival' && x.r.end == null; }); };
+    if (aw) aw.cats.forEach(function (c) {
+      if (['actor', 'actress', 'supActor', 'supActress', 'director'].indexOf(c.k) < 0) return;
+      var ids = c.noms.map(function (n) { return n.p; });
+      var winner = c.noms[c.win].p;
+      for (var i = 0; i < ids.length; i++) for (var j = i + 1; j < ids.length; j++) {
+        var x = P[ids[i]], y = P[ids[j]], r = w.rel[key(x.id, y.id)];
+        if (r && r.end == null && r.t === 'rival') {
+          r.n++;
+          if (winner === x.id || winner === y.id) {
+            var wn = winner === x.id ? x : y, ls = winner === x.id ? y : x;
+            HW.gainFame(wn, 2);
+            HW.addNews(w, Y, wn.name + ' edges out rival ' + ls.name + ' for ' + HW.catName(c.k) + '.', 'rel', { p: wn.id, p2: ls.id });
+          }
+          continue;
+        }
+        if (r && r.end == null) continue;
+        // at most two new rivalries a year, one rival per star at a time
+        if (born < 2 && x.fame >= 50 && y.fame >= 50 && Math.abs(x.born - y.born) <= 10 && rng.chance(0.2) && !hasRival(x.id) && !hasRival(y.id)) {
+          born++;
+          start(w, x.id, y.id, 'rival', Y, 1);
+          HW.addNews(w, Y, 'A rivalry is born: ' + x.name + ' and ' + y.name + ' go head to head for ' + HW.catName(c.k) + '.', 'rel', { p: x.id, p2: y.id });
+        }
+      }
+    });
+
+    // relationships fade, reconcile or end
+    for (var k in w.rel) {
+      var r = w.rel[k];
+      if (r.end != null) continue;
+      var A = P[r.a], B = P[r.b];
+      if (A.status === 'deceased' || B.status === 'deceased' || (A.status !== 'active' && B.status !== 'active')) { r.end = Y; continue; }
+      var h = w.pairs[k];
+      if (r.t === 'feud' && Y > r.since && rng.chance(0.07)) {
+        r.end = Y;
+        HW.addNews(w, Y, P[r.a].name + ' and ' + P[r.b].name + ' bury the hatchet after ' + (Y - r.since) + ' years of feuding.', 'rel', { p: r.a, p2: r.b });
+      } else if ((r.t === 'partner' || r.t === 'duo') && h && Y - h[3] >= 10) r.end = Y;
+      else if (r.t === 'rival') {
+        HW.gainFame(A, 0.5); HW.gainFame(B, 0.5); // the press loves a rivalry
+        if (Y - r.since >= 15 || A.status !== 'active' || B.status !== 'active') r.end = Y;
+      }
+    }
+
+    // forget one-off collaborations that went nowhere
+    if (Y % 5 === 0) for (var pk in w.pairs) if (w.pairs[pk][0] === 1 && Y - w.pairs[pk][3] > 8) delete w.pairs[pk];
+  };
 })(globalThis.HW = globalThis.HW || {});
 </script>
   <script>
@@ -2044,7 +2441,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   // ---------- pages ----------
   var routes = {
     '': overview, 'studios': studiosPage, 'studio': studioPage, 'talent': talentPage, 'person': personPage,
-    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage
+    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage, 'following': followingPage
   };
 
   UI.render = function () {
@@ -2074,6 +2471,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       return h;
     }
     var Y = lastYear(), films = filmsOfYear(Y), hist = w.history[w.history.length - 1];
+    var digestHtml = followCount() ? card('★ Your people in ' + Y, digest(Y, 6) + '<p><a href="#/following" class="lnk">Everyone you follow →</a></p>', 'follow') : '';
     var aw = w.awards[Y];
     h += '<div class="pagehead"><h1>' + Y + ' in Review</h1>' + (hist.ev ? '<div class="event">📰 ' + esc(hist.ev) + '</div>' : '') + '</div>';
     var prev = w.history[w.history.length - 2];
@@ -2084,6 +2482,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       stat('Avg. critic score', hist.c) +
       stat('Active studios', hist.studios) +
       '</div>';
+    h += digestHtml;
 
     h += '<div class="grid two">';
     // awards
@@ -2160,7 +2559,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     var Y = lastYear();
     var h = '<div class="pagehead"><h1>Studios</h1>' + seg('studios', f, [['active', 'Active'], ['closed', 'Defunct'], ['all', 'All']]) + '</div>';
     h += table('studios', [
-      { h: 'Studio', v: function (s) { return s.name; }, html: function (s) { return sLink(s.id) + (s.active ? '' : ' <span class="muted small">(' + (s.fate && s.fate.type === 'acquired' ? 'acquired ' : 'closed ') + s.closed + ')</span>'); } },
+      { h: 'Studio', v: function (s) { return s.name; }, html: function (s) { return starBtn('s', s.id) + sLink(s.id) + (s.active ? '' : ' <span class="muted small">(' + (s.fate && s.fate.type === 'acquired' ? 'acquired ' : 'closed ') + s.closed + ')</span>'); } },
       { h: 'Tier', v: function (s) { return { Major: 3, Mid: 2, Indie: 1 }[s.tier]; }, html: function (s) { return tierBadge(s.tier); } },
       { h: 'Founded', cls: 'num', v: function (s) { return s.founded; } },
       { h: 'Cash', cls: 'num', v: function (s) { return s.cash; }, html: function (s) { return '<span class="' + (s.cash < 0 ? 'neg' : '') + '">' + money(s.cash) + '</span>'; } },
@@ -2190,7 +2589,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     if (!s) return empty('No such studio.');
     var prefs = HW.GENRE_KEYS.slice().sort(function (a, b) { return s.prefs[b] - s.prefs[a]; }).slice(0, 3);
     var films = s.films.map(function (fid) { return w.films[fid]; });
-    var h = '<div class="pagehead studiohead" style="--hue:' + s.hue + '"><div><h1>' + esc(s.name) + '</h1><div class="meta">' + tierBadge(s.tier) +
+    var h = '<div class="pagehead studiohead" style="--hue:' + s.hue + '"><div><h1>' + esc(s.name) + ' ' + starBtn('s', s.id, true) + '</h1><div class="meta">' + tierBadge(s.tier) +
       ' Founded ' + s.founded + (s.active ? '' : ' · <b>' + (s.fate && s.fate.type === 'acquired' ? 'Acquired by ' + sLink(s.fate.by) : 'Closed') + ' in ' + s.closed + '</b>') + '</div></div></div>';
     h += '<div class="stats-row">' + stat('Cash', money(s.cash)) + stat('Prestige', s.prestige) + stat('Films', films.length) +
       stat('Career gross', money(careerGross(s))) + stat('Laurels', s.wins + ' <span class="small muted">/ ' + s.noms + ' noms</span>') + stat('Best Pictures', s.bestPictures) + '</div>';
@@ -2237,6 +2636,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     if (f.won.indexOf('picture') >= 0) t += ' <span class="tag gold">Best Picture</span>';
     if (f.tags.indexOf('smash') >= 0) t += ' <span class="tag green">Smash</span>';
     if (f.tags.indexOf('sleeper') >= 0) t += ' <span class="tag green">Sleeper</span>';
+    if (f.tags.indexOf('remake') >= 0) t += ' <span class="tag">Remake</span>';
     if (f.tags.indexOf('flop') >= 0) t += ' <span class="tag red">Flop</span>';
     return t;
   }
@@ -2253,7 +2653,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     h += '<div class="toolbar">' + seg('status', status, [['active', 'Active'], ['retired', 'Retired'], ['deceased', 'Deceased'], ['all', 'All']]) +
       '<input type="search" id="talentSearch" placeholder="Search name…" value="' + esc(UI.filters.q || '') + '"></div>';
     var cols = [
-      { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
+      { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return starBtn('p', p.id) + pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
       { h: 'Age', cls: 'num', v: function (p) { return ageOf(p); } },
       { h: 'Sex', v: function (p) { return p.gender; } },
       { h: 'OVR', cls: 'num', v: function (p) { return HW.ovr(p); }, html: function (p) { return '<span class="score ' + scoreCls(HW.ovr(p)) + '">' + ovrText(p) + '</span>'; } },
@@ -2286,7 +2686,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       '<div class="traits">' + (p.traits.length ? p.traits.map(function (t) { return '<span class="trait" title="' + esc(HW.TRAITS[t].desc) + '">' + HW.TRAITS[t].name + '</span>'; }).join('') : '<span class="muted small">No notable traits</span>') +
       (p.specialty ? p.specialty.map(function (g) { return '<span class="trait spec" title="Specialty genre">' + g + '</span>'; }).join('') : '') +
       (p.lifetime ? '<span class="trait gold" title="Lifetime Achievement Laurel">Lifetime Laurel ' + p.lifetime + '</span>' : '') + '</div></div>' +
-      '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
+      starBtn('p', p.id, true) + '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
 
     if (p.hf && p.hf.length) {
       var arc = HW.careerArc(p);
@@ -2319,6 +2719,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       return '<li class="' + (a.won ? 'won' : '') + '"><span class="ny">' + yLink(a.y) + '</span> ' + (a.won ? '🏆 <b>Won</b> ' : 'Nominated ') + HW.catName(a.k) + ' — ' + fLink(a.f) + '</li>';
     }).join('') + '</ul>' : empty('No nominations yet.'));
     h += card('Frequent collaborators', collaborators(p));
+    h += card('Relationships', relationships(p));
     h += '</div>';
 
     var films = p.films.map(function (fid) { return w.films[fid]; }).reverse();
@@ -2426,6 +2827,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     h += '<div class="toolbar yearnav">' + (i > 0 ? '<a class="btn small" href="#/awards/' + years[i - 1] + '">‹ ' + years[i - 1] + '</a>' : '<span></span>') +
       '<h2>' + HW.ordinal(y - w.startYear + 1) + ' Golden Laurels <span class="muted">· honoring the films of ' + y + '</span></h2>' +
       (i < years.length - 1 ? '<a class="btn small" href="#/awards/' + years[i + 1] + '">' + years[i + 1] + ' ›</a>' : '<span></span>') + '</div>';
+    h += '<p class="center"><button class="btn" data-action="ceremony" data-year="' + y + '">▶ Watch the ceremony</button></p>';
     h += '<div class="grid awards">';
     c.cats.forEach(function (cat) {
       var body = '<ol class="noms">' + cat.noms.map(function (n, idx) {
@@ -2518,6 +2920,130 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   }
 
   // ---------- news ----------
+  // ---------- relationships ----------
+  var REL_ICON = { partner: '🎬', duo: '🤝', feud: '⚡', rival: '⚔' };
+  function relationships(p) {
+    var w = W(), rels = HW.relsOf ? HW.relsOf(w, p.id) : [];
+    if (!rels.length) return empty('No partnerships, feuds or rivalries yet.');
+    rels.sort(function (a, b) { return (a.r.end == null ? 0 : 1) - (b.r.end == null ? 0 : 1) || b.r.since - a.r.since; });
+    return '<ul class="plist">' + rels.map(function (x) {
+      var r = x.r, T = HW.REL_TYPES[r.t];
+      var span = r.end == null ? 'since ' + r.since : r.since + '–' + r.end;
+      var extra = r.t === 'partner' || r.t === 'duo' ? r.n + ' films' : r.t === 'rival' && r.n > 1 ? r.n + ' showdowns' : '';
+      return '<li class="' + (r.end != null ? 'ended' : '') + '"><span class="rel rel-' + r.t + '" title="' + esc(T.desc) + '">' + REL_ICON[r.t] + ' ' + T.label + '</span> ' + pLink(x.other) +
+        '<span class="right muted small">' + [extra, span].filter(Boolean).join(' · ') + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  // ---------- following ----------
+  function follows() { var w = W(); return w.follows || (w.follows = { p: {}, s: {} }); }
+  function isFollowed(t, id) { return !!follows()[t][id]; }
+  function followCount() { var f = follows(); return Object.keys(f.p).length + Object.keys(f.s).length; }
+  UI.isFollowed = isFollowed;
+  UI.toggleFollow = function (t, id) {
+    var f = follows();
+    if (f[t][id]) delete f[t][id]; else f[t][id] = 1;
+    return !!f[t][id];
+  };
+  function starBtn(t, id, big) {
+    var on = isFollowed(t, id);
+    return '<button class="star' + (on ? ' on' : '') + (big ? ' big' : '') + '" data-follow="' + t + ':' + id + '" title="' + (on ? 'Unfollow' : 'Follow') + '" aria-pressed="' + on + '">' + (on ? '★' : '☆') + '</button>';
+  }
+
+  // What happened to everyone you follow in year Y. Computed from the world, nothing extra is stored.
+  function digestItems(Y) {
+    var w = W(), f = follows(), items = [];
+    Object.keys(f.p).forEach(function (id) {
+      var p = w.people[id], lines = [], score = 0;
+      if (!p) return;
+      p.films.forEach(function (fid) {
+        var film = w.films[fid];
+        if (film.year !== Y) return;
+        var c = castOf(film, p.id), role = c ? (c.r === 'L' ? 'led' : 'supported in') : creditOf(film, p.id).toLowerCase() === 'director' ? 'directed' : 'worked on';
+        lines.push(cap(role) + ' ' + fLink(fid) + ' — ' + money(film.gross) + ', critics ' + film.critic + (c ? ', performance ' + grade(c.perf) : '') + tags(film));
+        score += 1 + film.gross / 500;
+      });
+      HW.personAwards(w, p.id).forEach(function (a) {
+        if (a.y !== Y) return;
+        lines.push((a.won ? '🏆 <b>Won</b> ' : 'Nominated for ') + HW.catName(a.k) + ' (' + fLink(a.f) + ')');
+        score += a.won ? 6 : 2;
+      });
+      if (p.lifetime === Y) { lines.push('🏆 Lifetime Achievement Laurel'); score += 5; }
+      (p.marks || []).forEach(function (m) { if (m[0] === Y) { lines.push(STORY_LABEL[m[1]] + '!'); score += 4; } });
+      if ((p.scandals || []).indexOf(Y) >= 0) { lines.push('⚠ Caught up in a scandal'); score += 3; }
+      if (HW.relsOf) HW.relsOf(w, p.id).forEach(function (x) {
+        var T = HW.REL_TYPES[x.r.t];
+        if (x.r.since === Y) { lines.push(REL_ICON[x.r.t] + ' New ' + T.label.toLowerCase() + ': ' + pLink(x.other)); score += 2; }
+        else if (x.r.end === Y && x.r.t === 'feud') { lines.push('Made peace with ' + pLink(x.other)); score += 1; }
+      });
+      if (p.retired === Y) { lines.push('Retired after ' + p.films.length + ' films'); score += 4; }
+      if (p.died === Y) { lines.push('† Died aged ' + (Y - p.born)); score += 5; }
+      var i = p.hf ? Y - p.h0 : -1;
+      if (i >= 1 && p.hf[i] != null) {
+        var d = p.hf[i] - p.hf[i - 1];
+        if (Math.abs(d) >= 4) lines.push('Fame ' + p.hf[i - 1] + ' → ' + p.hf[i] + ' <span class="' + (d > 0 ? 'pos' : 'neg') + '">' + (d > 0 ? '▲' : '▼') + Math.abs(d) + '</span>');
+      }
+      if (!lines.length && (p.status === 'active' || p.retired === Y || p.died === Y)) lines.push('<span class="muted">A quiet year.</span>');
+      if (lines.length) items.push({ who: pLink(p.id), sub: HW.ROLES[p.role].label + ', ' + (Y - p.born), lines: lines, score: score });
+    });
+    Object.keys(f.s).forEach(function (id) {
+      var s = w.studios[id], lines = [], score = 0;
+      if (!s) return;
+      var recs = s.yearly, r = null, prev = null;
+      for (var k = recs.length - 1; k >= 0; k--) if (recs[k].y === Y) { r = recs[k]; prev = recs[k - 1]; break; }
+      if (r) {
+        var rank = 1 + w.studios.filter(function (o) { return o.yearly.some(function (x) { return x.y === Y && x.g > r.g; }); }).length;
+        lines.push(r.n + ' releases, ' + money(r.g) + ' gross (#' + rank + ' in town), ' + '<span class="' + (r.p >= 0 ? 'pos' : 'neg') + '">' + (r.p >= 0 ? '+' : '') + money(r.p) + '</span> profit');
+        var mine = s.films.map(function (fid) { return w.films[fid]; }).filter(function (x) { return x.year === Y; });
+        if (mine.length) {
+          var top = mine.reduce(function (a, b) { return b.gross > a.gross ? b : a; });
+          lines.push('Biggest release: ' + fLink(top.id) + ' (' + money(top.gross) + ')' + tags(top));
+          var bomb = mine.filter(function (x) { return x.tags.indexOf('flop') >= 0; })[0];
+          if (bomb) lines.push('Bombed: ' + fLink(bomb.id));
+        }
+        if (r.w) lines.push('🏆 ' + r.w + ' Golden Laurel' + (r.w > 1 ? 's' : '') + ' from ' + r.nm + ' nominations');
+        if (prev && prev.tier !== r.tier) lines.push((({ Major: 3, Mid: 2, Indie: 1 })[r.tier] > ({ Major: 3, Mid: 2, Indie: 1 })[prev.tier] ? 'Promoted to ' : 'Downsized to ') + r.tier);
+        score = 2 + r.w * 2 + r.g / 1000;
+      }
+      if (s.closed === Y) { lines.push(s.fate && s.fate.type === 'acquired' ? 'Acquired by ' + sLink(s.fate.by) : 'Shut down'); score += 6; }
+      if (lines.length) items.push({ who: sLink(s.id), sub: s.tier + ' studio', lines: lines, score: score });
+    });
+    return items.sort(function (a, b) { return b.score - a.score; });
+  }
+  UI.digestCount = function (Y) { return digestItems(Y).filter(function (x) { return x.score > 0; }).length; };
+  function digest(Y, limit) {
+    var items = digestItems(Y);
+    if (!items.length) return empty('Nothing to report about the people you follow.');
+    var more = limit && items.length > limit ? items.length - limit : 0;
+    if (limit) items = items.slice(0, limit);
+    return '<div class="digest">' + items.map(function (it) {
+      return '<div class="dg"><div class="dg-who">' + it.who + ' <span class="muted small">' + it.sub + '</span></div><ul>' + it.lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
+    }).join('') + '</div>' + (more ? '<p class="muted small">…and ' + more + ' more.</p>' : '');
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function followingPage() {
+    var w = W(), f = follows();
+    var h = '<div class="pagehead"><h1>★ Following</h1></div>';
+    if (!followCount()) return h + card('Follow your favorites', '<p>Press <span class="star on static">★</span> next to any actor, director or studio, on their page or in the Talent and Studios tables. Each year you\'ll get a digest of what happened to them: films, box office, awards, scandals, feuds and turning points.</p>');
+    if (simulated()) {
+      var years = [];
+      for (var y = lastYear(); y >= w.startYear; y--) years.push(y);
+      var Y = UI.filters.digestYear ? +UI.filters.digestYear : lastYear();
+      h += '<div class="toolbar"><span class="muted">Digest for</span><select data-select="digestYear">' + years.map(function (yy) { return '<option' + (yy === Y ? ' selected' : '') + '>' + yy + '</option>'; }).join('') + '</select></div>';
+      h += card('Your people in ' + Y, digest(Y), 'follow');
+    }
+    var ppl = Object.keys(f.p).map(function (id) { return w.people[id]; });
+    var sts = Object.keys(f.s).map(function (id) { return w.studios[id]; });
+    h += '<div class="grid two">' + card('People (' + ppl.length + ')', ppl.length ? '<ul class="plist">' + ppl.map(function (p) {
+      return '<li>' + starBtn('p', p.id) + pLink(p.id) + ' <span class="muted small">' + HW.ROLES[p.role].label + ' · ' + ageOf(p) + ' · ' + (p.hf ? HW.careerArc(p).label : '') + '</span><span class="right">' + sparkline(p) + '</span></li>';
+    }).join('') + '</ul>' : empty('No people followed.')) +
+      card('Studios (' + sts.length + ')', sts.length ? '<ul class="plist">' + sts.map(function (s) {
+        return '<li>' + starBtn('s', s.id) + sLink(s.id) + ' ' + tierBadge(s.tier) + '<span class="right">' + money(s.cash) + '</span></li>';
+      }).join('') + '</ul>' : empty('No studios followed.')) + '</div>';
+    return h;
+  }
+
   // ---------- stories ----------
   function arcBadge(arc, small) {
     return '<span class="arc arc-' + arc.k + (small ? ' sm' : '') + '" title="' + esc(arc.desc) + '">' + esc(arc.label) + '</span>';
@@ -2642,8 +3168,116 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   function newsPage() {
     var w = W(), k = UI.filters.newsKind || 'all';
     var list = w.news.filter(function (n) { return k === 'all' || n.k === k; }).slice(-300).reverse();
-    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['story', 'Stories'], ['event', 'Industry']]) + '</div>' +
+    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['story', 'Stories'], ['rel', 'Relationships'], ['event', 'Industry']]) + '</div>' +
       card('Latest', newsList(list));
+  }
+  // ---------- the ceremony ----------
+  // Plays a year's Golden Laurels one category at a time, minor awards first, Best Picture last.
+  var CER_ORDER = ['vfx', 'score', 'cinema', 'animated', 'screenplay', 'supActress', 'supActor', 'lifetime', 'director', 'actress', 'actor', 'picture'];
+  var cer = null;
+
+  UI.ceremonyOpen = function () { return !!cer; };
+  UI.startCeremony = function (y) {
+    var w = W(), c = w.awards[y];
+    if (!c || !c.cats.length) return;
+    var steps = [];
+    CER_ORDER.forEach(function (k) {
+      if (k === 'lifetime') { if (c.lifetime != null) steps.push({ k: 'lifetime' }); return; }
+      var cat = c.cats.filter(function (x) { return x.k === k; })[0];
+      if (cat) steps.push({ k: k, cat: cat });
+    });
+    cer = { y: y, steps: steps, i: -1, open: false };
+    document.getElementById('ceremony').hidden = false;
+    document.body.classList.add('noscroll');
+    renderCeremony();
+  };
+  UI.ceremonyNext = function () {
+    if (!cer) return;
+    var st = cer.steps[cer.i];
+    if (st && st.k !== 'lifetime' && !cer.open) return openEnvelope();
+    if (cer.i >= cer.steps.length) return UI.closeCeremony();
+    cer.i++; cer.open = false;
+    renderCeremony();
+  };
+  UI.ceremonySkip = function (toPicture) {
+    if (!cer) return;
+    if (toPicture) { cer.i = cer.steps.length - 1; cer.open = false; }
+    else { cer.i = cer.steps.length; }
+    renderCeremony();
+  };
+  UI.closeCeremony = function () {
+    cer = null;
+    document.getElementById('ceremony').hidden = true;
+    document.body.classList.remove('noscroll');
+  };
+  function openEnvelope() {
+    var card = document.querySelector('#cerCard .envelope');
+    cer.open = 'opening';
+    if (card) card.classList.add('opening');
+    setTimeout(function () { if (cer && cer.open === 'opening') { cer.open = true; renderCeremony(); } }, 1100);
+  }
+  // The nominee's record going into this ceremony.
+  function nomNote(p, y, k) {
+    var past = HW.personAwards(W(), p.id).filter(function (a) { return a.y < y; });
+    var wins = past.filter(function (a) { return a.won; }).length;
+    var bits = [];
+    if (isFollowed('p', p.id)) bits.push('★ you follow');
+    if (!past.length) bits.push('first nomination');
+    else if (!wins) bits.push(past.length + ' previous nomination' + (past.length > 1 ? 's' : '') + ', never won');
+    else bits.push(wins + ' previous win' + (wins > 1 ? 's' : ''));
+    if (HW.relsOf) {
+      var c = W().awards[y].cats.filter(function (x) { return x.k === k; })[0];
+      HW.relsOf(W(), p.id).forEach(function (x) {
+        if (x.r.t === 'rival' && x.r.since <= y && (x.r.end == null || x.r.end >= y) && c && c.noms.some(function (n) { return n.p === x.other; })) bits.push('⚔ facing rival ' + esc(W().people[x.other].name));
+      });
+    }
+    return bits.join(' · ');
+  }
+  function renderCeremony() {
+    var w = W(), el = document.getElementById('cerCard'), y = cer.y, n = cer.steps.length;
+    var head = '<div class="cer-top"><span class="cer-title">The ' + HW.ordinal(y - w.startYear + 1) + ' Golden Laurels</span><span class="muted small">honoring the films of ' + y + '</span>' +
+      '<button class="btn ghost small" data-action="cerClose" aria-label="Close">✕</button></div>';
+    var progress = '<div class="cer-progress"><span style="width:' + (Math.max(0, cer.i) / n * 100) + '%"></span></div>';
+    var body = '', foot = '';
+    if (cer.i < 0) {
+      body = '<div class="cer-intro"><div class="cer-statue">🏆</div><h2>Hollywood\'s biggest night</h2><p>' + n + ' awards tonight. The stars are seated, the envelopes are sealed.</p></div>';
+      foot = '<button class="btn primary" data-action="cerNext">Raise the curtain</button> <button class="btn ghost" data-action="cerSkip">Just show the winners</button>';
+    } else if (cer.i >= n) {
+      var c = w.awards[y];
+      body = '<h2 class="cer-cat">The winners</h2><ul class="cer-sum">' + c.cats.map(function (cat) {
+        var nm = cat.noms[cat.win];
+        return '<li><span class="muted">' + HW.catName(cat.k) + '</span><span>' + (nm.p != null ? pLink(nm.p) + ' · ' : '') + fLink(nm.f) + '</span></li>';
+      }).join('') + (c.lifetime != null ? '<li><span class="muted">Lifetime Achievement</span><span>' + pLink(c.lifetime) + '</span></li>' : '') + '</ul>';
+      foot = '<button class="btn primary" data-action="cerClose">Close</button> <a class="btn ghost" href="#/awards/' + y + '" data-action="cerClose">Full results</a>';
+    } else {
+      var st = cer.steps[cer.i];
+      if (st.k === 'lifetime') {
+        var hp = w.people[w.awards[y].lifetime];
+        body = '<div class="cer-intro"><div class="cer-statue">🏆</div><div class="cer-cat">Lifetime Achievement</div><h2>' + pLink(hp.id) + '</h2><p class="muted">' +
+          HW.ROLES[hp.role].label + ' · ' + hp.films.length + ' films · ' + hp.wins + ' Golden Laurel' + (hp.wins === 1 ? '' : 's') + '</p><p>The room rises to its feet.</p></div>';
+        foot = '<button class="btn primary" data-action="cerNext">Next award ›</button>';
+      } else {
+        var cat = st.cat, opened = cer.open === true;
+        body = '<div class="cer-cat">' + (opened ? '' : 'And the Golden Laurel for') + '</div><h2 class="cer-name">' + HW.catName(st.k) + (opened ? '' : ' goes to…') + '</h2>';
+        body += '<ol class="cer-noms">' + cat.noms.map(function (nm, i) {
+          var p = nm.p != null ? w.people[nm.p] : null, film = w.films[nm.f], won = opened && i === cat.win;
+          var who = p ? pLink(p.id) : fLink(film.id);
+          var sub = p ? fLink(film.id) : sLink(film.studio);
+          var note = p ? nomNote(p, y, st.k) : (isFollowed('s', film.studio) ? '★ your studio' : '');
+          return '<li class="' + (won ? 'won' : opened ? 'lost' : '') + '">' + (won ? '<span class="cer-win">🏆</span>' : '') + '<div class="cer-who">' + who + '</div><div class="sub">' + sub + (note ? ' · ' + note : '') + '</div></li>';
+        }).join('') + '</ol>';
+        if (!opened) body += '<div class="envelope' + (cer.open === 'opening' ? ' opening' : '') + '"><span>✉</span></div>';
+        else {
+          var wn = cat.noms[cat.win], wp = wn.p != null ? w.people[wn.p] : null;
+          var line = wp && wp.wins === 1 && HW.personAwards(w, wp.id).filter(function (a) { return a.y < y; }).length >= 3 ? 'At last! ' : '';
+          body += '<p class="cer-verdict">' + line + (wp ? esc(wp.name) + ' wins for "' + esc(w.films[wn.f].title) + '"' : '"' + esc(w.films[wn.f].title) + '" takes it') + '.</p>';
+        }
+        foot = opened ? '<button class="btn primary" data-action="cerNext">' + (cer.i === n - 1 ? 'See all winners ›' : 'Next award ›') + '</button>'
+          : '<button class="btn primary" data-action="cerNext">Open the envelope</button>';
+        if (cer.i < n - 1) foot += ' <button class="btn ghost" data-action="cerPicture">Skip to Best Picture</button>';
+      }
+    }
+    el.innerHTML = head + progress + '<div class="cer-body">' + body + '</div><div class="cer-foot">' + foot + '</div>';
   }
 })(globalThis.HW = globalThis.HW || {});
 </script>
@@ -2682,6 +3316,19 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     }).catch(function () { return null; });
   }
 
+  // per-viewer preference, kept in browser storage
+  function ceremonyWanted() {
+    var box = document.getElementById('watchCeremony');
+    return box ? box.checked : true;
+  }
+  try {
+    var pref = localStorage.getItem('hd-watch-ceremony');
+    if (pref === '0') document.getElementById('watchCeremony').checked = false;
+  } catch (e) { /* storage unavailable */ }
+  document.getElementById('watchCeremony').addEventListener('change', function (e) {
+    try { localStorage.setItem('hd-watch-ceremony', e.target.checked ? '1' : '0'); } catch (err) { /* ignore */ }
+  });
+
   function toast(msg) {
     var t = document.getElementById('toast');
     t.textContent = msg; t.hidden = false;
@@ -2712,7 +3359,11 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
             busy = false;
             document.body.classList.remove('busy');
             progress(null);
+            HW.UI.filters.digestYear = null;
             HW.UI.render();
+            var Y = HW.world.year - 1, updates = HW.UI.digestCount(Y);
+            if (updates) toast('★ ' + updates + ' update' + (updates > 1 ? 's' : '') + ' about people you follow');
+            if (n === 1 && !autoTimer && !document.getElementById('autoBtn').classList.contains('on') && ceremonyWanted()) HW.UI.startCeremony(Y);
             resolve();
           });
         }
@@ -2791,8 +3442,16 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   function closeMenu() { document.getElementById('menu').hidden = true; }
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-action],[data-sort],[data-page],[data-filter],[data-go]');
+    if (e.target.closest('#ceremony a') && !e.target.closest('[data-action]')) HW.UI.closeCeremony(); // following a link leaves the show
+    var t = e.target.closest('[data-action],[data-sort],[data-page],[data-filter],[data-go],[data-follow]');
     if (!t) return;
+    if (t.dataset.follow) {
+      var fp = t.dataset.follow.split(':');
+      var on = HW.UI.toggleFollow(fp[0], +fp[1]);
+      var nm = fp[0] === 'p' ? HW.world.people[+fp[1]].name : HW.world.studios[+fp[1]].name;
+      toast(on ? 'Following ' + nm + '. Their year will show up in your digest.' : 'Unfollowed ' + nm + '.');
+      save(); HW.UI.render(); return;
+    }
     if (t.dataset.go) { location.hash = t.dataset.go; return; }
     if (t.dataset.sort) {
       var p = t.dataset.sort.split(':'), key = p[0], col = +p[1], cur = HW.UI.sorts[key];
@@ -2813,6 +3472,11 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       case 'closeMenu': closeMenu(); break;
       case 'new': if (confirm('Start a new world? Your current save will be replaced.')) newWorld(); break;
       case 'export': exportSave(); break;
+      case 'ceremony': HW.UI.startCeremony(+t.dataset.year); break;
+      case 'cerNext': HW.UI.ceremonyNext(); break;
+      case 'cerSkip': HW.UI.ceremonySkip(false); break;
+      case 'cerPicture': HW.UI.ceremonySkip(true); break;
+      case 'cerClose': HW.UI.closeCeremony(); break;
     }
   });
   document.getElementById('menu').addEventListener('click', function (e) { if (e.target.id === 'menu') closeMenu(); });
@@ -2841,6 +3505,11 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   });
   document.addEventListener('keydown', function (e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (HW.UI.ceremonyOpen()) {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); HW.UI.ceremonyNext(); }
+      if (e.key === 'Escape') HW.UI.closeCeremony();
+      return;
+    }
     if (e.key === ' ' || e.key === 'n') { e.preventDefault(); advance(1); }
     if (e.key === 'Escape') closeMenu();
   });
