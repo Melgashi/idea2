@@ -641,7 +641,7 @@
     return '<div class="legend"><span><i class="sw fame"></i>Fame</span><span><i class="sw prestige"></i>Prestige</span><span><i class="sw win"></i>Laurel win</span><span><i class="sw scandal"></i>Scandal</span></div>' +
       '<div class="cchart-wrap"><svg class="cchart" viewBox="0 0 ' + Wd + ' ' + Ht + '" data-l="' + L + '" data-r="' + R + '" data-n="' + n + '" data-w="' + Wd + '" data-t="' + T + '" data-b="' + (Ht - B) + '" role="img" aria-label="Fame and prestige by year">' +
       g + '<line class="xh" y1="' + T + '" y2="' + (Ht - B) + '" x1="-10" x2="-10"/></svg><div class="ctip" hidden></div>' +
-      '<script type="application/json" class="cdata">' + JSON.stringify(data).replace(/</g, '\\u003c') + '</script></div>';
+      '<script type="application/json" class="cdata">' + JSON.stringify(data).replace(/</g, '\\u003c') + '<\/script></div>'; // escaped so the single-file build stays valid
   }
   UI.chartHover = function (e) {
     var svg = e.target.closest && e.target.closest('.cchart');
