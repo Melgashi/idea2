@@ -118,6 +118,7 @@
       wins: 0,
       lastWorked: null,
       scandalYear: null,
+      scandals: [],
       bestPerf: null
     };
     if (p.specialty && p.specialty[0] === p.specialty[1]) p.specialty.pop();

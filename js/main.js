@@ -194,6 +194,8 @@
     if (e.key === ' ' || e.key === 'n') { e.preventDefault(); advance(1); }
     if (e.key === 'Escape') closeMenu();
   });
+  document.addEventListener('mousemove', function (e) { HW.UI.chartHover(e); });
+  document.addEventListener('touchstart', function (e) { if (e.touches[0]) HW.UI.chartHover({ target: e.target, clientX: e.touches[0].clientX }); }, { passive: true });
   window.addEventListener('hashchange', function () { HW.UI.render(); window.scrollTo(0, 0); });
 
   load().then(function (w) {

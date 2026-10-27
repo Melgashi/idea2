@@ -26,6 +26,7 @@
     HW.runAwards(w, ctx);
     studioYearEnd(w, ctx);
     peopleYearEnd(w, ctx);
+    HW.detectStories(w, ctx);
     recordHistory(w, ctx);
     w.year++;
     w.rngState = rng.s;
@@ -215,9 +216,16 @@
     var other = leadG === 'M' ? 'F' : 'M';
     var prevLeads = prev ? prev.cast.filter(function (x) { return x.r === 'L'; }) : [];
     var actionish = HW.GENRES[genre].apt.action >= 0.5;
-    var leadAge = genre === 'Romance' ? [18, 48] : actionish ? [20, 58] : [16, 80];
-    roles.push({ r: 'L', g: prevLeads[0] ? w.people[prevLeads[0].p].gender : leadG, age: leadAge, share: 0.14 });
-    if (genre === 'Romance' || rng.chance(0.6)) roles.push({ r: 'L', g: prevLeads[1] ? w.people[prevLeads[1].p].gender : (genre === 'Romance' ? other : rng.chance(0.65) ? other : leadG), age: leadAge, share: 0.09 });
+    // scripts are mostly written for younger leads, especially in youth-driven genres
+    var youthGenre = genre === 'Romance' || genre === 'Musical' || genre === 'Horror' || actionish;
+    var leadBand = function (returning) {
+      if (returning) return [16, 90]; // a sequel brings its star back whatever their age
+      var r = rng.next();
+      if (youthGenre) return r < 0.7 ? [18, 37] : r < 0.95 ? [25, 50] : [35, 75];
+      return r < 0.45 ? [18, 37] : r < 0.85 ? [28, 55] : [40, 90];
+    };
+    roles.push({ r: 'L', g: prevLeads[0] ? w.people[prevLeads[0].p].gender : leadG, age: leadBand(!!prevLeads[0]), share: 0.14 });
+    if (genre === 'Romance' || rng.chance(0.6)) roles.push({ r: 'L', g: prevLeads[1] ? w.people[prevLeads[1].p].gender : (genre === 'Romance' ? other : rng.chance(0.65) ? other : leadG), age: leadBand(!!prevLeads[1]), share: 0.09 });
     roles.push({ r: 'S', g: 'M', age: [8, 95], share: 0.04 });
     roles.push({ r: 'S', g: 'F', age: [8, 95], share: 0.04 });
     var extra = rng.int(0, 2);
@@ -564,10 +572,12 @@
             if (rng.chance(0.2)) { HW.gainFame(p, rng.range(3, 8)); HW.addNews(w, Y, p.name + ' rides out ' + what + ' — any publicity is good publicity.', 'scandal', { p: p.id }); }
             else { p.fame = clamp(p.fame - rng.range(5, 18), 0, 100); p.prestige = clamp(p.prestige - rng.range(2, 8), 0, 100); HW.addNews(w, Y, 'Scandal: ' + p.name + ' embroiled in ' + what + '.', 'scandal', { p: p.id }); }
             p.scandalYear = Y;
+            (p.scandals = p.scandals || []).push(Y);
           }
         }
         p.fame = Math.round(p.fame * 10) / 10;
         p.prestige = Math.round(p.prestige * 10) / 10;
+        HW.recordCareer(p, Y);
 
         // retirement
         var idle = p.lastWorked == null ? N - p.debut : N - p.lastWorked;

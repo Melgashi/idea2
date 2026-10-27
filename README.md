@@ -33,6 +33,15 @@ Keys: `Space` / `N` advances one year.
 
 **Genre skills:** Comedy, Action, Romance, Drama and Thriller. Each film genre draws on one or more of them (Sci-Fi is Action + Drama + Thriller, Musical is Romance + Comedy, and so on). After every role, the relevant skills grow according to the film's critic and audience reception, its box office relative to budget, and the actor's own performance. Hits grow them faster, flops can shrink them, and gains slow down near 10, so long careers lead naturally to typecasting.
 
+### Career stories
+
+Every actor's and director's fame and prestige is recorded each year, so careers have shapes:
+
+- **Arcs.** Each career is classified as *Rise and Rise*, *Rise and Fall*, *Fall and Fall*, *Comeback*, *Legend*, *One-Hit Wonder*, *Late Bloomer*, *Flame-Out*, *Rising Star*, *Steady Workhorse* or *Never Made It*. The **Stories** tab groups everyone by arc.
+- **Character sheets** show a career graph (fame and prestige by year, with Laurel wins and scandals marked) and a generated bio: debut, breakout, peak, biggest hit, scandals, comebacks, awards, typecasting and how it ended.
+- **Turning points** are detected as they happen (breakouts, comebacks, falling stars, new A-listers) and reported in the news and on the overview, along with a rotating "Where are they now?" look at faded stars.
+- Most lead roles are written for actors under 40, so stars tend to break out young and get pushed aside as they age, unless they find a second act.
+
 ## How a year plays out
 
 1. **Industry events** may fire: strikes, recessions, booms, a craze for one genre or fatigue with another, VFX breakthroughs. Genre appetite drifts, and copies whatever made money last year.

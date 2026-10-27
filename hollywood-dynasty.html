@@ -281,6 +281,41 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   .kv { grid-template-columns: 110px 1fr; }
   .poster { width: 120px; height: 176px; }
 }
+
+/* career stories */
+.story { margin-bottom: 16px; }
+.story-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.story-head h3 { margin: 0; }
+.story-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; }
+@media (max-width: 980px) { .story-body { grid-template-columns: 1fr; } }
+.bio p { margin: 0; line-height: 1.65; font-size: 14.5px; }
+.arc { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); white-space: nowrap; }
+.arc.sm { font-size: 11px; padding: 1px 7px; }
+.arc-legend, .arc-riseRise, .arc-st-summit { color: var(--gold2); border-color: #6b5426; }
+.arc-riseFall, .arc-fallFall, .arc-flameOut, .arc-oneHit, .arc-st-fall { color: #e7a7a0; border-color: #6a2e28; }
+.arc-comeback, .arc-bloomer, .arc-rising, .arc-st-breakout, .arc-st-comeback { color: var(--green); border-color: #2f5a3d; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.sw { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.sw.fame { background: #bd8a2c; }
+.sw.prestige { background: #9a76c8; }
+.sw.win { width: 9px; height: 9px; border-radius: 50%; background: var(--panel); border: 2px solid var(--gold2); }
+.sw.scandal { width: 9px; height: 9px; border-radius: 50%; background: var(--panel); border: 2px solid var(--red); }
+.cchart-wrap { position: relative; }
+.cchart { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.cchart .grid { stroke: #2c261d; stroke-width: 1; }
+.cchart .ax { fill: var(--muted); font-size: 10px; }
+.cchart .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.cchart .ln.fame { stroke: #bd8a2c; }
+.cchart .ln.prestige { stroke: #9a76c8; }
+.cchart .ev { fill: var(--panel); stroke-width: 2; }
+.cchart .ev.win { stroke: var(--gold2); }
+.cchart .ev.scandal { stroke: var(--red); }
+.cchart .xh { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.ctip { position: absolute; top: 4px; width: 160px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+.ctip .muted { margin: 4px 0; }
+.spark { display: block; }
+.spark polyline { fill: none; stroke: #bd8a2c; stroke-width: 1.5; stroke-linejoin: round; }
+.news li.nk-story { border-left-color: var(--green); }
 </style>
 </head>
 <body>
@@ -307,6 +342,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     <a href="#/talent">Talent</a>
     <a href="#/films">Films</a>
     <a href="#/awards">Golden Laurels</a>
+    <a href="#/stories">Stories</a>
     <a href="#/history">History</a>
     <a href="#/records">Records</a>
     <a href="#/news">News</a>
@@ -699,6 +735,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       wins: 0,
       lastWorked: null,
       scandalYear: null,
+      scandals: [],
       bestPerf: null
     };
     if (p.specialty && p.specialty[0] === p.specialty[1]) p.specialty.pop();
@@ -891,6 +928,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     HW.runAwards(w, ctx);
     studioYearEnd(w, ctx);
     peopleYearEnd(w, ctx);
+    HW.detectStories(w, ctx);
     recordHistory(w, ctx);
     w.year++;
     w.rngState = rng.s;
@@ -1080,9 +1118,16 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     var other = leadG === 'M' ? 'F' : 'M';
     var prevLeads = prev ? prev.cast.filter(function (x) { return x.r === 'L'; }) : [];
     var actionish = HW.GENRES[genre].apt.action >= 0.5;
-    var leadAge = genre === 'Romance' ? [18, 48] : actionish ? [20, 58] : [16, 80];
-    roles.push({ r: 'L', g: prevLeads[0] ? w.people[prevLeads[0].p].gender : leadG, age: leadAge, share: 0.14 });
-    if (genre === 'Romance' || rng.chance(0.6)) roles.push({ r: 'L', g: prevLeads[1] ? w.people[prevLeads[1].p].gender : (genre === 'Romance' ? other : rng.chance(0.65) ? other : leadG), age: leadAge, share: 0.09 });
+    // scripts are mostly written for younger leads, especially in youth-driven genres
+    var youthGenre = genre === 'Romance' || genre === 'Musical' || genre === 'Horror' || actionish;
+    var leadBand = function (returning) {
+      if (returning) return [16, 90]; // a sequel brings its star back whatever their age
+      var r = rng.next();
+      if (youthGenre) return r < 0.7 ? [18, 37] : r < 0.95 ? [25, 50] : [35, 75];
+      return r < 0.45 ? [18, 37] : r < 0.85 ? [28, 55] : [40, 90];
+    };
+    roles.push({ r: 'L', g: prevLeads[0] ? w.people[prevLeads[0].p].gender : leadG, age: leadBand(!!prevLeads[0]), share: 0.14 });
+    if (genre === 'Romance' || rng.chance(0.6)) roles.push({ r: 'L', g: prevLeads[1] ? w.people[prevLeads[1].p].gender : (genre === 'Romance' ? other : rng.chance(0.65) ? other : leadG), age: leadBand(!!prevLeads[1]), share: 0.09 });
     roles.push({ r: 'S', g: 'M', age: [8, 95], share: 0.04 });
     roles.push({ r: 'S', g: 'F', age: [8, 95], share: 0.04 });
     var extra = rng.int(0, 2);
@@ -1429,10 +1474,12 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
             if (rng.chance(0.2)) { HW.gainFame(p, rng.range(3, 8)); HW.addNews(w, Y, p.name + ' rides out ' + what + ' — any publicity is good publicity.', 'scandal', { p: p.id }); }
             else { p.fame = clamp(p.fame - rng.range(5, 18), 0, 100); p.prestige = clamp(p.prestige - rng.range(2, 8), 0, 100); HW.addNews(w, Y, 'Scandal: ' + p.name + ' embroiled in ' + what + '.', 'scandal', { p: p.id }); }
             p.scandalYear = Y;
+            (p.scandals = p.scandals || []).push(Y);
           }
         }
         p.fame = Math.round(p.fame * 10) / 10;
         p.prestige = Math.round(p.prestige * 10) / 10;
+        HW.recordCareer(p, Y);
 
         // retirement
         var idle = p.lastWorked == null ? N - p.debut : N - p.lastWorked;
@@ -1691,6 +1738,213 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
 })(globalThis.HW = globalThis.HW || {});
 </script>
   <script>
+// Career stories: yearly fame history, career-arc classification, generated bios, and story headlines.
+(function (HW) {
+  var clamp = HW.clamp;
+
+  // Called once per year for every active person (after fame/prestige drift).
+  HW.recordCareer = function (p, Y) {
+    if (!p.hf) { p.h0 = Y; p.hf = []; p.hp = []; }
+    p.hf.push(Math.round(p.fame));
+    p.hp.push(Math.round(p.prestige));
+  };
+
+  function mark(p, Y, k, f) { (p.marks = p.marks || []).push([Y, k, f == null ? null : f]); }
+
+  function bestFilmOfYear(w, p, Y) {
+    var best = null;
+    for (var i = p.films.length - 1; i >= 0; i--) {
+      var f = w.films[p.films[i]];
+      if (f.year !== Y) { if (f.year < Y) break; continue; }
+      if (!best || f.gross > best.gross) best = f;
+    }
+    return best;
+  }
+
+  // Spot breakouts, comebacks and falls as they happen; feed the news and the person's milestones.
+  HW.detectStories = function (w, ctx) {
+    var Y = ctx.year, found = [];
+    w.people.forEach(function (p) {
+      if (p.status !== 'active' || !p.hf || p.hf.length < 2 || (p.role !== 'actor' && p.role !== 'director')) return;
+      var f = p.hf, n = f.length, cur = f[n - 1], prev = f[n - 2], age = Y - p.born;
+      var prior = f.slice(0, n - 1), peakPrior = Math.max.apply(null, prior);
+      var film = bestFilmOfYear(w, p, Y);
+      var already = function (k) { return (p.marks || []).some(function (m) { return m[1] === k && Y - m[0] < 6; }); };
+      var recent = f.slice(Math.max(0, n - 4), n - 1);           // the three years before this one
+      var recentMax = Math.max.apply(null, recent);
+      // breakout: first time crossing into real fame while young
+      if (cur >= 35 && peakPrior < 30 && age < 36 && film && !already('breakout')) {
+        found.push({ p: p, k: 'breakout', s: cur - prev + 10, f: film,
+          t: 'Breakout: ' + p.name + ' (' + age + ') becomes the name on everyone\'s lips after "' + film.title + '".' });
+        return;
+      }
+      // comeback: a former star who fell far, now climbing back fast
+      if (peakPrior >= 45 && n >= 7 && film && !already('comeback')) {
+        var peakIdx = prior.indexOf(peakPrior);
+        var low = Math.min.apply(null, f.slice(peakIdx, n - 1));
+        var lowIdx = f.lastIndexOf(low, n - 2);
+        if (low <= peakPrior - 20 && cur >= low + 12 && cur >= Math.min.apply(null, recent) + 6 && n - 1 - lowIdx <= 5) {
+          found.push({ p: p, k: 'comeback', s: cur - low + 15, f: film,
+            t: 'Comeback of the year: ' + p.name + ' is back on top with "' + film.title + '", years after fading from view.' });
+          return;
+        }
+      }
+      if (recentMax >= 55 && cur <= recentMax - 20 && !already('fall')) {
+        var why = p.scandalYear === Y ? 'a scandal' : film && film.tags.indexOf('flop') >= 0 ? 'the flop "' + film.title + '"' :
+          !film ? 'a year without work' : age >= 45 ? 'shrinking offers' : 'a run of disappointments';
+        found.push({ p: p, k: 'fall', s: prev - cur, f: film,
+          t: 'Falling star: ' + p.name + '\'s fame slides after ' + why + '.' });
+      }
+      if (cur >= 80 && peakPrior < 80) found.push({ p: p, k: 'summit', s: cur - 70, f: film, t: p.name + ' joins Hollywood\'s A-list.' });
+    });
+    found.sort(function (a, b) { return b.s - a.s; });
+    // keep the best few, and at most two A-list announcements
+    var kept = [], summits = 0;
+    found.forEach(function (x) { if (kept.length < 6 && (x.k !== 'summit' || summits++ < 1)) kept.push(x); });
+    kept.forEach(function (x) {
+      mark(x.p, Y, x.k, x.f ? x.f.id : null);
+      HW.addNews(w, Y, x.t, 'story', { p: x.p.id });
+    });
+    (w.stories = w.stories || {})[Y] = kept.map(function (x) { return { p: x.p.id, k: x.k, f: x.f ? x.f.id : null }; });
+  };
+
+  // ---------- arcs ----------
+  HW.ARCS = {
+    legend:    { label: 'Legend',          desc: 'A towering career: sustained stardom and the trophies to prove it.' },
+    riseRise:  { label: 'Rise and Rise',   desc: 'Climbed steadily and is still at or near the top.' },
+    riseFall:  { label: 'Rise and Fall',   desc: 'Rose to stardom, then lost it.' },
+    fallFall:  { label: 'Fall and Fall',   desc: 'Started out famous and never stopped sliding.' },
+    comeback:  { label: 'Comeback',        desc: 'Fell from the top, then fought their way back.' },
+    oneHit:    { label: 'One-Hit Wonder',  desc: 'One moment in the spotlight, then gone.' },
+    bloomer:   { label: 'Late Bloomer',    desc: 'Found fame later than almost anyone.' },
+    flameOut:  { label: 'Flame-Out',       desc: 'Burned bright and left the business young.' },
+    workhorse: { label: 'Steady Workhorse',desc: 'Never a superstar, always working.' },
+    rising:    { label: 'Rising Star',     desc: 'On the way up.' },
+    neverMade: { label: 'Never Made It',   desc: 'Chased the dream, never caught it.' },
+    steady:    { label: 'Holding Steady',  desc: 'No dramatic swings, yet.' },
+    newFace:   { label: 'New Face',        desc: 'Too early to tell.' }
+  };
+
+  HW.careerArc = function (p) {
+    var f = p.hf || [], n = f.length;
+    var A = function (k) { return { k: k, label: HW.ARCS[k].label, desc: HW.ARCS[k].desc }; };
+    if (n < 4) return A('newFace');
+    var peak = 0, peakIdx = 0, i;
+    for (i = 0; i < n; i++) if (f[i] > peak) { peak = f[i]; peakIdx = i; }
+    var cur = f[n - 1], start = f[0];
+    var early = (f[0] + f[1] + f[2]) / 3;
+    var minAfter = peak, minIdx = peakIdx;
+    for (i = peakIdx; i < n; i++) if (f[i] < minAfter) { minAfter = f[i]; minIdx = i; }
+    var recovered = 0;
+    for (i = minIdx; i < n; i++) recovered = Math.max(recovered, f[i]);
+    var near = 0, high = 0;
+    for (i = 0; i < n; i++) { if (f[i] >= peak - 10) near++; if (f[i] >= 70) high++; }
+    var ageAtPeak = p.h0 + peakIdx - p.born, age = (p.died || p.retired || (p.h0 + n)) - p.born;
+
+    if (p.wins >= 3 || (peak >= 80 && high >= 12)) return A('legend');
+    if ((p.marks || []).some(function (m) { return m[1] === 'comeback'; }) && cur >= minAfter + 10) return A('comeback');
+    if (peak >= 45 && minAfter <= peak - 25 && recovered >= minAfter + 18 && recovered >= peak - 25) return A('comeback');
+    if (start >= 45 && peakIdx <= 2 && cur <= start - 30) return A('fallFall');
+    if (peak >= 40 && near <= 2 && cur <= peak - 30 && n >= 6 && start <= peak - 20) return A('oneHit');
+    // late bloomer: tracked from early in their career, obscure at first, famous only in middle age
+    if (peak >= 50 && early < 20 && p.h0 - p.born < 35 && ageAtPeak >= (p.role === 'actor' ? 45 : 55)) return A('bloomer');
+    if (peak >= 50 && cur >= peak - 12 && start <= peak - 25) return A('riseRise');
+    if (peak >= 45 && start <= peak - 20 && cur <= peak - 30) {
+      if (p.status !== 'active' && age < 40) return A('flameOut');
+      return A('riseFall');
+    }
+    if (p.films.length >= 20 && peak < 50) return A('workhorse');
+    if (p.status === 'active' && age < 32 && cur >= early + 15) return A('rising');
+    if (peak < 20 && n >= 8) return A('neverMade');
+    return A('steady');
+  };
+
+  // Which of the actor genre skills (or film genres, for crew) dominates a filmography.
+  HW.typecast = function (w, p) {
+    if (p.films.length < 10) return null;
+    var count = {};
+    p.films.forEach(function (id) {
+      var g = w.films[id].genre;
+      var key = p.role === 'actor' ? Object.keys(HW.GENRES[g].apt).reduce(function (a, b) { return HW.GENRES[g].apt[b] > HW.GENRES[g].apt[a] ? b : a; }) : g;
+      count[key] = (count[key] || 0) + 1;
+    });
+    var top = Object.keys(count).reduce(function (a, b) { return count[b] > count[a] ? b : a; });
+    var share = count[top] / p.films.length;
+    return share >= 0.6 ? { genre: HW.STAT_LABELS[top] || top, share: share } : null;
+  };
+
+  // ---------- bio ----------
+  // Returns sentences; [[f:ID]] marks a film link, the UI renders it.
+  HW.careerBio = function (w, p) {
+    var he = p.gender === 'M' ? 'he' : 'she', He = p.gender === 'M' ? 'He' : 'She', his = p.gender === 'M' ? 'his' : 'her';
+    var actor = p.role === 'actor', verb = actor ? 'starred in' : p.role === 'director' ? 'directed' : 'worked on';
+    var films = p.films.map(function (id) { return w.films[id]; });
+    var F = function (f) { return '[[f:' + f.id + ']] (' + f.year + ')'; };
+    var out = [], first = films[0];
+    var leadOf = function (f) { if (!actor) return f.director === p.id; return f.cast.some(function (c) { return c.p === p.id && c.r === 'L'; }); };
+    var perfOf = function (f) { for (var i = 0; i < f.cast.length; i++) if (f.cast[i].p === p.id) return f.cast[i].perf; return 0; };
+
+    if (p.debut < w.startYear) out.push(p.name + ' was already a working ' + HW.ROLES[p.role].label.toLowerCase() + ' when our records begin in ' + w.startYear + '.');
+    else if (first) out.push(p.name + ' arrived in Hollywood in ' + p.debut + ' and first ' + verb + ' ' + F(first) + '.');
+    else out.push(p.name + ' arrived in Hollywood in ' + p.debut + '.');
+    if (!films.length) { out.push(He + ' is still waiting for a first big break.'); return out; }
+
+    var marks = p.marks || [];
+    var bo = marks.filter(function (m) { return m[1] === 'breakout'; })[0];
+    if (bo && bo[2] != null) out.push(He + ' broke out in ' + bo[0] + ' with ' + F(w.films[bo[2]]) + '.');
+    else {
+      var big = films.filter(function (f) { return leadOf(f) && (f.gross >= 300 || (actor && perfOf(f) >= 82)); })[0];
+      var alreadyFamous = p.hf && p.hf[0] >= 40 && p.debut < w.startYear;
+      if (big && big !== first && !alreadyFamous) out.push('The big break came with ' + F(big) + '.');
+    }
+
+    var f = p.hf || [];
+    if (f.length) {
+      var peak = Math.max.apply(null, f), peakY = p.h0 + f.indexOf(peak);
+      var around = films.filter(function (x) { return Math.abs(x.year - peakY) <= 3; });
+      var gc = {};
+      around.forEach(function (x) { gc[x.genre] = (gc[x.genre] || 0) + 1; });
+      var g = Object.keys(gc).sort(function (a, b) { return gc[b] - gc[a]; })[0];
+      if (peak >= 75) out.push('Around ' + peakY + ' ' + he + ' was one of the biggest names in the business' + (g ? ', above all in ' + g.toLowerCase() + ' pictures' : '') + '.');
+      else if (peak >= 45) out.push(He + ' peaked around ' + peakY + ' as a familiar face' + (g ? ' in ' + g.toLowerCase() + ' films' : '') + '.');
+      else if (films.length >= 10) out.push(He + ' never became a star, but kept working.');
+    }
+
+    var hit = films.reduce(function (a, b) { return b.gross > a.gross ? b : a; });
+    if (hit.gross >= 100) out.push(His(his) + ' biggest hit, ' + F(hit) + ', took ' + HW.money(hit.gross) + ' worldwide.');
+    if (actor && p.bestPerf && p.bestPerf.v >= 80 && p.bestPerf.f !== hit.id) out.push('Critics single out ' + F(w.films[p.bestPerf.f]) + ' as ' + his + ' finest work.');
+
+    (p.scandals || []).slice(0, 2).forEach(function (y) {
+      var i = y - p.h0, drop = f[i - 1] != null && f[i] != null ? f[i - 1] - f[i] : 0;
+      out.push(drop >= 8 ? 'A ' + y + ' scandal badly dented ' + his + ' standing.' : He + ' weathered a scandal in ' + y + '.');
+    });
+    marks.filter(function (m) { return m[1] === 'fall'; }).slice(0, 1).forEach(function (m) { out.push('The tide turned in ' + m[0] + ', when ' + his + ' fame began to slide.'); });
+    marks.filter(function (m) { return m[1] === 'comeback'; }).forEach(function (m) {
+      out.push('After years in the wilderness, ' + he + ' staged a comeback in ' + m[0] + (m[2] != null ? ' with ' + F(w.films[m[2]]) : '') + '.');
+    });
+
+    var aw = HW.personAwards(w, p.id).slice().reverse();
+    var wins = aw.filter(function (a) { return a.won; });
+    if (wins.length) {
+      out.push(He + ' won ' + (wins.length === 1 ? 'a Golden Laurel' : wins.length + ' Golden Laurels') + (wins.length === 1 ? ', ' + HW.catName(wins[0].k) + ' for ' + F(w.films[wins[0].f]) : ', the first in ' + wins[0].y + ' for ' + F(w.films[wins[0].f])) +
+        (aw.indexOf(wins[0]) >= 3 ? ', after ' + aw.indexOf(wins[0]) + ' nominations without a win' : '') + '.');
+    } else if (aw.length >= 3) out.push(He + ' has been nominated for ' + aw.length + ' Golden Laurels without ever winning.');
+    if (p.lifetime) out.push('The Academy honored ' + his + ' career with a Lifetime Achievement Laurel in ' + p.lifetime + '.');
+
+    var tc = HW.typecast(w, p);
+    if (tc) out.push(Math.round(tc.share * 100) + '% of ' + his + ' films were ' + tc.genre.toLowerCase() + (actor ? ' roles' : '') + '. Hollywood rarely let ' + (p.gender === 'M' ? 'him' : 'her') + ' play anything else.');
+
+    var last = films[films.length - 1];
+    if (p.status === 'deceased') out.push(He + ' died in ' + p.died + ' at ' + (p.died - p.born) + ', after ' + films.length + ' films.');
+    else if (p.status === 'retired') out.push(He + ' retired in ' + p.retired + ' after ' + films.length + ' films' + (p.retired - p.born < 40 ? ', aged just ' + (p.retired - p.born) : '') + '.');
+    else if (w.year - 1 - last.year >= 4) out.push(He + ' hasn\'t worked since ' + last.year + '.');
+    else out.push('At ' + (w.year - p.born) + ', ' + he + ' is still working.');
+    return out;
+  };
+  function His(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+})(globalThis.HW = globalThis.HW || {});
+</script>
+  <script>
 // Rendering: hash-routed pages built from HTML strings.
 (function (HW) {
   var UI = HW.UI = { sorts: {}, pages: {}, filters: {} };
@@ -1790,7 +2044,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   // ---------- pages ----------
   var routes = {
     '': overview, 'studios': studiosPage, 'studio': studioPage, 'talent': talentPage, 'person': personPage,
-    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage
+    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage
   };
 
   UI.render = function () {
@@ -1857,6 +2111,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     h += card('Genre appetite', trendBars());
     h += card('Studio standings ' + Y, studioStandings(Y));
     h += '</div>';
+    h += '<div class="grid two">' + card('Stories of ' + Y, yearStories(Y)) + card('Where are they now?', whereNow(Y)) + '</div>';
     h += '<div class="grid two">' + card('Biggest stars', topPeople('actor', 'fame', 10)) + card('Most acclaimed actors', topPeople('actor', 'prestige', 10)) + '</div>';
     return h;
   }
@@ -2008,6 +2263,7 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     keyStats.forEach(function (k) {
       cols.push({ h: role === 'actor' ? HW.STAT_LABELS[k].slice(0, 4) + '.' : HW.STAT_LABELS[k], cls: 'num', v: function (p) { return p.stats[k]; }, html: function (p) { return statText(p, p.stats[k]); } });
     });
+    if (role === 'actor' || role === 'director') cols.push({ h: 'Arc', v: function (p) { return HW.careerArc(p).label; }, html: function (p) { return arcBadge(HW.careerArc(p), true); } });
     if (role === 'actor') cols.push({ h: 'Best genre', v: function (p) { return p.genre[topGenre(p)]; }, html: function (p) { var g = topGenre(p); return HW.STAT_LABELS[g] + ' <span class="muted">' + Math.round(p.genre[g]) + '</span>'; } });
     cols.push(
       { h: 'Fame', cls: 'num', v: function (p) { return p.fame; }, html: function (p) { return Math.round(p.fame); } },
@@ -2032,6 +2288,11 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
       (p.lifetime ? '<span class="trait gold" title="Lifetime Achievement Laurel">Lifetime Laurel ' + p.lifetime + '</span>' : '') + '</div></div>' +
       '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
 
+    if (p.hf && p.hf.length) {
+      var arc = HW.careerArc(p);
+      h += '<section class="card story"><div class="story-head"><h3>Career story</h3>' + arcBadge(arc) + '<span class="muted small">' + esc(arc.desc) + '</span></div>' +
+        '<div class="story-body"><div class="story-chart">' + careerChart(p) + '</div><div class="bio">' + bioHtml(p) + '</div></div></section>';
+    }
     h += '<div class="grid sheet-grid">';
     var actor = p.role === 'actor';
     var statRows = R.stats.map(function (k) { return statLine(HW.STAT_LABELS[k], p.stats[k], actor ? 10 : 100, HW.STAT_DESC[k]); }).join('');
@@ -2257,10 +2518,131 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
   }
 
   // ---------- news ----------
+  // ---------- stories ----------
+  function arcBadge(arc, small) {
+    return '<span class="arc arc-' + arc.k + (small ? ' sm' : '') + '" title="' + esc(arc.desc) + '">' + esc(arc.label) + '</span>';
+  }
+  function bioHtml(p) {
+    return '<p>' + HW.careerBio(W(), p).map(function (sent) {
+      return esc(sent).replace(/\[\[f:(\d+)\]\]/g, function (m, id) { return fLink(+id); });
+    }).join(' ') + '</p>';
+  }
+  var STORY_LABEL = { breakout: 'Breakout', comeback: 'Comeback', fall: 'Falling star', summit: 'A-list' };
+  function yearStories(Y) {
+    var list = (W().stories || {})[Y] || [];
+    if (!list.length) return empty('A quiet year for careers.');
+    return '<ul class="plist">' + list.map(function (x) {
+      return '<li><span class="arc sm arc-st-' + x.k + '">' + STORY_LABEL[x.k] + '</span> ' + pLink(x.p) + (x.f != null ? ' <span class="muted small">· ' + fLink(x.f) + '</span>' : '') +
+        '<span class="right">' + sparkline(W().people[x.p]) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  // Former stars who have faded; the pick rotates each year.
+  function whereNow(Y) {
+    var w = W();
+    var faded = w.people.filter(function (p) {
+      return p.hf && p.hf.length >= 8 && (p.role === 'actor' || p.role === 'director') && p.status !== 'deceased' &&
+        Math.max.apply(null, p.hf) >= 60 && p.hf[p.hf.length - 1] <= 25;
+    });
+    if (!faded.length) return empty('Every former star is still shining — for now.');
+    var picks = [], rng = new HW.RNG(Y * 7919 + 13);
+    rng.shuffle(faded).slice(0, 4).forEach(function (p) { picks.push(p); });
+    return '<ul class="plist">' + picks.map(function (p) {
+      var peak = Math.max.apply(null, p.hf), peakY = p.h0 + p.hf.indexOf(peak);
+      var now = p.status === 'retired' ? 'retired since ' + p.retired : p.lastWorked ? 'last worked ' + p.lastWorked : 'out of work';
+      return '<li>' + pLink(p.id) + ' <span class="muted small">peaked ' + peakY + ' · ' + now + '</span><span class="right">' + sparkline(p) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  function sparkline(p) {
+    var f = p.hf || [];
+    if (f.length < 2) return '';
+    var W_ = 90, H = 22, pts = f.map(function (v, i) { return (i / (f.length - 1) * W_).toFixed(1) + ',' + (H - 1 - v / 100 * (H - 2)).toFixed(1); }).join(' ');
+    return '<svg class="spark" width="' + W_ + '" height="' + H + '" viewBox="0 0 ' + W_ + ' ' + H + '" role="img" aria-label="Fame over time"><polyline points="' + pts + '"/></svg>';
+  }
+  // Fame & prestige by year, one 0-100 axis; trophies and scandals marked on the fame line.
+  function careerChart(p) {
+    var w = W(), f = p.hf, pr = p.hp, n = f.length, y0 = p.h0;
+    var Wd = 640, Ht = 200, L = 30, R = 12, T = 12, B = 24;
+    var x = function (i) { return L + (n === 1 ? 0 : i / (n - 1) * (Wd - L - R)); };
+    var y = function (v) { return T + (1 - v / 100) * (Ht - T - B); };
+    var line = function (arr) { return arr.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(''); };
+    var g = '';
+    [0, 25, 50, 75, 100].forEach(function (v) { g += '<line class="grid" x1="' + L + '" x2="' + (Wd - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="ax" x="' + (L - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + v + '</text>'; });
+    var step = n > 30 ? 10 : n > 12 ? 5 : n > 6 ? 2 : 1;
+    for (var i = 0; i < n; i++) if ((y0 + i) % step === 0) g += '<text class="ax" x="' + x(i) + '" y="' + (Ht - 6) + '" text-anchor="middle">' + (y0 + i) + '</text>';
+    g += '<path class="ln prestige" d="' + line(pr) + '"/><path class="ln fame" d="' + line(f) + '"/>';
+    var ev = {};
+    HW.personAwards(w, p.id).forEach(function (a) { if (a.won) (ev[a.y] = ev[a.y] || []).push('🏆 ' + HW.catName(a.k)); });
+    (p.scandals || []).forEach(function (yy) { (ev[yy] = ev[yy] || []).push('⚠ Scandal'); });
+    (p.marks || []).forEach(function (m) { (ev[m[0]] = ev[m[0]] || []).push(STORY_LABEL[m[1]]); });
+    Object.keys(ev).forEach(function (yy) {
+      var i = yy - y0;
+      if (i < 0 || i >= n) return;
+      var won = ev[yy].some(function (t) { return t.charAt(0) === '🏆'; }), sc = ev[yy].some(function (t) { return t.charAt(0) === '⚠'; });
+      if (won || sc) g += '<circle class="ev ' + (won ? 'win' : 'scandal') + '" cx="' + x(i) + '" cy="' + y(f[i]) + '" r="5"/>';
+    });
+    // per-year data for the hover tooltip
+    var data = f.map(function (v, i) {
+      var yr = y0 + i, films = p.films.filter(function (id) { return w.films[id].year === yr; }).map(function (id) { return w.films[id].title; });
+      return { y: yr, f: v, p: pr[i], films: films, ev: ev[yr] || [] };
+    });
+    return '<div class="legend"><span><i class="sw fame"></i>Fame</span><span><i class="sw prestige"></i>Prestige</span><span><i class="sw win"></i>Laurel win</span><span><i class="sw scandal"></i>Scandal</span></div>' +
+      '<div class="cchart-wrap"><svg class="cchart" viewBox="0 0 ' + Wd + ' ' + Ht + '" data-l="' + L + '" data-r="' + R + '" data-n="' + n + '" data-w="' + Wd + '" data-t="' + T + '" data-b="' + (Ht - B) + '" role="img" aria-label="Fame and prestige by year">' +
+      g + '<line class="xh" y1="' + T + '" y2="' + (Ht - B) + '" x1="-10" x2="-10"/></svg><div class="ctip" hidden></div>' +
+      '<script type="application/json" class="cdata">' + JSON.stringify(data).replace(/</g, '\\u003c') + '</script></div>';
+  }
+  UI.chartHover = function (e) {
+    var svg = e.target.closest && e.target.closest('.cchart');
+    document.querySelectorAll('.cchart-wrap .ctip').forEach(function (t) { if (!svg || t.parentNode !== svg.parentNode) t.hidden = true; });
+    if (!svg) return;
+    var wrap = svg.parentNode, tip = wrap.querySelector('.ctip'), xh = svg.querySelector('.xh');
+    var data = wrap._data || (wrap._data = JSON.parse(wrap.querySelector('.cdata').textContent));
+    var box = svg.getBoundingClientRect(), d = svg.dataset;
+    var vx = (e.clientX - box.left) / box.width * +d.w;
+    var n = +d.n, i = n === 1 ? 0 : Math.round((vx - +d.l) / ((+d.w - +d.l - +d.r) / (n - 1)));
+    i = Math.max(0, Math.min(n - 1, i));
+    var px = n === 1 ? +d.l : +d.l + i / (n - 1) * (+d.w - +d.l - +d.r);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px);
+    var r = data[i];
+    tip.innerHTML = '<b>' + r.y + '</b><div><i class="sw fame"></i>Fame ' + r.f + '</div><div><i class="sw prestige"></i>Prestige ' + r.p + '</div>' +
+      (r.films.length ? '<div class="muted">' + r.films.map(esc).join('<br>') + '</div>' : '<div class="muted">No films</div>') +
+      r.ev.map(function (t) { return '<div>' + esc(t) + '</div>'; }).join('');
+    tip.hidden = false;
+    var left = px / +d.w * box.width;
+    tip.style.left = Math.min(Math.max(0, left + 12), box.width - 170) + 'px';
+  };
+
+  function storiesPage() {
+    var w = W();
+    var h = '<div class="pagehead"><h1>Hollywood Stories</h1></div>';
+    if (!simulated()) return h + empty('Every story needs a first chapter: advance a year.');
+    var groups = {};
+    w.people.forEach(function (p) {
+      if ((p.role !== 'actor' && p.role !== 'director') || !p.hf || p.hf.length < 4) return;
+      var a = HW.careerArc(p);
+      (groups[a.k] = groups[a.k] || []).push(p);
+    });
+    var order = ['riseRise', 'riseFall', 'fallFall', 'comeback', 'legend', 'oneHit', 'bloomer', 'flameOut', 'rising', 'workhorse'];
+    h += '<p class="muted">Every actor and director is sorted into the shape of their career, based on their fame year by year. Open anyone to read their story.</p>';
+    h += '<div class="grid three">';
+    order.forEach(function (k) {
+      var list = (groups[k] || []).sort(function (a, b) { return Math.max.apply(null, b.hf) - Math.max.apply(null, a.hf); }).slice(0, 8);
+      var A = HW.ARCS[k];
+      h += card(esc(A.label) + ' <span class="muted small">(' + (groups[k] || []).length + ')</span>', '<p class="muted small">' + esc(A.desc) + '</p>' +
+        (list.length ? '<ul class="plist">' + list.map(function (p) {
+          var peak = Math.max.apply(null, p.hf);
+          return '<li>' + pLink(p.id) + ' <span class="muted small">' + HW.ROLES[p.role].label + ' · peak ' + (p.h0 + p.hf.indexOf(peak)) + '</span><span class="right">' + sparkline(p) + '</span></li>';
+        }).join('') + '</ul>' : empty('Nobody yet.')));
+    });
+    h += '</div>';
+    var years = Object.keys(w.stories || {}).map(Number).sort(function (a, b) { return b - a; }).slice(0, 10);
+    h += card('Recent turning points', years.map(function (yy) { return '<h4>' + yy + '</h4>' + yearStories(yy); }).join(''));
+    return h;
+  }
+
   function newsPage() {
     var w = W(), k = UI.filters.newsKind || 'all';
     var list = w.news.filter(function (n) { return k === 'all' || n.k === k; }).slice(-300).reverse();
-    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['event', 'Industry']]) + '</div>' +
+    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['story', 'Stories'], ['event', 'Industry']]) + '</div>' +
       card('Latest', newsList(list));
   }
 })(globalThis.HW = globalThis.HW || {});
@@ -2462,6 +2844,8 @@ ol.plist li::before { counter-increment: n; content: counter(n); color: var(--mu
     if (e.key === ' ' || e.key === 'n') { e.preventDefault(); advance(1); }
     if (e.key === 'Escape') closeMenu();
   });
+  document.addEventListener('mousemove', function (e) { HW.UI.chartHover(e); });
+  document.addEventListener('touchstart', function (e) { if (e.touches[0]) HW.UI.chartHover({ target: e.target, clientX: e.touches[0].clientX }); }, { passive: true });
   window.addEventListener('hashchange', function () { HW.UI.render(); window.scrollTo(0, 0); });
 
   load().then(function (w) {

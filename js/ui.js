@@ -97,7 +97,7 @@
   // ---------- pages ----------
   var routes = {
     '': overview, 'studios': studiosPage, 'studio': studioPage, 'talent': talentPage, 'person': personPage,
-    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage
+    'films': filmsPage, 'film': filmPage, 'awards': awardsPage, 'history': historyPage, 'records': recordsPage, 'news': newsPage, 'stories': storiesPage
   };
 
   UI.render = function () {
@@ -164,6 +164,7 @@
     h += card('Genre appetite', trendBars());
     h += card('Studio standings ' + Y, studioStandings(Y));
     h += '</div>';
+    h += '<div class="grid two">' + card('Stories of ' + Y, yearStories(Y)) + card('Where are they now?', whereNow(Y)) + '</div>';
     h += '<div class="grid two">' + card('Biggest stars', topPeople('actor', 'fame', 10)) + card('Most acclaimed actors', topPeople('actor', 'prestige', 10)) + '</div>';
     return h;
   }
@@ -315,6 +316,7 @@
     keyStats.forEach(function (k) {
       cols.push({ h: role === 'actor' ? HW.STAT_LABELS[k].slice(0, 4) + '.' : HW.STAT_LABELS[k], cls: 'num', v: function (p) { return p.stats[k]; }, html: function (p) { return statText(p, p.stats[k]); } });
     });
+    if (role === 'actor' || role === 'director') cols.push({ h: 'Arc', v: function (p) { return HW.careerArc(p).label; }, html: function (p) { return arcBadge(HW.careerArc(p), true); } });
     if (role === 'actor') cols.push({ h: 'Best genre', v: function (p) { return p.genre[topGenre(p)]; }, html: function (p) { var g = topGenre(p); return HW.STAT_LABELS[g] + ' <span class="muted">' + Math.round(p.genre[g]) + '</span>'; } });
     cols.push(
       { h: 'Fame', cls: 'num', v: function (p) { return p.fame; }, html: function (p) { return Math.round(p.fame); } },
@@ -339,6 +341,11 @@
       (p.lifetime ? '<span class="trait gold" title="Lifetime Achievement Laurel">Lifetime Laurel ' + p.lifetime + '</span>' : '') + '</div></div>' +
       '<div class="ovr"><div class="ovr-v ' + scoreCls(ovr) + '">' + ovrText(p) + '</div><div class="ovr-l">OVR</div>' + stars(HW.potentialStars(p)) + '<div class="ovr-l">Potential</div></div></div>';
 
+    if (p.hf && p.hf.length) {
+      var arc = HW.careerArc(p);
+      h += '<section class="card story"><div class="story-head"><h3>Career story</h3>' + arcBadge(arc) + '<span class="muted small">' + esc(arc.desc) + '</span></div>' +
+        '<div class="story-body"><div class="story-chart">' + careerChart(p) + '</div><div class="bio">' + bioHtml(p) + '</div></div></section>';
+    }
     h += '<div class="grid sheet-grid">';
     var actor = p.role === 'actor';
     var statRows = R.stats.map(function (k) { return statLine(HW.STAT_LABELS[k], p.stats[k], actor ? 10 : 100, HW.STAT_DESC[k]); }).join('');
@@ -564,10 +571,131 @@
   }
 
   // ---------- news ----------
+  // ---------- stories ----------
+  function arcBadge(arc, small) {
+    return '<span class="arc arc-' + arc.k + (small ? ' sm' : '') + '" title="' + esc(arc.desc) + '">' + esc(arc.label) + '</span>';
+  }
+  function bioHtml(p) {
+    return '<p>' + HW.careerBio(W(), p).map(function (sent) {
+      return esc(sent).replace(/\[\[f:(\d+)\]\]/g, function (m, id) { return fLink(+id); });
+    }).join(' ') + '</p>';
+  }
+  var STORY_LABEL = { breakout: 'Breakout', comeback: 'Comeback', fall: 'Falling star', summit: 'A-list' };
+  function yearStories(Y) {
+    var list = (W().stories || {})[Y] || [];
+    if (!list.length) return empty('A quiet year for careers.');
+    return '<ul class="plist">' + list.map(function (x) {
+      return '<li><span class="arc sm arc-st-' + x.k + '">' + STORY_LABEL[x.k] + '</span> ' + pLink(x.p) + (x.f != null ? ' <span class="muted small">· ' + fLink(x.f) + '</span>' : '') +
+        '<span class="right">' + sparkline(W().people[x.p]) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  // Former stars who have faded; the pick rotates each year.
+  function whereNow(Y) {
+    var w = W();
+    var faded = w.people.filter(function (p) {
+      return p.hf && p.hf.length >= 8 && (p.role === 'actor' || p.role === 'director') && p.status !== 'deceased' &&
+        Math.max.apply(null, p.hf) >= 60 && p.hf[p.hf.length - 1] <= 25;
+    });
+    if (!faded.length) return empty('Every former star is still shining — for now.');
+    var picks = [], rng = new HW.RNG(Y * 7919 + 13);
+    rng.shuffle(faded).slice(0, 4).forEach(function (p) { picks.push(p); });
+    return '<ul class="plist">' + picks.map(function (p) {
+      var peak = Math.max.apply(null, p.hf), peakY = p.h0 + p.hf.indexOf(peak);
+      var now = p.status === 'retired' ? 'retired since ' + p.retired : p.lastWorked ? 'last worked ' + p.lastWorked : 'out of work';
+      return '<li>' + pLink(p.id) + ' <span class="muted small">peaked ' + peakY + ' · ' + now + '</span><span class="right">' + sparkline(p) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  function sparkline(p) {
+    var f = p.hf || [];
+    if (f.length < 2) return '';
+    var W_ = 90, H = 22, pts = f.map(function (v, i) { return (i / (f.length - 1) * W_).toFixed(1) + ',' + (H - 1 - v / 100 * (H - 2)).toFixed(1); }).join(' ');
+    return '<svg class="spark" width="' + W_ + '" height="' + H + '" viewBox="0 0 ' + W_ + ' ' + H + '" role="img" aria-label="Fame over time"><polyline points="' + pts + '"/></svg>';
+  }
+  // Fame & prestige by year, one 0-100 axis; trophies and scandals marked on the fame line.
+  function careerChart(p) {
+    var w = W(), f = p.hf, pr = p.hp, n = f.length, y0 = p.h0;
+    var Wd = 640, Ht = 200, L = 30, R = 12, T = 12, B = 24;
+    var x = function (i) { return L + (n === 1 ? 0 : i / (n - 1) * (Wd - L - R)); };
+    var y = function (v) { return T + (1 - v / 100) * (Ht - T - B); };
+    var line = function (arr) { return arr.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(''); };
+    var g = '';
+    [0, 25, 50, 75, 100].forEach(function (v) { g += '<line class="grid" x1="' + L + '" x2="' + (Wd - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="ax" x="' + (L - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + v + '</text>'; });
+    var step = n > 30 ? 10 : n > 12 ? 5 : n > 6 ? 2 : 1;
+    for (var i = 0; i < n; i++) if ((y0 + i) % step === 0) g += '<text class="ax" x="' + x(i) + '" y="' + (Ht - 6) + '" text-anchor="middle">' + (y0 + i) + '</text>';
+    g += '<path class="ln prestige" d="' + line(pr) + '"/><path class="ln fame" d="' + line(f) + '"/>';
+    var ev = {};
+    HW.personAwards(w, p.id).forEach(function (a) { if (a.won) (ev[a.y] = ev[a.y] || []).push('🏆 ' + HW.catName(a.k)); });
+    (p.scandals || []).forEach(function (yy) { (ev[yy] = ev[yy] || []).push('⚠ Scandal'); });
+    (p.marks || []).forEach(function (m) { (ev[m[0]] = ev[m[0]] || []).push(STORY_LABEL[m[1]]); });
+    Object.keys(ev).forEach(function (yy) {
+      var i = yy - y0;
+      if (i < 0 || i >= n) return;
+      var won = ev[yy].some(function (t) { return t.charAt(0) === '🏆'; }), sc = ev[yy].some(function (t) { return t.charAt(0) === '⚠'; });
+      if (won || sc) g += '<circle class="ev ' + (won ? 'win' : 'scandal') + '" cx="' + x(i) + '" cy="' + y(f[i]) + '" r="5"/>';
+    });
+    // per-year data for the hover tooltip
+    var data = f.map(function (v, i) {
+      var yr = y0 + i, films = p.films.filter(function (id) { return w.films[id].year === yr; }).map(function (id) { return w.films[id].title; });
+      return { y: yr, f: v, p: pr[i], films: films, ev: ev[yr] || [] };
+    });
+    return '<div class="legend"><span><i class="sw fame"></i>Fame</span><span><i class="sw prestige"></i>Prestige</span><span><i class="sw win"></i>Laurel win</span><span><i class="sw scandal"></i>Scandal</span></div>' +
+      '<div class="cchart-wrap"><svg class="cchart" viewBox="0 0 ' + Wd + ' ' + Ht + '" data-l="' + L + '" data-r="' + R + '" data-n="' + n + '" data-w="' + Wd + '" data-t="' + T + '" data-b="' + (Ht - B) + '" role="img" aria-label="Fame and prestige by year">' +
+      g + '<line class="xh" y1="' + T + '" y2="' + (Ht - B) + '" x1="-10" x2="-10"/></svg><div class="ctip" hidden></div>' +
+      '<script type="application/json" class="cdata">' + JSON.stringify(data).replace(/</g, '\\u003c') + '</script></div>';
+  }
+  UI.chartHover = function (e) {
+    var svg = e.target.closest && e.target.closest('.cchart');
+    document.querySelectorAll('.cchart-wrap .ctip').forEach(function (t) { if (!svg || t.parentNode !== svg.parentNode) t.hidden = true; });
+    if (!svg) return;
+    var wrap = svg.parentNode, tip = wrap.querySelector('.ctip'), xh = svg.querySelector('.xh');
+    var data = wrap._data || (wrap._data = JSON.parse(wrap.querySelector('.cdata').textContent));
+    var box = svg.getBoundingClientRect(), d = svg.dataset;
+    var vx = (e.clientX - box.left) / box.width * +d.w;
+    var n = +d.n, i = n === 1 ? 0 : Math.round((vx - +d.l) / ((+d.w - +d.l - +d.r) / (n - 1)));
+    i = Math.max(0, Math.min(n - 1, i));
+    var px = n === 1 ? +d.l : +d.l + i / (n - 1) * (+d.w - +d.l - +d.r);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px);
+    var r = data[i];
+    tip.innerHTML = '<b>' + r.y + '</b><div><i class="sw fame"></i>Fame ' + r.f + '</div><div><i class="sw prestige"></i>Prestige ' + r.p + '</div>' +
+      (r.films.length ? '<div class="muted">' + r.films.map(esc).join('<br>') + '</div>' : '<div class="muted">No films</div>') +
+      r.ev.map(function (t) { return '<div>' + esc(t) + '</div>'; }).join('');
+    tip.hidden = false;
+    var left = px / +d.w * box.width;
+    tip.style.left = Math.min(Math.max(0, left + 12), box.width - 170) + 'px';
+  };
+
+  function storiesPage() {
+    var w = W();
+    var h = '<div class="pagehead"><h1>Hollywood Stories</h1></div>';
+    if (!simulated()) return h + empty('Every story needs a first chapter: advance a year.');
+    var groups = {};
+    w.people.forEach(function (p) {
+      if ((p.role !== 'actor' && p.role !== 'director') || !p.hf || p.hf.length < 4) return;
+      var a = HW.careerArc(p);
+      (groups[a.k] = groups[a.k] || []).push(p);
+    });
+    var order = ['riseRise', 'riseFall', 'fallFall', 'comeback', 'legend', 'oneHit', 'bloomer', 'flameOut', 'rising', 'workhorse'];
+    h += '<p class="muted">Every actor and director is sorted into the shape of their career, based on their fame year by year. Open anyone to read their story.</p>';
+    h += '<div class="grid three">';
+    order.forEach(function (k) {
+      var list = (groups[k] || []).sort(function (a, b) { return Math.max.apply(null, b.hf) - Math.max.apply(null, a.hf); }).slice(0, 8);
+      var A = HW.ARCS[k];
+      h += card(esc(A.label) + ' <span class="muted small">(' + (groups[k] || []).length + ')</span>', '<p class="muted small">' + esc(A.desc) + '</p>' +
+        (list.length ? '<ul class="plist">' + list.map(function (p) {
+          var peak = Math.max.apply(null, p.hf);
+          return '<li>' + pLink(p.id) + ' <span class="muted small">' + HW.ROLES[p.role].label + ' · peak ' + (p.h0 + p.hf.indexOf(peak)) + '</span><span class="right">' + sparkline(p) + '</span></li>';
+        }).join('') + '</ul>' : empty('Nobody yet.')));
+    });
+    h += '</div>';
+    var years = Object.keys(w.stories || {}).map(Number).sort(function (a, b) { return b - a; }).slice(0, 10);
+    h += card('Recent turning points', years.map(function (yy) { return '<h4>' + yy + '</h4>' + yearStories(yy); }).join(''));
+    return h;
+  }
+
   function newsPage() {
     var w = W(), k = UI.filters.newsKind || 'all';
     var list = w.news.filter(function (n) { return k === 'all' || n.k === k; }).slice(-300).reverse();
-    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['event', 'Industry']]) + '</div>' +
+    return '<div class="pagehead"><h1>Trade Papers</h1>' + seg('newsKind', k, [['all', 'All'], ['boxoffice', 'Box office'], ['awards', 'Awards'], ['studio', 'Studios'], ['people', 'People'], ['scandal', 'Scandals'], ['story', 'Stories'], ['event', 'Industry']]) + '</div>' +
       card('Latest', newsList(list));
   }
 })(globalThis.HW = globalThis.HW || {});
