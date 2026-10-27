@@ -212,12 +212,14 @@
         });
         return;
       case 'new':
-        if (!confirm('Abandon ' + w.career.agency + ' and start over?')) return;
-        HW.abandonCareer();
+        HW.ask('Abandon ' + w.career.agency + ' and start over? This career\'s save will be deleted.', 'Abandon career')
+          .then(function (ok) { if (ok) HW.abandonCareer(); });
         return;
       case 'sign': return done(C.sign(w, pid));
       case 'openOffice': w.career.auditionsDone = true; return done(null);
-      case 'release': if (confirm('Release ' + w.people[pid].name + '?')) done(C.release(w, pid)); return;
+      case 'release':
+        HW.ask('Release ' + w.people[pid].name + ' from the agency?', 'Release').then(function (ok) { if (ok) done(C.release(w, pid)); });
+        return;
       case 'offer': var r = C.toggleOffer(w, pid, a[2]); if (!r.ok) HW.toast(r.msg); HW.save(); UI.render(); return;
       case 'coach': return done(C.coach(w, pid, document.getElementById('coach-' + pid).value));
       case 'pr': return done(C.publicity(w, pid));

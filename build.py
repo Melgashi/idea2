@@ -1,4 +1,5 @@
 """Bundle index.html, css/ and js/ into one self-contained hollywood-dynasty.html."""
+import os
 import re
 
 html = open('index.html').read()
@@ -13,3 +14,14 @@ def inline(m):
 
 html = re.sub(r'<script src="([^"]+)"></script>', inline, html)
 open('hollywood-dynasty.html', 'w').write(html)
+
+
+# The claude.ai artifact version: the hosting adds its own doctype/head/body skeleton,
+# so the page starts at its <title> and <style>.
+art = html
+for tag in ['<!doctype html>', '<html lang="en">', '<head>', '<meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1">', '</head>', '<body>', '</body>', '</html>']:
+    assert tag in art, tag
+    art = art.replace(tag, '', 1)
+os.makedirs('dist', exist_ok=True)
+open('dist/artifact.html', 'w').write(art.strip() + '\n')

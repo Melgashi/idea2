@@ -38,6 +38,7 @@
     <a href="#/career" class="career-tab">🎬 Career Mode</a>
   </nav>
   <div class="mode-banner" id="modeBanner" hidden></div>
+  <div class="store-warn" id="storeWarn" hidden>Saving isn't available in this view, so progress lasts only until you close it. Use ☰ → Export save to keep a copy, or open the game in your browser.</div>
   <div class="progress" id="progress"><div class="bar" id="progressBar"></div></div>
   <main id="app"><div class="loading">Rolling cameras…</div></main>
 
@@ -56,6 +57,7 @@
         <button class="btn" data-action="export">Export save</button>
         <label class="btn">Import save <input type="file" id="importFile" accept=".json,application/json" hidden></label>
         <p class="muted small" id="saveInfo"></p>
+        <p class="small" id="storageNote"></p>
       </div>
       <div class="menu-section">
         <h3>Golden Laurels</h3>
@@ -74,8 +76,10 @@
     </div>
   </div>
   <div class="modal ceremony" id="ceremony" hidden><div class="cer-card" id="cerCard" role="dialog" aria-label="Golden Laurels ceremony"></div></div>
+  <div class="modal" id="askModal" hidden><div class="modal-card ask-card" role="alertdialog" aria-labelledby="askText"><p id="askText"></p><div class="ask-actions"><button class="btn ghost" id="askCancel">Cancel</button><button class="btn primary" id="askOk">Continue</button></div></div></div>
   <div class="toast" id="toast" hidden></div>
 
+  <script src="js/storage.js"></script>
   <script src="js/rng.js"></script>
   <script src="js/data.js"></script>
   <script src="js/world.js"></script>

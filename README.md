@@ -4,7 +4,7 @@ A Hollywood industry simulator. Set up a world, press **Next Year**, and watch t
 
 ## Running
 
-Open `index.html` in a browser; there is nothing to install. `hollywood-dynasty.html` is the whole game in a single file, easy to share; regenerate it with `python3 build.py` after editing the code. The game autosaves to your browser (IndexedDB) after every simulated year. Use the ☰ menu to start a new world (with a start year and an optional seed) or to export and import save files.
+Open `index.html` in a browser; there is nothing to install. `hollywood-dynasty.html` is the whole game in a single file, easy to share; regenerate it with `python3 build.py` after editing the code. The game autosaves to your browser (IndexedDB) after every simulated year. `dist/artifact.html` is the build for hosting as a claude.ai artifact: there it also keeps a compressed cloud copy in the player's private per-user database (synced at most every 15 seconds and when the page closes), so a game continues across devices. Where no storage is available (for example a sandboxed in-app file preview), a warning bar points to Export save. Use the ☰ menu to start a new world (with a start year and an optional seed) or to export and import save files.
 
 Keys: `Space` / `N` advances one year.
 

@@ -42,7 +42,7 @@ h4 { font-size: 13px; color: var(--muted); margin: 12px 0 6px; font-family: syst
 .topbar {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   padding: 10px 20px; background: linear-gradient(180deg, #1c160e, #120f0b);
-  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10;
+  border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
 }
 .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .logo { color: var(--gold); font-size: 26px; text-shadow: 0 0 12px rgba(227,181,82,.5); }
@@ -418,3 +418,9 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
 .milestones li { padding: 5px 0; border-bottom: 1px solid #2a241b; color: var(--muted); display: flex; gap: 8px; }
 .milestones li.got { color: var(--text); }
 @media (max-width: 760px) { .offer { grid-template-columns: 1fr; } .tabs .career-tab { margin-left: 0; } }
+
+/* in-page confirmation & storage warning */
+.ask-card p { margin: 0 0 16px; font-size: 15px; line-height: 1.5; }
+.ask-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.store-warn { padding: 8px 20px; background: #3a1f1f; color: #f0c4be; border-bottom: 1px solid #6a2e28; font-size: 13px; }
+.toast { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }

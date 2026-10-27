@@ -1,64 +1,112 @@
-// Boot, persistence (IndexedDB), and input handling.
+// Boot, saving (via HW.Store), navigation and input handling.
 (function (HW) {
   // Two save slots: 'current' is the sandbox world, 'career' is the career-mode world. 'mode' remembers which is open.
-  var DB = 'hollywood-dynasty', STORE = 'saves';
-  var busy = false, autoTimer = null;
+  var S = HW.Store;
+  var busy = false, autoTimer = null, saveErrorShown = false;
+  var touched = false; // the player has done something since this page load
   HW.careerMeta = null;
 
-  function openDb() {
-    return new Promise(function (res, rej) {
-      if (!window.indexedDB) return rej(new Error('IndexedDB unavailable'));
-      var r = indexedDB.open(DB, 1);
-      r.onupgradeneeded = function () { r.result.createObjectStore(STORE); };
-      r.onsuccess = function () { res(r.result); };
-      r.onerror = function () { rej(r.error); };
-    });
-  }
-  function put(entries) {
-    return openDb().then(function (db) {
-      return new Promise(function (res, rej) {
-        var tx = db.transaction(STORE, 'readwrite'), st = tx.objectStore(STORE);
-        for (var k in entries) st.put(entries[k], k);
-        tx.oncomplete = function () { res(); };
-        tx.onerror = function () { rej(tx.error); };
-      });
-    });
-  }
-  function get(key) {
-    return openDb().then(function (db) {
-      return new Promise(function (res) {
-        var r = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
-        r.onsuccess = function () { res(r.result == null ? null : r.result); };
-        r.onerror = function () { res(null); };
-      });
-    }).catch(function () { return null; });
-  }
   function isCareer(w) { return !!(w && w.mode === 'career'); }
+  function slotOf(w) { return isCareer(w) ? 'career' : 'current'; }
+  function parse(txt) { try { var w = txt ? JSON.parse(txt) : null; return w && w.version === 2 ? w : null; } catch (e) { return null; } }
+  function stateDoc() { return { mode: isCareer(HW.world) ? 'career' : 'sandbox', careerMeta: HW.careerMeta || null }; }
+
+  // ---------- saving ----------
+  var pending = null, cloudTimer = null, cloudBusy = false, lastCloud = 0;
   function save() {
-    var w = HW.world, e = { mode: isCareer(w) ? 'career' : 'sandbox' };
-    e[isCareer(w) ? 'career' : 'current'] = JSON.stringify(w);
+    var w = HW.world;
+    w.savedAt = Date.now();
+    var text = JSON.stringify(w), e = { mode: isCareer(w) ? 'career' : 'sandbox' };
+    e[slotOf(w)] = text;
     if (isCareer(w)) e.careerMeta = HW.careerMeta = { agency: w.career.agency, year: w.year, over: !!w.career.over };
-    return put(e).catch(function (err) { console.warn('Save failed', err); toast('Could not save: ' + err.message); });
+    pending = { slot: slotOf(w), text: text, meta: { savedAt: w.savedAt, year: w.year }, state: stateDoc() };
+    scheduleCloud();
+    return S.put(e).catch(function (err) {
+      console.warn('Save failed', err);
+      if (!saveErrorShown && !S.cloud) { saveErrorShown = true; toast('Could not save in this browser. Use ☰ → Export save to keep your progress.'); }
+    });
   }
   HW.save = save;
-  function parse(txt) { try { var w = txt ? JSON.parse(txt) : null; return w && w.version === 2 ? w : null; } catch (e) { return null; } }
 
+  // The cloud copy is written at most every 15 seconds, and whenever the page is hidden or closed.
+  function scheduleCloud() {
+    if (!S.cloud || !pending) return;
+    var wait = Math.max(0, 15000 - (Date.now() - lastCloud));
+    clearTimeout(cloudTimer);
+    cloudTimer = setTimeout(flushCloud, wait);
+  }
+  function flushCloud() {
+    if (!S.cloud || !pending || cloudBusy) return;
+    var job = pending;
+    pending = null;
+    cloudBusy = true;
+    lastCloud = Date.now();
+    S.cloudSave(job.slot, job.text, job.meta, job.state).catch(function (err) {
+      console.warn('Cloud save failed', err);
+      S.cloudError = err.message || String(err);
+      if (!pending) pending = job;
+    }).then(function () { cloudBusy = false; updateStorageNote(); if (pending) scheduleCloud(); });
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flushCloud(); });
+  window.addEventListener('pagehide', flushCloud);
+
+  // Load a slot from whichever copy is newer: this browser or the cloud.
+  async function loadSlot(slot) {
+    var local = parse(await S.get(slot));
+    var meta = await S.cloudMeta(slot);
+    if (meta && (!local || (meta.savedAt || 0) > (local.savedAt || 0))) {
+      try { var cw = parse(await S.cloudLoad(slot)); if (cw) return cw; } catch (e) { console.warn('Cloud load failed', e); }
+    }
+    return local;
+  }
+
+  // ---------- navigation ----------
+  // The game tracks its own route; the address bar's hash follows when the host allows it.
+  HW.go = function (href) {
+    HW.UI.route = href;
+    HW.UI.render();
+    window.scrollTo(0, 0);
+    try { if (location.hash !== href) location.hash = href; } catch (e) { /* hash not available */ }
+  };
+  window.addEventListener('hashchange', function () {
+    if (location.hash === HW.UI.route) return;
+    HW.UI.route = location.hash;
+    HW.UI.render();
+    window.scrollTo(0, 0);
+  });
+
+  // ---------- in-page confirmation (native confirm() is unavailable in hosted pages) ----------
+  HW.ask = function (message, okLabel) {
+    var m = document.getElementById('askModal');
+    document.getElementById('askText').textContent = message;
+    document.getElementById('askOk').textContent = okLabel || 'Continue';
+    m.hidden = false;
+    document.getElementById('askOk').focus();
+    return new Promise(function (resolve) {
+      var finish = function (v) { m.hidden = true; m.onclick = null; resolve(v); };
+      m.onclick = function (e) {
+        if (e.target.id === 'askOk') finish(true);
+        else if (e.target.id === 'askCancel' || e.target === m) finish(false);
+      };
+      HW.ask.cancel = function () { finish(false); };
+    });
+  };
+  function asking() { return !document.getElementById('askModal').hidden; }
+
+  // ---------- modes ----------
   function resetView() { HW.UI.sorts = {}; HW.UI.pages = {}; HW.UI.filters = {}; }
-  // Switch between the sandbox and career worlds; each keeps its own save.
   HW.switchMode = function (mode) {
-    if (busy) return;
+    if (busy) return Promise.resolve();
     setAuto(false);
     HW.UI.closeCeremony();
-    return save().then(function () { return get(mode === 'career' ? 'career' : 'current'); }).then(function (txt) {
-      var w = parse(txt);
+    return save().then(function () { return loadSlot(mode === 'career' ? 'career' : 'current'); }).then(function (w) {
       if (!w && mode === 'career') { toast('No career in progress.'); return; }
       HW.world = w || HW.newWorld({ startYear: 1980 });
       resetView();
-      return put({ mode: mode }).then(function () {
-        location.hash = mode === 'career' ? '#/career' : '#/';
-        HW.UI.render();
-        toast(mode === 'career' ? 'Welcome back to ' + HW.world.career.agency + '.' : 'Back to the sandbox.');
-      });
+      touched = true;
+      save();
+      HW.go(mode === 'career' ? '#/career' : '#/');
+      toast(mode === 'career' ? 'Welcome back to ' + HW.world.career.agency + '.' : 'Back to the sandbox.');
     });
   };
   // Delete the career save and return to the sandbox.
@@ -66,23 +114,26 @@
     if (busy) return;
     HW.UI.closeCeremony();
     HW.careerMeta = null;
-    return put({ career: null, careerMeta: null, mode: 'sandbox' }).then(function () { return get('current'); }).then(function (txt) {
-      HW.world = parse(txt) || HW.newWorld({ startYear: 1980 });
-      resetView();
-      location.hash = '#/career';
-      HW.UI.render();
-      toast('Career abandoned.');
-    });
+    pending = null;
+    return S.put({ career: null, careerMeta: null, mode: 'sandbox' }).catch(function () {})
+      .then(function () { return S.cloudClear('career', { mode: 'sandbox', careerMeta: null }).catch(function () {}); })
+      .then(function () { return loadSlot('current'); })
+      .then(function (w) {
+        HW.world = w || HW.newWorld({ startYear: 1980 });
+        resetView();
+        HW.go('#/career');
+        toast('Career abandoned.');
+      });
   };
   HW.startCareer = function (opts) {
     if (busy) return;
     setAuto(false);
+    touched = true;
     var start = function () {
       HW.world = HW.Career.newCareer(opts);
       resetView();
       save();
-      location.hash = '#/career';
-      HW.UI.render();
+      HW.go('#/career');
       toast(HW.world.career.agency + ' opens its doors in ' + HW.world.year + '.');
     };
     // keep the sandbox safe before replacing the open world
@@ -101,6 +152,16 @@
       '<span class="mb-actions"><a class="btn small" href="#/career">Agency</a><button class="btn small ghost" data-action="toSandbox">Back to sandbox</button></span>';
   }
   HW.UI.afterRender = updateChrome;
+
+  // Where saves are going, shown in the menu; a warning bar when nothing can be saved.
+  function updateStorageNote() {
+    var note = document.getElementById('storageNote'), warn = document.getElementById('storeWarn');
+    var parts = [];
+    parts.push(S.local ? 'Autosaves in this browser after every year.' : 'This browser can\'t store saves here.');
+    if (S.cloud) parts.push(S.cloudError ? 'Cloud backup failed (' + S.cloudError + '); it will retry.' : S.cloudAt ? 'Cloud backup saved at ' + new Date(S.cloudAt).toLocaleTimeString() + '.' : 'Cloud backup is on.');
+    note.textContent = parts.join(' ');
+    warn.hidden = !!(S.local || S.cloud);
+  }
 
   // per-viewer preference, kept in browser storage
   function ceremonyWanted() {
@@ -129,16 +190,18 @@
     document.getElementById('progressBar').style.width = ((frac || 0) * 100) + '%';
   }
 
-  function advance(n) {
-    if (busy) return Promise.resolve();
+  // ---------- advancing time ----------
+  async function advance(n) {
+    if (busy) return;
     if (isCareer(HW.world)) {
       // the agency plays one year at a time: offers have to be answered
       var car = HW.world.career;
       n = 1;
-      if (car.over) { toast('Your agency has folded. Start a new career from the Career Mode tab.'); return Promise.resolve(); }
+      if (car.over) { toast('Your agency has folded. Start a new career from the Career Mode tab.'); return; }
       var idle = car.clients.filter(function (c) { return (car.offers[c.id] || []).length && !(car.accepted[c.id] || []).length; });
-      if (idle.length && !confirm(idle.length + ' client' + (idle.length > 1 ? 's have' : ' has') + ' no role this year and will sit idle (they won\'t like it). Continue?')) return Promise.resolve();
+      if (idle.length && !(await HW.ask(idle.length + ' client' + (idle.length > 1 ? 's have' : ' has') + ' no role this year and will sit idle. Idle clients lose loyalty.', 'Advance anyway'))) return;
     }
+    touched = true;
     busy = true;
     document.body.classList.add('busy');
     var done = 0;
@@ -186,12 +249,12 @@
     var seedTxt = document.getElementById('newSeed').value.trim();
     var seed = seedTxt ? hash(seedTxt) : undefined;
     setAuto(false);
+    touched = true;
     HW.world = HW.newWorld({ startYear: start, seed: seed });
     resetView();
     save();
     closeMenu();
-    location.hash = '#/';
-    HW.UI.render();
+    HW.go('#/');
     toast('A new Hollywood is born — seed ' + HW.world.seed);
   }
   function hash(s) {
@@ -201,11 +264,20 @@
     return h >>> 0;
   }
 
-  function exportSave() {
+  // ---------- save files ----------
+  async function exportSave() {
+    var name = 'hollywood-dynasty-' + (isCareer(HW.world) ? 'career-' : '') + HW.world.year + '.json';
     var blob = new Blob([JSON.stringify(HW.world)], { type: 'application/json' });
+    var dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (dl) {
+      // hosted page: the viewer confirms the download
+      try { await dl.save({ filename: name, data: blob }); }
+      catch (e) { if (e && e.code !== 'declined') toast('Export failed: ' + (e.message || e.code)); }
+      return;
+    }
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'hollywood-dynasty-' + HW.world.year + '.json';
+    a.download = name;
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   }
@@ -218,11 +290,12 @@
         if (w.version !== 2) throw new Error('this save is from an older version');
         if (isCareer(w) && !w.career) throw new Error('damaged career save');
         setAuto(false);
+        touched = true;
         HW.world = w;
+        resetView();
         save();
         closeMenu();
-        location.hash = '#/';
-        HW.UI.render();
+        HW.go(isCareer(w) ? '#/career' : '#/');
         toast('Save loaded — year ' + w.year);
       } catch (e) { toast('Import failed: ' + e.message); }
     };
@@ -231,13 +304,22 @@
 
   function openMenu() {
     var w = HW.world;
-    document.getElementById('saveInfo').textContent = 'Seed ' + w.seed + ' · started ' + w.startYear + ' · ' + w.films.length.toLocaleString() + ' films, ' + w.people.length.toLocaleString() + ' people on record. Autosaves in this browser after every year.';
+    document.getElementById('saveInfo').textContent = 'Seed ' + w.seed + ' · started ' + w.startYear + ' · ' + w.films.length.toLocaleString() + ' films, ' + w.people.length.toLocaleString() + ' people on record.';
+    updateStorageNote();
     document.getElementById('menu').hidden = false;
   }
   function closeMenu() { document.getElementById('menu').hidden = true; }
 
+  // ---------- input ----------
   document.addEventListener('click', function (e) {
     if (e.target.closest('#ceremony a') && !e.target.closest('[data-action]')) HW.UI.closeCeremony(); // following a link leaves the show
+    var link = e.target.closest('a[href^="#/"]');
+    if (link && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
+      e.preventDefault();
+      if (link.dataset.action === 'cerClose') HW.UI.closeCeremony();
+      HW.go(link.getAttribute('href'));
+      return;
+    }
     var t = e.target.closest('[data-action],[data-sort],[data-page],[data-filter],[data-go],[data-follow]');
     if (!t) return;
     if (t.dataset.follow) {
@@ -247,7 +329,7 @@
       toast(on ? 'Following ' + nm + '. Their year will show up in your digest.' : 'Unfollowed ' + nm + '.');
       save(); HW.UI.render(); return;
     }
-    if (t.dataset.go) { location.hash = t.dataset.go; return; }
+    if (t.dataset.go) { HW.go(t.dataset.go); return; }
     if (t.dataset.sort) {
       var p = t.dataset.sort.split(':'), key = p[0], col = +p[1], cur = HW.UI.sorts[key];
       HW.UI.sorts[key] = { c: col, d: cur && cur.c === col ? -cur.d : (t.classList.contains('num') ? -1 : 1) };
@@ -265,7 +347,10 @@
       case 'auto': setAuto(!document.getElementById('autoBtn').classList.contains('on')); break;
       case 'menu': openMenu(); break;
       case 'closeMenu': closeMenu(); break;
-      case 'new': if (confirm('Start a new sandbox world? Your sandbox save will be replaced' + (HW.careerMeta ? ' (your career is kept)' : '') + '.')) newWorld(); break;
+      case 'new':
+        HW.ask('Start a new sandbox world? Your sandbox save will be replaced' + (HW.careerMeta ? ' (your career is kept)' : '') + '.', 'Start new world')
+          .then(function (ok) { if (ok) newWorld(); });
+        break;
       case 'toSandbox': HW.switchMode('sandbox'); break;
       case 'toCareer': HW.switchMode('career'); break;
       case 'export': exportSave(); break;
@@ -302,6 +387,7 @@
   });
   document.addEventListener('keydown', function (e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (asking()) { if (e.key === 'Escape') HW.ask.cancel(); return; }
     if (HW.UI.ceremonyOpen()) {
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); HW.UI.ceremonyNext(); }
       if (e.key === 'Escape') HW.UI.closeCeremony();
@@ -312,17 +398,44 @@
   });
   document.addEventListener('mousemove', function (e) { HW.UI.chartHover(e); });
   document.addEventListener('touchstart', function (e) { if (e.touches[0]) HW.UI.chartHover({ target: e.target, clientX: e.touches[0].clientX }); }, { passive: true });
-  window.addEventListener('hashchange', function () { HW.UI.render(); window.scrollTo(0, 0); });
 
-  Promise.all([get('mode'), get('careerMeta')]).then(function (r) {
-    HW.careerMeta = r[1];
-    var mode = r[0] === 'career' && r[1] ? 'career' : 'sandbox';
-    return get(mode === 'career' ? 'career' : 'current').then(function (txt) {
-      var w = parse(txt);
-      if (txt && !w) toast('That save is from an older version and can\'t load. A fresh world has started.');
-      HW.world = w || HW.newWorld({ startYear: 1980 });
-      if (!w) save();
-      HW.UI.render();
-    });
-  });
+  // ---------- boot ----------
+  // Render from this browser's save first; when the cloud answers (hosted page only), pick up a newer save from another device.
+  HW.UI.route = location.hash || '#/';
+  (async function boot() {
+    await S.probe();
+    var mode = await S.get('mode');
+    HW.careerMeta = await S.get('careerMeta');
+    var slot = mode === 'career' && HW.careerMeta ? 'career' : 'current';
+    var txt = await S.get(slot), w = parse(txt);
+    if (txt && !w) toast('That save is from an older version and can\'t load. A fresh world has started.');
+    HW.world = w || HW.newWorld({ startYear: 1980 });
+    HW.UI.render();
+    updateStorageNote();
+    if (!w) save();
+
+    var cloud = await S.initCloud();
+    updateStorageNote();
+    if (!cloud) return;
+    var st = await S.cloudState();
+    if (st && st.careerMeta && !HW.careerMeta) HW.careerMeta = st.careerMeta;
+    var cloudSlot = st && st.mode === 'career' && HW.careerMeta ? 'career' : slot;
+    var meta = await S.cloudMeta(cloudSlot);
+    // a world created just now on this device always yields to a real save in the cloud
+    if (meta && !touched && (!w || cloudSlot !== slotOf(HW.world) || (meta.savedAt || 0) > (HW.world.savedAt || 0))) {
+      var cw = parse(await S.cloudLoad(cloudSlot).catch(function () { return null; }));
+      if (cw && !touched) {
+        pending = null;
+        HW.world = cw;
+        resetView();
+        S.put({ mode: isCareer(cw) ? 'career' : 'sandbox' }).catch(function () {});
+        var e = {}; e[slotOf(cw)] = JSON.stringify(cw); S.put(e).catch(function () {});
+        HW.go(isCareer(cw) ? '#/career' : HW.UI.route);
+        toast('Picked up your saved game from the cloud (year ' + cw.year + ').');
+        return;
+      }
+    }
+    // no newer cloud copy: make sure the cloud has this one
+    if (!meta || (HW.world.savedAt || 0) > (meta.savedAt || 0)) save();
+  })();
 })(globalThis.HW = globalThis.HW || {});

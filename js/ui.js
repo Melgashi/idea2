@@ -104,7 +104,7 @@
   UI.addRoute = function (name, fn) { routes[name] = fn; };
 
   UI.render = function () {
-    var hash = location.hash.replace(/^#\/?/, '');
+    var hash = (UI.route != null ? UI.route : location.hash).replace(/^#\/?/, '');
     var parts = hash.split('/');
     var fn = routes[parts[0]] || overview;
     var html;
