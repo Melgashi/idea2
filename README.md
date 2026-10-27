@@ -59,6 +59,10 @@ After each single-year advance, the ceremony plays as an event: minor awards fir
 
 Relationships appear on character sheets, in bios, in the news and in your digest.
 
+### Box office reports
+
+Every film page explains its result. It shows a verdict (*Smash hit*, *Hit*, *Solid earner*, *Broke even*, *Disappointment*, *Flop*, *Box office disaster*) and what the film needed to break even, then ranks the factors behind the result, both for and against: audience reaction compared with similar films, reviews, the genre's appetite that year, the genre's natural audience size, release month, competition, sequel goodwill or fatigue, buzz and marketing, star power, budget overruns and industry events. Big flops in the news name what insiders blame, and your digest says why a followed studio's film bombed.
+
 ### Film titles
 
 Each genre has its own vocabulary and title patterns, plus hand-written titles: Westerns get *Showdown at Silver Creek*, sci-fi gets *Last Light on Callisto*, comedies get *Who Invited Virginia?*. Recently used words and patterns are avoided, and an old title that comes back is marked as a remake.

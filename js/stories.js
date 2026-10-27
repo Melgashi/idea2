@@ -218,4 +218,50 @@
     return out;
   };
   function His(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  // ---------- box office post-mortem ----------
+  // Explains a film's result from the factors stored at release (f.why).
+  // Each reason: { good, impact (log of its effect), phrase (for summaries), text (full sentence) }.
+  HW.postMortem = function (w, f) {
+    var y = f.why, G = HW.GENRES[f.genre], g = f.genre.toLowerCase();
+    var verdict = f.tags.indexOf('flop') >= 0 ? (f.profit < -100 ? 'Box office disaster' : 'Flop') : null;
+    var ratio = y ? f.gross / y.be : 0;
+    if (!verdict) verdict = ratio >= 3 ? 'Smash hit' : ratio >= 1.6 ? 'Hit' : ratio >= 1.1 ? 'Solid earner' : ratio >= 0.9 ? 'Broke even' : 'Disappointment';
+    var good = ratio >= 1.1 && f.tags.indexOf('flop') < 0;
+    var out = { verdict: verdict, good: good, ratio: ratio, reasons: [], breakEven: y ? y.be : null };
+    if (!y) return out;
+    var R = function (mult, pos, neg, posPhrase, negPhrase) {
+      var imp = Math.log(mult);
+      if (Math.abs(imp) < 0.1) return;
+      out.reasons.push(imp > 0 ? { good: true, impact: imp, text: pos, phrase: posPhrase } : { good: false, impact: imp, text: neg, phrase: negPhrase });
+    };
+    var monthName = HW.MONTHS[f.month];
+    var ev = (w.history.filter(function (h) { return h.y === f.year; })[0] || {}).ev;
+    R(y.aud, 'Audiences loved it: an audience score of ' + f.audience + ', against ' + y.sa + ' for comparable films.',
+      'Audiences didn\'t connect: an audience score of ' + f.audience + ', against ' + y.sa + ' for comparable films.', 'audience love', 'poor word of mouth');
+    R(y.crit, 'Strong reviews (critics ' + f.critic + ') brought in extra viewers.', 'Bad reviews (critics ' + f.critic + ') kept people away.', 'rave reviews', 'bad reviews');
+    R(y.tr, cap(g) + ' films were in demand that year (appetite ' + y.tr.toFixed(2) + '×).', cap(g) + ' films were out of fashion that year (appetite ' + y.tr.toFixed(2) + '×).',
+      'the ' + g + ' boom', 'a tired genre');
+    R(G.appeal, cap(g) + ' films reliably draw big crowds.', cap(g) + ' films have a smaller natural audience.', 'a crowd-pleasing genre', 'a niche genre');
+    R(y.mo, 'It opened in ' + monthName + ', peak moviegoing season.', 'It opened in ' + monthName + ', one of the slowest months of the year.', 'a prime release date', 'a weak release date');
+    if (y.rv >= 3) R(y.rvm, '', 'It opened against ' + y.rv + ' other releases of similar size in ' + monthName + '.', '', 'crowded competition');
+    if (f.seqOf != null) R(y.sq, 'Fans of the earlier films turned out again.', 'Sequel fatigue: fewer fans came back this time.', 'returning fans', 'sequel fatigue');
+    // the random part of box office reads, in practice, as buzz: marketing, timing in the culture, word on the street
+    R(y.lk, 'Great buzz: the marketing landed and it played bigger than its quality alone suggested.',
+      'The marketing never landed: it played smaller than its quality alone suggested.', 'great buzz', 'marketing that missed');
+    if (ev) R(y.ev, 'The market was on its side that year (' + ev.toLowerCase() + ').', 'The whole industry suffered that year (' + ev.toLowerCase() + ').', 'a strong market', 'a weak market');
+    if (y.sl > 1) R(y.sl, 'Word of mouth turned it into a sleeper hit.', '', 'word of mouth', '');
+    // star power and costs aren't multipliers, so they get a fixed weight
+    var lead = f.cast.filter(function (c) { return c.r === 'L'; }).map(function (c) { return w.people[c.p]; }).sort(function (a, b) { return b.fame - a.fame; })[0];
+    if (y.st >= 0.3 && lead) out.reasons.push({ good: true, impact: 0.3 + y.st * 0.5, text: 'Star power: ' + lead.name + ' alone was worth a big share of the gross.', phrase: 'star power' });
+    else if (y.st < 0.08 && f.budget >= 50) out.reasons.push({ good: false, impact: -0.25, text: 'No bankable stars to sell a ' + HW.money(f.budget) + ' production.', phrase: 'a lack of stars' });
+    if (f.overrun >= 0.15) out.reasons.push({ good: false, impact: -f.overrun * 1.5, text: 'The production went ' + Math.round(f.overrun * 100) + '% over budget.', phrase: 'a blown budget' });
+    if (y.cap) out.reasons.push({ good: false, impact: -0.05, text: 'Even blockbusters hit a ceiling: the market was close to saturated.', phrase: 'a saturated market' });
+    out.reasons.sort(function (a, b) {
+      // the reasons that match the outcome come first
+      var am = a.good === good ? 1 : 0, bm = b.good === good ? 1 : 0;
+      return bm - am || Math.abs(b.impact) - Math.abs(a.impact);
+    });
+    return out;
+  };
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 })(globalThis.HW = globalThis.HW || {});

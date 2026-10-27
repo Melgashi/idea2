@@ -326,17 +326,25 @@
       var base = 2 + Math.pow(f.budget, 0.95) * 1.7 + star * 0.55 + dirFame * 0.2;
       var rivals = (byMonth[f.month] || []).filter(function (o) { return o !== f && o.budget >= f.budget * 0.6; }).length;
       var seg = ctx.seg[w.studios[f.studio].tier];
-      var mult = Math.exp((f.audience - seg.aud) / 32) * Math.exp((f.critic - seg.crit) / 110) *
-        Math.pow(w.trends[f.genre], 0.9) * G.appeal * MONTH_BO[f.month] * ctx.mods.boxOffice /
-        (1 + 0.05 * rivals) * Math.exp(rng.normal(0, 0.38));
-      if (G.spectacle >= 0.6) mult *= ctx.mods.spectacleBO;
-      if (G.awards >= 3) mult *= ctx.mods.prestigeBO;
+      // each factor is kept separately so the film page can explain the result later
+      var m = {
+        aud: Math.exp((f.audience - seg.aud) / 32),
+        crit: Math.exp((f.critic - seg.crit) / 110),
+        trend: Math.pow(w.trends[f.genre], 0.9),
+        month: MONTH_BO[f.month],
+        rivals: 1 / (1 + 0.05 * rivals),
+        luck: Math.exp(rng.normal(0, 0.38)),
+        event: ctx.mods.boxOffice * (G.spectacle >= 0.6 ? ctx.mods.spectacleBO : 1) * (G.awards >= 3 ? ctx.mods.prestigeBO : 1),
+        seq: 1, sleeper: 1
+      };
       if (f.seqOf != null) {
         var prev = w.films[f.seqOf];
-        mult *= clamp(prev.audience / 65, 0.7, 1.3) * [1, 1, 1.05, 0.9, 0.78, 0.68][f.seqNum] * Math.pow(0.93, ctx.seqCount[f.genre] || 0);
+        m.seq = clamp(prev.audience / 65, 0.7, 1.3) * [1, 1, 1.05, 0.9, 0.78, 0.68][f.seqNum] * Math.pow(0.93, ctx.seqCount[f.genre] || 0);
         base += Math.min(prev.gross, 1200) * 0.15;
       }
-      if (f.budget < 20 && f.critic >= 84 && rng.chance(0.35)) { mult *= rng.range(2.5, 7); f.tags.push('sleeper'); }
+      if (f.budget < 20 && f.critic >= 84 && rng.chance(0.35)) { m.sleeper = rng.range(2.5, 7); f.tags.push('sleeper'); }
+      var mult = G.appeal;
+      for (var mk in m) mult *= m[mk];
       var gross = base * mult;
       if (gross > 800) gross = 800 + (gross - 800) / (1 + (gross - 800) / 1600); // even mega-hits saturate
       f.gross = Math.round(gross * 10) / 10;
@@ -344,6 +352,12 @@
       var cost = f.budget * (1 + f.overrun) + marketing;
       var revenue = f.gross * 0.5 + f.gross * 0.12 * ctx.mods.ancillary;
       f.profit = Math.round((revenue - cost) * 10) / 10;
+      var r2 = function (v) { return Math.round(v * 100) / 100; };
+      f.why = {
+        aud: r2(m.aud), sa: Math.round(seg.aud), crit: r2(m.crit), sc: Math.round(seg.crit), tr: r2(m.trend), mo: r2(m.month),
+        rv: rivals, rvm: r2(m.rivals), lk: r2(m.luck), ev: r2(m.event), sq: r2(m.seq), sl: r2(m.sleeper),
+        st: r2(star * 0.55 / base), be: Math.round(cost / (0.5 + 0.12 * ctx.mods.ancillary) * 10) / 10, cap: gross > 800 ? 1 : 0
+      };
       if (f.profit < -40 || (f.profit < 0 && f.gross < f.budget * 0.6 && f.budget > 30)) f.tags.push('flop');
       if (f.gross / f.budget > 5 && f.gross > 100) f.tags.push('smash');
 
@@ -364,7 +378,10 @@
     }
     ctx.films.forEach(function (f) {
       if (f.tags.indexOf('sleeper') >= 0) HW.addNews(w, Y, 'Sleeper hit: tiny "' + f.title + '" turns a ' + HW.money(f.budget) + ' budget into ' + HW.money(f.gross) + '.', 'boxoffice', { f: f.id });
-      if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) HW.addNews(w, Y, 'Disaster: "' + f.title + '" bombs, costing ' + w.studios[f.studio].name + ' ' + HW.money(-f.profit) + '.', 'boxoffice', { f: f.id });
+      if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) {
+        var pm = HW.postMortem(w, f), blame = pm.reasons.slice(0, 2).map(function (x) { return x.phrase; });
+        HW.addNews(w, Y, 'Disaster: "' + f.title + '" bombs, costing ' + w.studios[f.studio].name + ' ' + HW.money(-f.profit) + (blame.length ? '. Insiders blame ' + blame.join(' and ') : '') + '.', 'boxoffice', { f: f.id });
+      }
     });
   }
 

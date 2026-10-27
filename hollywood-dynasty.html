@@ -370,6 +370,20 @@ body.noscroll { overflow: hidden; }
 .cer-sum li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #3a2f1c; flex-wrap: wrap; }
 .cer-foot { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
 @media (prefers-reduced-motion: reduce) { .envelope.opening span, .cer-noms li.won { animation: none; } }
+
+/* box office report */
+.bo-report { margin-bottom: 16px; }
+.bo-report p { margin: 0 0 6px; }
+.verdict { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 12px; border: 1px solid var(--line); }
+.v-good { color: var(--green); border-color: #2f5a3d; }
+.v-even { color: var(--gold2); border-color: #6b5426; }
+.v-bad { color: #e7a7a0; border-color: #6a2e28; }
+.reasons { list-style: none; margin: 0; padding: 0; }
+.reasons li { display: grid; grid-template-columns: 18px 1fr; padding: 4px 0; border-bottom: 1px solid #2a241b; }
+.reasons li:last-child { border-bottom: 0; }
+.reasons .ic { font-size: 11px; padding-top: 2px; }
+.reasons li.up .ic { color: var(--green); }
+.reasons li.down .ic { color: var(--red); }
 </style>
 </head>
 <body>
@@ -1401,17 +1415,25 @@ body.noscroll { overflow: hidden; }
       var base = 2 + Math.pow(f.budget, 0.95) * 1.7 + star * 0.55 + dirFame * 0.2;
       var rivals = (byMonth[f.month] || []).filter(function (o) { return o !== f && o.budget >= f.budget * 0.6; }).length;
       var seg = ctx.seg[w.studios[f.studio].tier];
-      var mult = Math.exp((f.audience - seg.aud) / 32) * Math.exp((f.critic - seg.crit) / 110) *
-        Math.pow(w.trends[f.genre], 0.9) * G.appeal * MONTH_BO[f.month] * ctx.mods.boxOffice /
-        (1 + 0.05 * rivals) * Math.exp(rng.normal(0, 0.38));
-      if (G.spectacle >= 0.6) mult *= ctx.mods.spectacleBO;
-      if (G.awards >= 3) mult *= ctx.mods.prestigeBO;
+      // each factor is kept separately so the film page can explain the result later
+      var m = {
+        aud: Math.exp((f.audience - seg.aud) / 32),
+        crit: Math.exp((f.critic - seg.crit) / 110),
+        trend: Math.pow(w.trends[f.genre], 0.9),
+        month: MONTH_BO[f.month],
+        rivals: 1 / (1 + 0.05 * rivals),
+        luck: Math.exp(rng.normal(0, 0.38)),
+        event: ctx.mods.boxOffice * (G.spectacle >= 0.6 ? ctx.mods.spectacleBO : 1) * (G.awards >= 3 ? ctx.mods.prestigeBO : 1),
+        seq: 1, sleeper: 1
+      };
       if (f.seqOf != null) {
         var prev = w.films[f.seqOf];
-        mult *= clamp(prev.audience / 65, 0.7, 1.3) * [1, 1, 1.05, 0.9, 0.78, 0.68][f.seqNum] * Math.pow(0.93, ctx.seqCount[f.genre] || 0);
+        m.seq = clamp(prev.audience / 65, 0.7, 1.3) * [1, 1, 1.05, 0.9, 0.78, 0.68][f.seqNum] * Math.pow(0.93, ctx.seqCount[f.genre] || 0);
         base += Math.min(prev.gross, 1200) * 0.15;
       }
-      if (f.budget < 20 && f.critic >= 84 && rng.chance(0.35)) { mult *= rng.range(2.5, 7); f.tags.push('sleeper'); }
+      if (f.budget < 20 && f.critic >= 84 && rng.chance(0.35)) { m.sleeper = rng.range(2.5, 7); f.tags.push('sleeper'); }
+      var mult = G.appeal;
+      for (var mk in m) mult *= m[mk];
       var gross = base * mult;
       if (gross > 800) gross = 800 + (gross - 800) / (1 + (gross - 800) / 1600); // even mega-hits saturate
       f.gross = Math.round(gross * 10) / 10;
@@ -1419,6 +1441,12 @@ body.noscroll { overflow: hidden; }
       var cost = f.budget * (1 + f.overrun) + marketing;
       var revenue = f.gross * 0.5 + f.gross * 0.12 * ctx.mods.ancillary;
       f.profit = Math.round((revenue - cost) * 10) / 10;
+      var r2 = function (v) { return Math.round(v * 100) / 100; };
+      f.why = {
+        aud: r2(m.aud), sa: Math.round(seg.aud), crit: r2(m.crit), sc: Math.round(seg.crit), tr: r2(m.trend), mo: r2(m.month),
+        rv: rivals, rvm: r2(m.rivals), lk: r2(m.luck), ev: r2(m.event), sq: r2(m.seq), sl: r2(m.sleeper),
+        st: r2(star * 0.55 / base), be: Math.round(cost / (0.5 + 0.12 * ctx.mods.ancillary) * 10) / 10, cap: gross > 800 ? 1 : 0
+      };
       if (f.profit < -40 || (f.profit < 0 && f.gross < f.budget * 0.6 && f.budget > 30)) f.tags.push('flop');
       if (f.gross / f.budget > 5 && f.gross > 100) f.tags.push('smash');
 
@@ -1439,7 +1467,10 @@ body.noscroll { overflow: hidden; }
     }
     ctx.films.forEach(function (f) {
       if (f.tags.indexOf('sleeper') >= 0) HW.addNews(w, Y, 'Sleeper hit: tiny "' + f.title + '" turns a ' + HW.money(f.budget) + ' budget into ' + HW.money(f.gross) + '.', 'boxoffice', { f: f.id });
-      if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) HW.addNews(w, Y, 'Disaster: "' + f.title + '" bombs, costing ' + w.studios[f.studio].name + ' ' + HW.money(-f.profit) + '.', 'boxoffice', { f: f.id });
+      if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) {
+        var pm = HW.postMortem(w, f), blame = pm.reasons.slice(0, 2).map(function (x) { return x.phrase; });
+        HW.addNews(w, Y, 'Disaster: "' + f.title + '" bombs, costing ' + w.studios[f.studio].name + ' ' + HW.money(-f.profit) + (blame.length ? '. Insiders blame ' + blame.join(' and ') : '') + '.', 'boxoffice', { f: f.id });
+      }
     });
   }
 
@@ -2201,6 +2232,52 @@ body.noscroll { overflow: hidden; }
     return out;
   };
   function His(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  // ---------- box office post-mortem ----------
+  // Explains a film's result from the factors stored at release (f.why).
+  // Each reason: { good, impact (log of its effect), phrase (for summaries), text (full sentence) }.
+  HW.postMortem = function (w, f) {
+    var y = f.why, G = HW.GENRES[f.genre], g = f.genre.toLowerCase();
+    var verdict = f.tags.indexOf('flop') >= 0 ? (f.profit < -100 ? 'Box office disaster' : 'Flop') : null;
+    var ratio = y ? f.gross / y.be : 0;
+    if (!verdict) verdict = ratio >= 3 ? 'Smash hit' : ratio >= 1.6 ? 'Hit' : ratio >= 1.1 ? 'Solid earner' : ratio >= 0.9 ? 'Broke even' : 'Disappointment';
+    var good = ratio >= 1.1 && f.tags.indexOf('flop') < 0;
+    var out = { verdict: verdict, good: good, ratio: ratio, reasons: [], breakEven: y ? y.be : null };
+    if (!y) return out;
+    var R = function (mult, pos, neg, posPhrase, negPhrase) {
+      var imp = Math.log(mult);
+      if (Math.abs(imp) < 0.1) return;
+      out.reasons.push(imp > 0 ? { good: true, impact: imp, text: pos, phrase: posPhrase } : { good: false, impact: imp, text: neg, phrase: negPhrase });
+    };
+    var monthName = HW.MONTHS[f.month];
+    var ev = (w.history.filter(function (h) { return h.y === f.year; })[0] || {}).ev;
+    R(y.aud, 'Audiences loved it: an audience score of ' + f.audience + ', against ' + y.sa + ' for comparable films.',
+      'Audiences didn\'t connect: an audience score of ' + f.audience + ', against ' + y.sa + ' for comparable films.', 'audience love', 'poor word of mouth');
+    R(y.crit, 'Strong reviews (critics ' + f.critic + ') brought in extra viewers.', 'Bad reviews (critics ' + f.critic + ') kept people away.', 'rave reviews', 'bad reviews');
+    R(y.tr, cap(g) + ' films were in demand that year (appetite ' + y.tr.toFixed(2) + '×).', cap(g) + ' films were out of fashion that year (appetite ' + y.tr.toFixed(2) + '×).',
+      'the ' + g + ' boom', 'a tired genre');
+    R(G.appeal, cap(g) + ' films reliably draw big crowds.', cap(g) + ' films have a smaller natural audience.', 'a crowd-pleasing genre', 'a niche genre');
+    R(y.mo, 'It opened in ' + monthName + ', peak moviegoing season.', 'It opened in ' + monthName + ', one of the slowest months of the year.', 'a prime release date', 'a weak release date');
+    if (y.rv >= 3) R(y.rvm, '', 'It opened against ' + y.rv + ' other releases of similar size in ' + monthName + '.', '', 'crowded competition');
+    if (f.seqOf != null) R(y.sq, 'Fans of the earlier films turned out again.', 'Sequel fatigue: fewer fans came back this time.', 'returning fans', 'sequel fatigue');
+    // the random part of box office reads, in practice, as buzz: marketing, timing in the culture, word on the street
+    R(y.lk, 'Great buzz: the marketing landed and it played bigger than its quality alone suggested.',
+      'The marketing never landed: it played smaller than its quality alone suggested.', 'great buzz', 'marketing that missed');
+    if (ev) R(y.ev, 'The market was on its side that year (' + ev.toLowerCase() + ').', 'The whole industry suffered that year (' + ev.toLowerCase() + ').', 'a strong market', 'a weak market');
+    if (y.sl > 1) R(y.sl, 'Word of mouth turned it into a sleeper hit.', '', 'word of mouth', '');
+    // star power and costs aren't multipliers, so they get a fixed weight
+    var lead = f.cast.filter(function (c) { return c.r === 'L'; }).map(function (c) { return w.people[c.p]; }).sort(function (a, b) { return b.fame - a.fame; })[0];
+    if (y.st >= 0.3 && lead) out.reasons.push({ good: true, impact: 0.3 + y.st * 0.5, text: 'Star power: ' + lead.name + ' alone was worth a big share of the gross.', phrase: 'star power' });
+    else if (y.st < 0.08 && f.budget >= 50) out.reasons.push({ good: false, impact: -0.25, text: 'No bankable stars to sell a ' + HW.money(f.budget) + ' production.', phrase: 'a lack of stars' });
+    if (f.overrun >= 0.15) out.reasons.push({ good: false, impact: -f.overrun * 1.5, text: 'The production went ' + Math.round(f.overrun * 100) + '% over budget.', phrase: 'a blown budget' });
+    if (y.cap) out.reasons.push({ good: false, impact: -0.05, text: 'Even blockbusters hit a ceiling: the market was close to saturated.', phrase: 'a saturated market' });
+    out.reasons.sort(function (a, b) {
+      // the reasons that match the outcome come first
+      var am = a.good === good ? 1 : 0, bm = b.good === good ? 1 : 0;
+      return bm - am || Math.abs(b.impact) - Math.abs(a.impact);
+    });
+    return out;
+  };
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 })(globalThis.HW = globalThis.HW || {});
 </script>
   <script>
@@ -2787,6 +2864,7 @@ body.noscroll { overflow: hidden; }
       '<div class="stats-row">' + stat('Budget', money(f.budget)) + stat('Worldwide gross', money(f.gross)) +
       stat('Studio profit', '<span class="' + (f.profit >= 0 ? 'pos' : 'neg') + '">' + money(f.profit) + '</span>') +
       stat('Critics', scoreBadge(f.critic)) + stat('Audience', scoreBadge(f.audience)) + '</div></div></div>';
+    h += boxOfficeReport(f);
     h += '<div class="grid two">';
     h += card('Crew', '<dl class="kv"><dt>Director</dt><dd>' + pLink(f.director) + '</dd><dt>Screenplay</dt><dd>' + pLink(f.writer) + '</dd>' +
       '<dt>Cinematography</dt><dd>' + pLink(f.dp) + '</dd><dt>Music</dt><dd>' + pLink(f.composer) + '</dd>' +
@@ -2920,6 +2998,23 @@ body.noscroll { overflow: hidden; }
   }
 
   // ---------- news ----------
+  // ---------- box office report ----------
+  function boxOfficeReport(f) {
+    var pm = HW.postMortem(W(), f);
+    if (!pm.breakEven) return '';
+    var match = pm.reasons.filter(function (r) { return r.good === pm.good; }).slice(0, 4);
+    var against = pm.reasons.filter(function (r) { return r.good !== pm.good; }).slice(0, 2);
+    var li = function (r) { return '<li class="' + (r.good ? 'up' : 'down') + '"><span class="ic" aria-hidden="true">' + (r.good ? '▲' : '▼') + '</span>' + esc(r.text) + '</li>'; };
+    var tone = pm.good ? 'good' : pm.ratio >= 0.9 ? 'even' : 'bad';
+    var h = '<section class="card bo-report"><div class="story-head"><h3>Box office report</h3><span class="verdict v-' + tone + '">' + pm.verdict + '</span></div>' +
+      '<p>' + esc(f.title) + ' cost ' + money(f.budget * (1 + f.overrun)) + ' to make plus about ' + money(f.budget * 0.45 + 0.5) + ' to market, so it needed roughly <b>' + money(pm.breakEven) +
+      '</b> worldwide to break even. It took <b>' + money(f.gross) + '</b> (' + pm.ratio.toFixed(1) + '× break-even).</p>';
+    if (match.length) h += '<h4>' + (pm.good ? 'Why it worked' : tone === 'even' ? 'What held it back' : 'Why it ' + (f.tags.indexOf('flop') >= 0 ? 'flopped' : 'disappointed')) + '</h4><ul class="reasons">' + match.map(li).join('') + '</ul>';
+    else h += '<p class="muted">No single factor stood out: it performed about as expected for a ' + f.genre.toLowerCase() + ' film of its size.</p>';
+    if (against.length) h += '<h4>' + (pm.good ? 'Working against it' : 'Working in its favor') + '</h4><ul class="reasons">' + against.map(li).join('') + '</ul>';
+    return h + '</section>';
+  }
+
   // ---------- relationships ----------
   var REL_ICON = { partner: '🎬', duo: '🤝', feud: '⚡', rival: '⚔' };
   function relationships(p) {
@@ -2999,7 +3094,7 @@ body.noscroll { overflow: hidden; }
           var top = mine.reduce(function (a, b) { return b.gross > a.gross ? b : a; });
           lines.push('Biggest release: ' + fLink(top.id) + ' (' + money(top.gross) + ')' + tags(top));
           var bomb = mine.filter(function (x) { return x.tags.indexOf('flop') >= 0; })[0];
-          if (bomb) lines.push('Bombed: ' + fLink(bomb.id));
+          if (bomb) { var why = HW.postMortem(w, bomb).reasons[0]; lines.push('Bombed: ' + fLink(bomb.id) + (why && !why.good ? ' (' + why.phrase + ')' : '')); }
         }
         if (r.w) lines.push('🏆 ' + r.w + ' Golden Laurel' + (r.w > 1 ? 's' : '') + ' from ' + r.nm + ' nominations');
         if (prev && prev.tier !== r.tier) lines.push((({ Major: 3, Mid: 2, Indie: 1 })[r.tier] > ({ Major: 3, Mid: 2, Indie: 1 })[prev.tier] ? 'Promoted to ' : 'Downsized to ') + r.tier);

@@ -443,6 +443,7 @@
       '<div class="stats-row">' + stat('Budget', money(f.budget)) + stat('Worldwide gross', money(f.gross)) +
       stat('Studio profit', '<span class="' + (f.profit >= 0 ? 'pos' : 'neg') + '">' + money(f.profit) + '</span>') +
       stat('Critics', scoreBadge(f.critic)) + stat('Audience', scoreBadge(f.audience)) + '</div></div></div>';
+    h += boxOfficeReport(f);
     h += '<div class="grid two">';
     h += card('Crew', '<dl class="kv"><dt>Director</dt><dd>' + pLink(f.director) + '</dd><dt>Screenplay</dt><dd>' + pLink(f.writer) + '</dd>' +
       '<dt>Cinematography</dt><dd>' + pLink(f.dp) + '</dd><dt>Music</dt><dd>' + pLink(f.composer) + '</dd>' +
@@ -576,6 +577,23 @@
   }
 
   // ---------- news ----------
+  // ---------- box office report ----------
+  function boxOfficeReport(f) {
+    var pm = HW.postMortem(W(), f);
+    if (!pm.breakEven) return '';
+    var match = pm.reasons.filter(function (r) { return r.good === pm.good; }).slice(0, 4);
+    var against = pm.reasons.filter(function (r) { return r.good !== pm.good; }).slice(0, 2);
+    var li = function (r) { return '<li class="' + (r.good ? 'up' : 'down') + '"><span class="ic" aria-hidden="true">' + (r.good ? '▲' : '▼') + '</span>' + esc(r.text) + '</li>'; };
+    var tone = pm.good ? 'good' : pm.ratio >= 0.9 ? 'even' : 'bad';
+    var h = '<section class="card bo-report"><div class="story-head"><h3>Box office report</h3><span class="verdict v-' + tone + '">' + pm.verdict + '</span></div>' +
+      '<p>' + esc(f.title) + ' cost ' + money(f.budget * (1 + f.overrun)) + ' to make plus about ' + money(f.budget * 0.45 + 0.5) + ' to market, so it needed roughly <b>' + money(pm.breakEven) +
+      '</b> worldwide to break even. It took <b>' + money(f.gross) + '</b> (' + pm.ratio.toFixed(1) + '× break-even).</p>';
+    if (match.length) h += '<h4>' + (pm.good ? 'Why it worked' : tone === 'even' ? 'What held it back' : 'Why it ' + (f.tags.indexOf('flop') >= 0 ? 'flopped' : 'disappointed')) + '</h4><ul class="reasons">' + match.map(li).join('') + '</ul>';
+    else h += '<p class="muted">No single factor stood out: it performed about as expected for a ' + f.genre.toLowerCase() + ' film of its size.</p>';
+    if (against.length) h += '<h4>' + (pm.good ? 'Working against it' : 'Working in its favor') + '</h4><ul class="reasons">' + against.map(li).join('') + '</ul>';
+    return h + '</section>';
+  }
+
   // ---------- relationships ----------
   var REL_ICON = { partner: '🎬', duo: '🤝', feud: '⚡', rival: '⚔' };
   function relationships(p) {
@@ -655,7 +673,7 @@
           var top = mine.reduce(function (a, b) { return b.gross > a.gross ? b : a; });
           lines.push('Biggest release: ' + fLink(top.id) + ' (' + money(top.gross) + ')' + tags(top));
           var bomb = mine.filter(function (x) { return x.tags.indexOf('flop') >= 0; })[0];
-          if (bomb) lines.push('Bombed: ' + fLink(bomb.id));
+          if (bomb) { var why = HW.postMortem(w, bomb).reasons[0]; lines.push('Bombed: ' + fLink(bomb.id) + (why && !why.good ? ' (' + why.phrase + ')' : '')); }
         }
         if (r.w) lines.push('🏆 ' + r.w + ' Golden Laurel' + (r.w > 1 ? 's' : '') + ' from ' + r.nm + ' nominations');
         if (prev && prev.tier !== r.tier) lines.push((({ Major: 3, Mid: 2, Indie: 1 })[r.tier] > ({ Major: 3, Mid: 2, Indie: 1 })[prev.tier] ? 'Promoted to ' : 'Downsized to ') + r.tier);
