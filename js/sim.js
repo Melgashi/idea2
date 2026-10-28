@@ -29,7 +29,6 @@
     peopleYearEnd(w, ctx);
     HW.detectStories(w, ctx);
     recordHistory(w, ctx);
-    if (w.career) HW.Career.afterYear(w, ctx);
     w.year++;
     w.rngState = rng.s;
     return ctx;
@@ -79,21 +78,22 @@
     return c;
   }
 
-  function produceFilms(w, ctx) {
-    var rng = ctx.rng, Y = ctx.year;
-    // career mode: agency clients only work through offers the player accepted
-    var clients = w.career ? HW.Career.clientSet(w) : {};
-    // some people sit the year out
+  // some people sit the year out
+  function restRoll(w, ctx, exclude) {
+    var rng = ctx.rng;
     w.people.forEach(function (p) {
-      if (p.status !== 'active' || clients[p.id]) return;
+      if (p.status !== 'active' || (exclude && exclude[p.id])) return;
       var restP = HW.has(p, 'reclusive') ? 0.5 : 0.08;
       if (rng.chance(restP)) ctx.resting[p.id] = 1;
     });
+  }
 
-    var pools = {};
+  // Who can be hired right now, their fees, and the relationship index used by casting.
+  function buildPools(w, ctx, exclude) {
+    var Y = ctx.year, pools = {};
     HW.ROLE_KEYS.forEach(function (r) { pools[r] = []; });
     w.people.forEach(function (p) {
-      if (p.status === 'active' && !ctx.resting[p.id] && !clients[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
+      if (p.status === 'active' && !ctx.resting[p.id] && !(exclude && exclude[p.id]) && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
     });
     ctx.pools = pools;
     // index active relationships by person for fast casting lookups
@@ -108,6 +108,12 @@
     w.people.forEach(function (p) { if (p.status === 'active') ctx.fees[p.id] = HW.fee(p); });
     ctx.pools.actorM = pools.actor.filter(function (p) { return p.gender === 'M'; });
     ctx.pools.actorF = pools.actor.filter(function (p) { return p.gender === 'F'; });
+  }
+
+  function produceFilms(w, ctx) {
+    var rng = ctx.rng;
+    restRoll(w, ctx);
+    buildPools(w, ctx);
 
     var projects = [];
     w.studios.forEach(function (s) {
@@ -121,11 +127,7 @@
     });
     // bigger productions get first pick of talent (with some shuffle)
     projects.sort(function (a, b) { return b.budget * rng.range(0.7, 1.3) - a.budget * rng.range(0.7, 1.3); });
-    // projects built around accepted career-mode offers are staffed first
-    var forced = w.career ? HW.Career.forcedProjects(w, ctx, function (s) { return planProject(w, ctx, s); }) : [];
-    forced.forEach(function (f) { staffProject(w, ctx, f); });
     projects.forEach(function (f) { staffProject(w, ctx, f); });
-    projects = forced.concat(projects);
     ctx.seqCount = {}; // audiences tire of too many sequels in one genre
     projects.forEach(function (f) { if (f.seqOf != null) ctx.seqCount[f.genre] = (ctx.seqCount[f.genre] || 0) + 1; });
     ctx.films = projects.filter(function (f) { return f.director != null && f.cast.length > 0; });
@@ -166,7 +168,7 @@
     budget = Math.round(budget * 10) / 10;
     var commercial = clamp(s.commercial + rng.normal(0, 0.15) + (G.awards > 5 ? -0.15 : 0) + (seq ? 0.2 : 0), 0, 1);
     return {
-      id: null, title: null, year: Y, month: 0, studio: s.id, genre: genre, budget: budget, commercial: commercial,
+      id: null, title: null, year: Y, month: null, studio: s.id, genre: genre, budget: budget, commercial: commercial,
       seqOf: seq ? seq.id : null, seqNum: seq ? (seq.seqNum || 1) + 1 : 1, root: seq ? (seq.root != null ? seq.root : seq.id) : null,
       director: null, writer: null, dp: null, composer: null, cast: [],
       gross: 0, profit: 0, critic: 0, audience: 0, noms: 0, wins: 0, won: [], tags: []
@@ -178,7 +180,7 @@
     allowance = Math.max(allowance, 0.12);
     for (var i = 0; i < pool.length; i++) {
       var p = pool[i];
-      if ((ctx.booked[p.id] || 0) >= capFor(p)) continue;
+      if ((ctx.booked[p.id] || 0) >= (ctx.capOne ? 1 : capFor(p))) continue; // capOne: quarterly career rounds
       var raw = scoreFn(p);
       if (raw < -1e8 || raw + 8.5 < bestScore) continue; // can't beat current pick even with max luck
       var fee = ctx.fees[p.id], cut = false;
@@ -205,12 +207,7 @@
     var prev = f.seqOf != null ? w.films[f.seqOf] : null;
     var B = f.budget;
 
-    var d = null, fd = f.forced ? w.people[f.forced.dir] : null;
-    if (fd && fd.status === 'active' && (ctx.booked[fd.id] || 0) < capFor(fd)) {
-      ctx.booked[fd.id] = (ctx.booked[fd.id] || 0) + 1;
-      d = { p: fd, fee: HW.fee(fd) };
-    } else if (f.forced) f.forced.dirSwap = true;
-    if (!d) d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
+    var d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
       var q = (p.stats.vision + p.stats.craft) / 2;
       return q * 0.65 + specBonus(p, genre, 8) + c * (p.stats.commercial * 0.25 + p.fame * 0.15) +
         (1 - c) * p.prestige * 0.3 + (prev && prev.director === p.id ? 30 : 0);
@@ -264,17 +261,6 @@
     var prevCast = {};
     if (prev) prev.cast.forEach(function (x) { prevCast[x.p] = x.r; });
     var spent = d.fee + (wr ? wr.fee : 0);
-    if (f.forced) {
-      // the agency's client takes the role they signed for
-      var cp = w.people[f.forced.p], fi = 0;
-      for (var ri = 0; ri < roles.length; ri++) if (roles[ri].r === f.forced.r) { fi = ri; break; }
-      roles.splice(fi, 1);
-      castIds[cp.id] = 1;
-      addTies(cp.id);
-      ctx.booked[cp.id] = (ctx.booked[cp.id] || 0) + 1;
-      spent += f.forced.fee;
-      f.cast.push({ p: cp.id, r: f.forced.r, perf: 0, fee: f.forced.fee });
-    }
     roles.forEach(function (role, idx) {
       var pool = role.g === 'M' ? ctx.pools.actorM : ctx.pools.actorF;
       var h = hire(ctx, pool, f, B * role.share, function (p) {
@@ -316,31 +302,33 @@
   }
   var MONTH_BO = [0.82, 0.85, 0.95, 0.97, 1.12, 1.2, 1.22, 1.0, 0.85, 0.95, 1.08, 1.15];
 
-  function releaseFilms(w, ctx) {
-    var rng = ctx.rng, Y = ctx.year;
-    ctx.films.forEach(function (f) {
-      f.month = pickMonth(f, rng);
-      f.title = makeTitle(w, rng, f);
+  // Releases a batch of films (the whole year in the sandbox, one quarter in a career).
+  function releaseFilms(w, ctx, batch) {
+    var rng = ctx.rng, Y = ctx.year, films = batch || ctx.films;
+    films.forEach(function (f) {
+      if (f.month == null) f.month = pickMonth(f, rng);
+      if (!f.title) f.title = makeTitle(w, rng, f);
     });
-    ctx.films.forEach(function (f) { scoreFilm(w, ctx, f); });
+    films.forEach(function (f) { scoreFilm(w, ctx, f); });
     // critics and audiences judge against what they're used to: drift the reference toward this year's median
     var med = function (arr) { arr.sort(function (a, b) { return a - b; }); return arr[arr.length >> 1]; };
-    if (ctx.films.length) {
+    var drift = ctx.refDrift || 0.2;
+    if (films.length) {
       // films compete within their market segment (blockbusters vs. blockbusters, indies vs. indies)
       ctx.seg = {};
-      ctx.films.forEach(function (f) {
+      films.forEach(function (f) {
         var t = w.studios[f.studio].tier, g = ctx.seg[t] || (ctx.seg[t] = { n: 0, aud: 0, crit: 0 });
         g.n++; g.aud += f.audience; g.crit += f.critic;
       });
       for (var t in ctx.seg) { ctx.seg[t].aud /= ctx.seg[t].n; ctx.seg[t].crit /= ctx.seg[t].n; }
-      w.ref.q = w.ref.q * 0.8 + 0.2 * med(ctx.films.map(function (f) { return f.sc.q; }));
-      w.ref.ent = w.ref.ent * 0.8 + 0.2 * med(ctx.films.map(function (f) { return f._ent; }));
-      ctx.films.forEach(function (f) { delete f._ent; });
+      w.ref.q = w.ref.q * (1 - drift) + drift * med(films.map(function (f) { return f.sc.q; }));
+      w.ref.ent = w.ref.ent * (1 - drift) + drift * med(films.map(function (f) { return f._ent; }));
+      films.forEach(function (f) { delete f._ent; });
     }
     var byMonth = {};
-    ctx.films.forEach(function (f) { (byMonth[f.month] = byMonth[f.month] || []).push(f); });
+    films.forEach(function (f) { (byMonth[f.month] = byMonth[f.month] || []).push(f); });
 
-    ctx.films.forEach(function (f) {
+    films.forEach(function (f) {
       var G = HW.GENRES[f.genre];
       var leads = f.cast.filter(function (x) { return x.r === 'L'; }).map(function (x) { return w.people[x.p]; });
       var fames = leads.map(function (p) { return p.fame + (HW.has(p, 'magnet') ? 15 : 0); }).sort(function (a, b) { return b - a; });
@@ -392,14 +380,14 @@
     });
 
     // headlines
-    var sorted = ctx.films.slice().sort(function (a, b) { return b.gross - a.gross; });
-    if (sorted[0]) {
+    var sorted = films.slice().sort(function (a, b) { return b.gross - a.gross; });
+    if (sorted[0] && !batch) {
       var top = sorted[0];
       var allTime = w.films.every(function (o) { return o === top || o.gross < top.gross; });
       HW.addNews(w, Y, (allTime ? 'RECORD! ' : '') + '"' + top.title + '" (' + w.studios[top.studio].name + ') is the year\'s #1 movie with ' +
         HW.money(top.gross) + (allTime ? ' — the biggest box office of all time.' : '.'), 'boxoffice', { f: top.id });
     }
-    ctx.films.forEach(function (f) {
+    films.forEach(function (f) {
       if (f.tags.indexOf('sleeper') >= 0) HW.addNews(w, Y, 'Sleeper hit: tiny "' + f.title + '" turns a ' + HW.money(f.budget) + ' budget into ' + HW.money(f.gross) + '.', 'boxoffice', { f: f.id });
       if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) {
         var pm = HW.postMortem(w, f), blame = pm.reasons.slice(0, 2).map(function (x) { return x.phrase; });
@@ -427,6 +415,7 @@
       var bond = 0, rdir = HW.relOf(w, p.id, dir.id);
       if (rdir && rdir.t === 'partner') bond += 3;
       f.cast.forEach(function (o) { var ro = o.p !== p.id && HW.relOf(w, p.id, o.p); if (ro && ro.t === 'duo') bond += 2; if (ro && ro.t === 'rival') bond += 1; });
+      if (f.mods && f.mods.perf && f.mods.perf[p.id]) bond += f.mods.perf[p.id];
       var perf = bond + HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
         (partners - 5) * 1.2 + dirHandling + dialogue + (method ? 3 : 0);
       // craft is consistency: skilled actors deliver take after take; intensity swings bigger
@@ -455,7 +444,7 @@
     var friction = f.cast.some(function (c) { return HW.has(w.people[c.p], 'diva'); }) || HW.has(dir, 'diva') ? rng.normal(-2, 3) : 0;
     var chemistry = rng.normal(0, 3) + friction;
 
-    var quality = script * 0.3 + direction * 0.28 + acting * 0.27 + tech * 0.08 + music * 0.07 + chemistry;
+    var quality = script * 0.3 + direction * 0.28 + acting * 0.27 + tech * 0.08 + music * 0.07 + chemistry + ((f.mods && f.mods.q) || 0);
     var auteur = HW.has(dir, 'auteur');
     var ref = w.ref || (w.ref = { q: 62, ent: 52 });
     var critic = 52 + (quality - ref.q) * 1.8 + G.critic + (auteur ? 4 : 0) + (HW.has(dir, 'darling') ? 3 : 0) + rng.normal(0, 6);
@@ -555,10 +544,10 @@
   HW.gainFame = gainFame;
   HW.gainPrestige = gainPrestige;
 
-  function careerUpdates(w, ctx) {
+  function careerUpdates(w, ctx, batch) {
     var Y = ctx.year, rng = ctx.rng;
-    ctx.worked = {};
-    ctx.films.forEach(function (f) {
+    ctx.worked = ctx.worked || {};
+    (batch || ctx.films).forEach(function (f) {
       var boxo = clamp(Math.log2(f.gross / 60 + 0.25) * 3, -6, 13);
       var aud = (f.audience - 60) / 12, crit = (f.critic - 60) / 7;
       f.cast.forEach(function (c) {
@@ -622,8 +611,11 @@
     });
 
     var count = w.studios.filter(function (s) { return s.active; }).length;
-    var newOnes = Math.max(0, 20 - count);
-    if (count < 30 && rng.chance(0.15)) newOnes++;
+    // a career world keeps exactly w.studioCount studios; the sandbox keeps 20-30
+    var minS = w.studioCount || 20, maxS = w.studioCount || 30;
+    var newOnes = Math.max(0, minS - count);
+    if (count < maxS && rng.chance(0.15)) newOnes++;
+    newOnes = Math.min(newOnes, maxS - count);
     for (var i = 0; i < newOnes; i++) {
       var tier = rng.chance(0.2) ? 'Mid' : 'Indie';
       var s = HW.createStudio(w, rng, tier, { founded: Y + 1 });
@@ -694,7 +686,7 @@
         var retireAge = p.role === 'actor' ? 62 : 68;
         var rp = age < retireAge ? 0.004 : 0.03 + (age - retireAge) * 0.018;
         if (idle >= 5 && age > 28 && p.fame < 20) rp += 0.25;
-        if (rng.chance(rp)) {
+        if (p.id !== w.playerId && rng.chance(rp)) { // the career-mode player decides when to retire
           p.status = 'retired';
           p.retired = Y;
           if (p.fame > 45 || p.wins > 0) HW.addNews(w, Y, p.name + ' (' + age + ') announces retirement after ' + p.films.length + ' films' + (p.wins ? ' and ' + p.wins + ' Golden Laurel' + (p.wins > 1 ? 's' : '') : '') + '.', 'people', { p: p.id });
@@ -702,7 +694,7 @@
       }
       // mortality
       var dp = age < 60 ? 0.0007 : age < 75 ? 0.006 + (age - 60) * 0.002 : 0.04 + (age - 75) * 0.013;
-      if (rng.chance(dp)) {
+      if (p.id !== w.playerId && rng.chance(dp)) {
         var wasActive = p.status === 'active';
         p.status = 'deceased';
         p.died = Y;
@@ -719,7 +711,7 @@
     var savedYear = w.year;
     w.year = N;
     HW.ROLE_KEYS.forEach(function (role) {
-      var target = HW.ROLES[role].target;
+      var target = (w.targets && w.targets[role]) || HW.ROLES[role].target;
       var need = Math.max(0, target - counts[role]) + rng.int(0, Math.ceil(target * 0.006));
       for (var i = 0; i < need; i++) HW.createPerson(w, rng, role, {});
     });
@@ -753,6 +745,13 @@
       trends: JSON.parse(JSON.stringify(w.trends))
     });
   }
+
+  // Phases for worlds that run in quarterly rounds (career mode); the sandbox uses simulateYear.
+  HW.Sim = {
+    TIER: TIER, rollEvent: rollEvent, updateTrends: updateTrends, restRoll: restRoll, buildPools: buildPools,
+    planProject: planProject, staffProject: staffProject, hire: hire, makeTitle: makeTitle, releaseFilms: releaseFilms,
+    careerUpdates: careerUpdates, studioYearEnd: studioYearEnd, peopleYearEnd: peopleYearEnd, recordHistory: recordHistory
+  };
 
   HW.money = function (m) {
     var neg = m < 0; m = Math.abs(m);

@@ -386,7 +386,7 @@ body.noscroll { overflow: hidden; }
 .mode-banner[hidden] { display: none; }
 .mb-tag { background: var(--gold); color: #1a1208; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; }
 .mb-actions { margin-left: auto; display: flex; gap: 6px; }
-body.career-mode .controls [data-years="5"], body.career-mode .controls [data-years="10"], body.career-mode #autoBtn { display: none; }
+body.career-mode .controls [data-action="advance"], body.career-mode #autoBtn { display: none; }
 .career-hero { background: linear-gradient(135deg, #33240d, #1a150e); }
 .form { display: flex; flex-direction: column; gap: 10px; }
 .form label { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
@@ -426,6 +426,38 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
 .ask-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .store-warn { padding: 8px 20px; background: #3a1f1f; color: #f0c4be; border-bottom: 1px solid #6a2e28; font-size: 13px; }
 .toast { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+
+/* actor career */
+.focus-list { display: flex; flex-direction: column; gap: 6px; }
+.focus-opt { display: flex !important; justify-content: flex-start !important; align-items: flex-start !important; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.focus-opt span { display: flex; flex-direction: column; gap: 2px; }
+.focus-opt:has(input:checked) { border-color: var(--gold); background: rgba(227,181,82,.08); }
+.form select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; }
+.grid.pitches { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+.pitch { display: flex; flex-direction: column; gap: 4px; }
+.pitch h4 { margin: 10px 0 4px; }
+.pitch-title { font-family: Georgia, serif; font-size: 20px; font-style: italic; color: var(--gold2); }
+.pitch-studio { margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pitch-deal { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 8px; }
+.pitch .sign { margin-top: auto; }
+.pitch .reasons { margin-bottom: 2px; }
+.reasons.pass li { color: var(--muted); }
+.reasons li.found { background: rgba(108,194,138,.06); }
+.reasons.down li.found { background: rgba(226,102,90,.07); }
+.hint { margin: 2px 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pchip { background: var(--panel2); color: var(--text); border: 1px dashed #6b5f50; border-radius: 14px; padding: 3px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.pchip:hover { border-color: var(--gold); }
+.pchip.seen { border-style: solid; border-color: #5a4a30; }
+.scout { margin-top: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+.scout-head { margin-bottom: 2px; }
+.kvline { display: flex; justify-content: space-between; gap: 10px; }
+.kvline > span { color: var(--muted); }
+.scout-films { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.report { margin-bottom: 16px; border-color: #6b5426; }
+.rep-film { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 8px; }
+.rep-delta { font-size: 15px; font-variant-numeric: tabular-nums; }
+.pitch .pchip { align-self: flex-start; }
 </style>
 
 
@@ -1005,16 +1037,21 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     HW.GENRE_KEYS.forEach(function (g) { w.trends[g] = clamp(rng.normal(1, 0.12), 0.7, 1.3); });
     w.trends['Superhero'] = 0.45; // a niche genre... for now
 
+    // opts.targets / opts.tiers build a smaller world (career mode); the defaults are the sandbox
+    if (opts.targets) w.targets = opts.targets;
     HW.ROLE_KEYS.forEach(function (role) {
-      for (var i = 0; i < HW.ROLES[role].target; i++) createPerson(w, rng, role, { initial: true });
+      var n = (w.targets && w.targets[role]) || HW.ROLES[role].target;
+      for (var i = 0; i < n; i++) createPerson(w, rng, role, { initial: true });
     });
 
     var names = rng.shuffle(HW.STUDIO_NAMES.slice());
-    var tiers = [];
+    var tiers = opts.tiers ? opts.tiers.slice() : [];
     var i;
-    for (i = 0; i < 6; i++) tiers.push('Major');
-    for (i = 0; i < 8; i++) tiers.push('Mid');
-    for (i = 0; i < 8; i++) tiers.push('Indie');
+    if (!opts.tiers) {
+      for (i = 0; i < 6; i++) tiers.push('Major');
+      for (i = 0; i < 8; i++) tiers.push('Mid');
+      for (i = 0; i < 8; i++) tiers.push('Indie');
+    }
     tiers.forEach(function (tier, idx) {
       createStudio(w, rng, tier, { name: names[idx], founded: w.startYear - rng.int(tier === 'Major' ? 40 : 2, tier === 'Major' ? 70 : 30) });
     });
@@ -1294,7 +1331,6 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     peopleYearEnd(w, ctx);
     HW.detectStories(w, ctx);
     recordHistory(w, ctx);
-    if (w.career) HW.Career.afterYear(w, ctx);
     w.year++;
     w.rngState = rng.s;
     return ctx;
@@ -1344,21 +1380,22 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     return c;
   }
 
-  function produceFilms(w, ctx) {
-    var rng = ctx.rng, Y = ctx.year;
-    // career mode: agency clients only work through offers the player accepted
-    var clients = w.career ? HW.Career.clientSet(w) : {};
-    // some people sit the year out
+  // some people sit the year out
+  function restRoll(w, ctx, exclude) {
+    var rng = ctx.rng;
     w.people.forEach(function (p) {
-      if (p.status !== 'active' || clients[p.id]) return;
+      if (p.status !== 'active' || (exclude && exclude[p.id])) return;
       var restP = HW.has(p, 'reclusive') ? 0.5 : 0.08;
       if (rng.chance(restP)) ctx.resting[p.id] = 1;
     });
+  }
 
-    var pools = {};
+  // Who can be hired right now, their fees, and the relationship index used by casting.
+  function buildPools(w, ctx, exclude) {
+    var Y = ctx.year, pools = {};
     HW.ROLE_KEYS.forEach(function (r) { pools[r] = []; });
     w.people.forEach(function (p) {
-      if (p.status === 'active' && !ctx.resting[p.id] && !clients[p.id] && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
+      if (p.status === 'active' && !ctx.resting[p.id] && !(exclude && exclude[p.id]) && Y - p.born >= (p.role === 'actor' ? 16 : 21)) pools[p.role].push(p);
     });
     ctx.pools = pools;
     // index active relationships by person for fast casting lookups
@@ -1373,6 +1410,12 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     w.people.forEach(function (p) { if (p.status === 'active') ctx.fees[p.id] = HW.fee(p); });
     ctx.pools.actorM = pools.actor.filter(function (p) { return p.gender === 'M'; });
     ctx.pools.actorF = pools.actor.filter(function (p) { return p.gender === 'F'; });
+  }
+
+  function produceFilms(w, ctx) {
+    var rng = ctx.rng;
+    restRoll(w, ctx);
+    buildPools(w, ctx);
 
     var projects = [];
     w.studios.forEach(function (s) {
@@ -1386,11 +1429,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     });
     // bigger productions get first pick of talent (with some shuffle)
     projects.sort(function (a, b) { return b.budget * rng.range(0.7, 1.3) - a.budget * rng.range(0.7, 1.3); });
-    // projects built around accepted career-mode offers are staffed first
-    var forced = w.career ? HW.Career.forcedProjects(w, ctx, function (s) { return planProject(w, ctx, s); }) : [];
-    forced.forEach(function (f) { staffProject(w, ctx, f); });
     projects.forEach(function (f) { staffProject(w, ctx, f); });
-    projects = forced.concat(projects);
     ctx.seqCount = {}; // audiences tire of too many sequels in one genre
     projects.forEach(function (f) { if (f.seqOf != null) ctx.seqCount[f.genre] = (ctx.seqCount[f.genre] || 0) + 1; });
     ctx.films = projects.filter(function (f) { return f.director != null && f.cast.length > 0; });
@@ -1431,7 +1470,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     budget = Math.round(budget * 10) / 10;
     var commercial = clamp(s.commercial + rng.normal(0, 0.15) + (G.awards > 5 ? -0.15 : 0) + (seq ? 0.2 : 0), 0, 1);
     return {
-      id: null, title: null, year: Y, month: 0, studio: s.id, genre: genre, budget: budget, commercial: commercial,
+      id: null, title: null, year: Y, month: null, studio: s.id, genre: genre, budget: budget, commercial: commercial,
       seqOf: seq ? seq.id : null, seqNum: seq ? (seq.seqNum || 1) + 1 : 1, root: seq ? (seq.root != null ? seq.root : seq.id) : null,
       director: null, writer: null, dp: null, composer: null, cast: [],
       gross: 0, profit: 0, critic: 0, audience: 0, noms: 0, wins: 0, won: [], tags: []
@@ -1443,7 +1482,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     allowance = Math.max(allowance, 0.12);
     for (var i = 0; i < pool.length; i++) {
       var p = pool[i];
-      if ((ctx.booked[p.id] || 0) >= capFor(p)) continue;
+      if ((ctx.booked[p.id] || 0) >= (ctx.capOne ? 1 : capFor(p))) continue; // capOne: quarterly career rounds
       var raw = scoreFn(p);
       if (raw < -1e8 || raw + 8.5 < bestScore) continue; // can't beat current pick even with max luck
       var fee = ctx.fees[p.id], cut = false;
@@ -1470,12 +1509,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var prev = f.seqOf != null ? w.films[f.seqOf] : null;
     var B = f.budget;
 
-    var d = null, fd = f.forced ? w.people[f.forced.dir] : null;
-    if (fd && fd.status === 'active' && (ctx.booked[fd.id] || 0) < capFor(fd)) {
-      ctx.booked[fd.id] = (ctx.booked[fd.id] || 0) + 1;
-      d = { p: fd, fee: HW.fee(fd) };
-    } else if (f.forced) f.forced.dirSwap = true;
-    if (!d) d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
+    var d = hire(ctx, ctx.pools.director, f, B * 0.08, function (p) {
       var q = (p.stats.vision + p.stats.craft) / 2;
       return q * 0.65 + specBonus(p, genre, 8) + c * (p.stats.commercial * 0.25 + p.fame * 0.15) +
         (1 - c) * p.prestige * 0.3 + (prev && prev.director === p.id ? 30 : 0);
@@ -1529,17 +1563,6 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var prevCast = {};
     if (prev) prev.cast.forEach(function (x) { prevCast[x.p] = x.r; });
     var spent = d.fee + (wr ? wr.fee : 0);
-    if (f.forced) {
-      // the agency's client takes the role they signed for
-      var cp = w.people[f.forced.p], fi = 0;
-      for (var ri = 0; ri < roles.length; ri++) if (roles[ri].r === f.forced.r) { fi = ri; break; }
-      roles.splice(fi, 1);
-      castIds[cp.id] = 1;
-      addTies(cp.id);
-      ctx.booked[cp.id] = (ctx.booked[cp.id] || 0) + 1;
-      spent += f.forced.fee;
-      f.cast.push({ p: cp.id, r: f.forced.r, perf: 0, fee: f.forced.fee });
-    }
     roles.forEach(function (role, idx) {
       var pool = role.g === 'M' ? ctx.pools.actorM : ctx.pools.actorF;
       var h = hire(ctx, pool, f, B * role.share, function (p) {
@@ -1581,31 +1604,33 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
   }
   var MONTH_BO = [0.82, 0.85, 0.95, 0.97, 1.12, 1.2, 1.22, 1.0, 0.85, 0.95, 1.08, 1.15];
 
-  function releaseFilms(w, ctx) {
-    var rng = ctx.rng, Y = ctx.year;
-    ctx.films.forEach(function (f) {
-      f.month = pickMonth(f, rng);
-      f.title = makeTitle(w, rng, f);
+  // Releases a batch of films (the whole year in the sandbox, one quarter in a career).
+  function releaseFilms(w, ctx, batch) {
+    var rng = ctx.rng, Y = ctx.year, films = batch || ctx.films;
+    films.forEach(function (f) {
+      if (f.month == null) f.month = pickMonth(f, rng);
+      if (!f.title) f.title = makeTitle(w, rng, f);
     });
-    ctx.films.forEach(function (f) { scoreFilm(w, ctx, f); });
+    films.forEach(function (f) { scoreFilm(w, ctx, f); });
     // critics and audiences judge against what they're used to: drift the reference toward this year's median
     var med = function (arr) { arr.sort(function (a, b) { return a - b; }); return arr[arr.length >> 1]; };
-    if (ctx.films.length) {
+    var drift = ctx.refDrift || 0.2;
+    if (films.length) {
       // films compete within their market segment (blockbusters vs. blockbusters, indies vs. indies)
       ctx.seg = {};
-      ctx.films.forEach(function (f) {
+      films.forEach(function (f) {
         var t = w.studios[f.studio].tier, g = ctx.seg[t] || (ctx.seg[t] = { n: 0, aud: 0, crit: 0 });
         g.n++; g.aud += f.audience; g.crit += f.critic;
       });
       for (var t in ctx.seg) { ctx.seg[t].aud /= ctx.seg[t].n; ctx.seg[t].crit /= ctx.seg[t].n; }
-      w.ref.q = w.ref.q * 0.8 + 0.2 * med(ctx.films.map(function (f) { return f.sc.q; }));
-      w.ref.ent = w.ref.ent * 0.8 + 0.2 * med(ctx.films.map(function (f) { return f._ent; }));
-      ctx.films.forEach(function (f) { delete f._ent; });
+      w.ref.q = w.ref.q * (1 - drift) + drift * med(films.map(function (f) { return f.sc.q; }));
+      w.ref.ent = w.ref.ent * (1 - drift) + drift * med(films.map(function (f) { return f._ent; }));
+      films.forEach(function (f) { delete f._ent; });
     }
     var byMonth = {};
-    ctx.films.forEach(function (f) { (byMonth[f.month] = byMonth[f.month] || []).push(f); });
+    films.forEach(function (f) { (byMonth[f.month] = byMonth[f.month] || []).push(f); });
 
-    ctx.films.forEach(function (f) {
+    films.forEach(function (f) {
       var G = HW.GENRES[f.genre];
       var leads = f.cast.filter(function (x) { return x.r === 'L'; }).map(function (x) { return w.people[x.p]; });
       var fames = leads.map(function (p) { return p.fame + (HW.has(p, 'magnet') ? 15 : 0); }).sort(function (a, b) { return b - a; });
@@ -1657,14 +1682,14 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     });
 
     // headlines
-    var sorted = ctx.films.slice().sort(function (a, b) { return b.gross - a.gross; });
-    if (sorted[0]) {
+    var sorted = films.slice().sort(function (a, b) { return b.gross - a.gross; });
+    if (sorted[0] && !batch) {
       var top = sorted[0];
       var allTime = w.films.every(function (o) { return o === top || o.gross < top.gross; });
       HW.addNews(w, Y, (allTime ? 'RECORD! ' : '') + '"' + top.title + '" (' + w.studios[top.studio].name + ') is the year\'s #1 movie with ' +
         HW.money(top.gross) + (allTime ? ' — the biggest box office of all time.' : '.'), 'boxoffice', { f: top.id });
     }
-    ctx.films.forEach(function (f) {
+    films.forEach(function (f) {
       if (f.tags.indexOf('sleeper') >= 0) HW.addNews(w, Y, 'Sleeper hit: tiny "' + f.title + '" turns a ' + HW.money(f.budget) + ' budget into ' + HW.money(f.gross) + '.', 'boxoffice', { f: f.id });
       if (f.tags.indexOf('flop') >= 0 && f.budget >= 120) {
         var pm = HW.postMortem(w, f), blame = pm.reasons.slice(0, 2).map(function (x) { return x.phrase; });
@@ -1692,6 +1717,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
       var bond = 0, rdir = HW.relOf(w, p.id, dir.id);
       if (rdir && rdir.t === 'partner') bond += 3;
       f.cast.forEach(function (o) { var ro = o.p !== p.id && HW.relOf(w, p.id, o.p); if (ro && ro.t === 'duo') bond += 2; if (ro && ro.t === 'rival') bond += 1; });
+      if (f.mods && f.mods.perf && f.mods.perf[p.id]) bond += f.mods.perf[p.id];
       var perf = bond + HW.genreApt(p, f.genre) * 0.35 + (s.craft * 0.25 + s.intensity * 0.2 + s.range * 0.1 + s.presence * 0.1) * 10 +
         (partners - 5) * 1.2 + dirHandling + dialogue + (method ? 3 : 0);
       // craft is consistency: skilled actors deliver take after take; intensity swings bigger
@@ -1720,7 +1746,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var friction = f.cast.some(function (c) { return HW.has(w.people[c.p], 'diva'); }) || HW.has(dir, 'diva') ? rng.normal(-2, 3) : 0;
     var chemistry = rng.normal(0, 3) + friction;
 
-    var quality = script * 0.3 + direction * 0.28 + acting * 0.27 + tech * 0.08 + music * 0.07 + chemistry;
+    var quality = script * 0.3 + direction * 0.28 + acting * 0.27 + tech * 0.08 + music * 0.07 + chemistry + ((f.mods && f.mods.q) || 0);
     var auteur = HW.has(dir, 'auteur');
     var ref = w.ref || (w.ref = { q: 62, ent: 52 });
     var critic = 52 + (quality - ref.q) * 1.8 + G.critic + (auteur ? 4 : 0) + (HW.has(dir, 'darling') ? 3 : 0) + rng.normal(0, 6);
@@ -1820,10 +1846,10 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
   HW.gainFame = gainFame;
   HW.gainPrestige = gainPrestige;
 
-  function careerUpdates(w, ctx) {
+  function careerUpdates(w, ctx, batch) {
     var Y = ctx.year, rng = ctx.rng;
-    ctx.worked = {};
-    ctx.films.forEach(function (f) {
+    ctx.worked = ctx.worked || {};
+    (batch || ctx.films).forEach(function (f) {
       var boxo = clamp(Math.log2(f.gross / 60 + 0.25) * 3, -6, 13);
       var aud = (f.audience - 60) / 12, crit = (f.critic - 60) / 7;
       f.cast.forEach(function (c) {
@@ -1887,8 +1913,11 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     });
 
     var count = w.studios.filter(function (s) { return s.active; }).length;
-    var newOnes = Math.max(0, 20 - count);
-    if (count < 30 && rng.chance(0.15)) newOnes++;
+    // a career world keeps exactly w.studioCount studios; the sandbox keeps 20-30
+    var minS = w.studioCount || 20, maxS = w.studioCount || 30;
+    var newOnes = Math.max(0, minS - count);
+    if (count < maxS && rng.chance(0.15)) newOnes++;
+    newOnes = Math.min(newOnes, maxS - count);
     for (var i = 0; i < newOnes; i++) {
       var tier = rng.chance(0.2) ? 'Mid' : 'Indie';
       var s = HW.createStudio(w, rng, tier, { founded: Y + 1 });
@@ -1959,7 +1988,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
         var retireAge = p.role === 'actor' ? 62 : 68;
         var rp = age < retireAge ? 0.004 : 0.03 + (age - retireAge) * 0.018;
         if (idle >= 5 && age > 28 && p.fame < 20) rp += 0.25;
-        if (rng.chance(rp)) {
+        if (p.id !== w.playerId && rng.chance(rp)) { // the career-mode player decides when to retire
           p.status = 'retired';
           p.retired = Y;
           if (p.fame > 45 || p.wins > 0) HW.addNews(w, Y, p.name + ' (' + age + ') announces retirement after ' + p.films.length + ' films' + (p.wins ? ' and ' + p.wins + ' Golden Laurel' + (p.wins > 1 ? 's' : '') : '') + '.', 'people', { p: p.id });
@@ -1967,7 +1996,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
       }
       // mortality
       var dp = age < 60 ? 0.0007 : age < 75 ? 0.006 + (age - 60) * 0.002 : 0.04 + (age - 75) * 0.013;
-      if (rng.chance(dp)) {
+      if (p.id !== w.playerId && rng.chance(dp)) {
         var wasActive = p.status === 'active';
         p.status = 'deceased';
         p.died = Y;
@@ -1984,7 +2013,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var savedYear = w.year;
     w.year = N;
     HW.ROLE_KEYS.forEach(function (role) {
-      var target = HW.ROLES[role].target;
+      var target = (w.targets && w.targets[role]) || HW.ROLES[role].target;
       var need = Math.max(0, target - counts[role]) + rng.int(0, Math.ceil(target * 0.006));
       for (var i = 0; i < need; i++) HW.createPerson(w, rng, role, {});
     });
@@ -2018,6 +2047,13 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
       trends: JSON.parse(JSON.stringify(w.trends))
     });
   }
+
+  // Phases for worlds that run in quarterly rounds (career mode); the sandbox uses simulateYear.
+  HW.Sim = {
+    TIER: TIER, rollEvent: rollEvent, updateTrends: updateTrends, restRoll: restRoll, buildPools: buildPools,
+    planProject: planProject, staffProject: staffProject, hire: hire, makeTitle: makeTitle, releaseFilms: releaseFilms,
+    careerUpdates: careerUpdates, studioYearEnd: studioYearEnd, peopleYearEnd: peopleYearEnd, recordHistory: recordHistory
+  };
 
   HW.money = function (m) {
     var neg = m < 0; m = Math.abs(m);
@@ -2439,7 +2475,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var y = f.why, G = HW.GENRES[f.genre], g = f.genre.toLowerCase();
     var verdict = f.tags.indexOf('flop') >= 0 ? (f.profit < -100 ? 'Box office disaster' : 'Flop') : null;
     var ratio = y ? f.gross / y.be : 0;
-    if (!verdict) verdict = ratio >= 3 ? 'Smash hit' : ratio >= 1.6 ? 'Hit' : ratio >= 1.1 ? 'Solid earner' : ratio >= 0.9 ? 'Broke even' : 'Disappointment';
+    if (!verdict) verdict = ratio >= 3 ? 'Smash hit' : ratio >= 1.6 ? 'Hit' : ratio >= 1.1 ? 'Solid earner' : ratio >= 0.9 ? 'Broke even' : ratio >= 0.45 ? 'Disappointment' : 'Flop';
     var good = ratio >= 1.1 && f.tags.indexOf('flop') < 0;
     var out = { verdict: verdict, good: good, ratio: ratio, reasons: [], breakEven: y ? y.be : null };
     if (!y) return out;
@@ -2619,352 +2655,459 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
 })(globalThis.HW = globalThis.HW || {});
 </script>
   <script>
-// Career mode: you run a talent agency inside your own world.
-// Sign actors, pick which role offers they take, coach them, campaign for awards, keep them loyal.
-// All state lives in w.career; the simulation only reads it through the hooks below.
+// Career mode: you are an 18-year-old actor in a small Hollywood of 20 studios (1-5 stars) and 20 directors.
+// Every quarter each studio aims to start a production; you get pitches for three of them and sign on to one (or none).
+// Choices have weight: directors you turn down stop calling, partners feel snubbed, flops make people wary of you
+// for career reasons, and a flop costs you a quarter of your reputation.
+// State lives in w.career; the year's running context in w.yc so a save can resume between quarters.
 (function (HW) {
-  var clamp = HW.clamp;
+  var clamp = HW.clamp, Sim = HW.Sim;
   var C = HW.Career = {};
 
-  var COMMISSION = 0.1;
-  var RIVAL_AGENCIES = ['Apex Talent', 'Silverline Artists', 'Meridian Management', 'Crown & Quill', 'Northlight Talent', 'Marquee Partners', 'Bel Air Artists'];
-
-  function money2(v) { return Math.round(v * 100) / 100; }
-  function rngFor(w) { return new HW.RNG((w.career.seed = (w.career.seed * 1103515245 + 12345) >>> 0) || 1); }
-
-  // ---------- setup ----------
-  C.newCareer = function (opts) {
-    var w = HW.newWorld({ startYear: opts.startYear, seed: opts.seed });
-    w.mode = 'career';
-    w.career = {
-      agency: (opts.agency || '').trim() || 'Starmaker Agency',
-      founded: w.year, cash: 1.5, rep: 10, seed: w.seed ^ 0x5bd1e995,
-      clients: [], alumni: [], offers: {}, offersFor: w.year, accepted: {},
-      log: [], history: [], milestones: {}, over: null, auditions: []
-    };
-    var rng = rngFor(w);
-    // open auditions: hungry unknowns, plus a couple of journeymen
-    var pool = w.people.filter(function (p) { return p.role === 'actor' && p.status === 'active'; });
-    var young = rng.shuffle(pool.filter(function (p) { return w.year - p.born <= 27 && p.fame <= 12; })).slice(0, 9);
-    var vets = rng.shuffle(pool.filter(function (p) { return w.year - p.born >= 30 && p.fame >= 10 && p.fame <= 30; })).slice(0, 3);
-    w.career.auditions = young.concat(vets).map(function (p) { return p.id; });
-    return w;
+  C.QUARTERS = ['Winter', 'Spring', 'Summer', 'Fall'];
+  var STAR_SLOTS = [5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1];
+  var TIER_OF = { 1: 'Indie', 2: 'Indie', 3: 'Mid', 4: 'Major', 5: 'Major' };
+  var ACCESS = [0, 0, 6, 18, 35, 55];          // reputation a studio of N stars expects before it calls
+  var TARGETS = { actor: 160, director: 20, writer: 30, cinematographer: 24, composer: 20 };
+  var FOCUS = {
+    presence: { label: 'Camera magnet', genre: 'romance' }, craft: { label: 'Trained actor', genre: 'drama' },
+    intensity: { label: 'Intense', genre: 'thriller' }, physicality: { label: 'Physical', genre: 'action' },
+    chemistry: { label: 'Funny', genre: 'comedy' }, range: { label: 'Chameleon', genre: 'drama' }
   };
+  C.FOCUS = FOCUS;
+  // Reputation after a release, by verdict: [lead, supporting]. Numbers are added; strings ('x0.75') multiply.
+  var REP = {
+    'Smash hit': [8, 5], 'Hit': [5, 3], 'Solid earner': [2, 1], 'Broke even': [0.5, 0.3],
+    'Disappointment': [-2, -0.5], 'Flop': ['x0.75', 'x0.85'], 'Box office disaster': ['x0.75', 'x0.8']
+  };
+  // How a result changes people's willingness to work with you again (career reasons, not personal ones)
+  var WORK = { 'Smash hit': 25, 'Hit': 15, 'Solid earner': 8, 'Broke even': 2, 'Disappointment': -10, 'Flop': -30, 'Box office disaster': -40 };
+  var STAND = { 'Smash hit': 20, 'Hit': 12, 'Solid earner': 5, 'Broke even': 0, 'Disappointment': -8, 'Flop': -25, 'Box office disaster': -35 };
 
-  // ---------- queries ----------
-  C.clientSet = function (w) {
-    var s = {};
-    (w.career ? w.career.clients : []).forEach(function (c) { s[c.id] = 1; });
-    return s;
-  };
-  C.client = function (w, id) { return w.career.clients.filter(function (c) { return c.id === id; })[0] || null; };
-  C.maxRoster = function (w) { return Math.min(10, 4 + Math.floor(w.career.rep / 12)); };
-  C.capFor = function (p) { return HW.has(p, 'reclusive') ? 1 : HW.has(p, 'workhorse') ? 3 : 2; };
-  // stars won't sign with an agency far below their level
-  C.willSign = function (w, p) { return p.fame <= w.career.rep + 25; };
-  C.signCost = function (w, p) {
-    var first = w.career.clients.length + w.career.alumni.length < 3; // the founding clients sign for free
-    return first ? 0 : money2(0.03 + HW.fee(p) * 0.25);
-  };
-  C.coachCost = function (w, p) { return money2(0.06 + HW.fee(p) * 0.03 + HW.ovr(p) / 1000); };
-  C.campaignCost = function (w, p) { return money2(0.15 + p.fame * 0.008); };
-  C.publicityCost = function (w, p) { return money2(0.08 + p.fame * 0.004); };
-  C.value = function (w) {
-    var v = w.career.cash;
-    w.career.clients.forEach(function (c) { v += HW.fee(w.people[c.id]) * COMMISSION * 3; });
-    return money2(v);
-  };
-
-  function log(w, text, kind, pid) {
-    w.career.log.push({ y: w.year, t: text, k: kind || 'info', p: pid == null ? null : pid });
-    if (w.career.log.length > 600) w.career.log.splice(0, w.career.log.length - 600);
+  function r2(v) { return Math.round(v * 100) / 100; }
+  function rngOf(w) { return new HW.RNG(w.rngState); }
+  function player(w) { return w.people[w.career.pid]; }
+  C.player = player;
+  C.rep = function (w) { return Math.round(player(w).fame); };
+  C.age = function (w) { return w.year - player(w).born; };
+  C.label = function (w) { return C.QUARTERS[w.career.q] + ' ' + w.year; };
+  function log(w, t, k, ref) {
+    var c = w.career;
+    c.log.push({ y: w.year, q: c.q, t: t, k: k || 'info', r: ref || null });
+    if (c.log.length > 500) c.log.splice(0, c.log.length - 500);
   }
   C.log = log;
 
-  // ---------- offers ----------
-  function pickStudio(w, rng, p) {
-    var f = p.fame / 100, studios = w.studios.filter(function (s) { return s.active; });
-    return rng.weighted(studios, function (s) {
-      return s.tier === 'Major' ? Math.pow(f, 1.3) * 3 + 0.05 : s.tier === 'Mid' ? 0.6 + f : 1.6 * (1 - f) + 0.15;
-    });
-  }
-  function pickDirector(w, rng, s) {
-    var target = { Major: 60, Mid: 35, Indie: 12 }[s.tier];
-    var dirs = w.people.filter(function (d) { return d.role === 'director' && d.status === 'active'; });
-    return rng.weighted(dirs, function (d) { return Math.exp(-Math.abs(d.fame - target) / 15); });
-  }
-
-  // A few offers per client for the coming year. Better-known clients get more and bigger ones.
-  C.generateOffers = function (w, onlyId) {
-    var car = w.career, rng = rngFor(w), Y = w.year;
-    if (onlyId == null) { car.offers = {}; car.accepted = {}; car.offersFor = Y; }
-    car.clients.forEach(function (c) {
-      if (onlyId != null && c.id !== onlyId) return;
-      var p = w.people[c.id];
-      if (p.status !== 'active') return;
-      var list = [];
-      // a hit they led earns a sequel offer from the same studio
-      p.films.slice(-6).forEach(function (fid) {
-        var f = w.films[fid];
-        var led = f.cast.some(function (x) { return x.p === p.id && x.r === 'L'; });
-        if (led && !f.hasSeq && (f.seqNum || 1) < 5 && Y - f.year <= 3 && f.gross / f.budget >= 2.4 && f.audience >= 55 && w.studios[f.studio].active && list.length < 1) {
-          list.push(makeOffer(w, rng, p, w.studios[f.studio], f));
-        }
-      });
-      var n = clamp(1 + Math.floor(p.fame / 22) + rng.int(0, 2), 1, 5);
-      while (list.length < n) list.push(makeOffer(w, rng, p, pickStudio(w, rng, p), null));
-      car.offers[c.id] = list;
-      car.accepted[c.id] = [];
-    });
+  // ---------- setup ----------
+  C.newCareer = function (o) {
+    var tiers = STAR_SLOTS.map(function (s) { return TIER_OF[s]; });
+    var w = HW.newWorld({ startYear: o.startYear, seed: o.seed, targets: TARGETS, tiers: tiers });
+    w.mode = 'career';
+    w.studioCount = 20;
+    w.studios.forEach(function (s, i) { s.stars = STAR_SLOTS[i]; });
+    var rng = rngOf(w);
+    var p = HW.createPerson(w, rng, 'actor', {});
+    // shape the player: an unknown 18-year-old with one standout quality
+    var name = (o.name || '').trim();
+    if (name && !w.usedNames[name]) { delete w.usedNames[p.name]; p.name = name; w.usedNames[name] = 1; }
+    p.gender = o.gender === 'M' ? 'M' : 'F';
+    p.born = w.year - 18;
+    p.debut = w.year;
+    p.traits = [];
+    p.exp = 0;
+    HW.ROLES.actor.stats.forEach(function (k) { p.genes[k] = HW.round1(clamp(rng.normal(5.3, 0.8), 3, 7.5)); });
+    var focus = FOCUS[o.focus] ? o.focus : 'craft';
+    p.genes[focus] = HW.round1(clamp(p.genes[focus] + 2, 1, 9.5));
+    HW.ACTOR_GENRES.forEach(function (g) { p.genre[g] = HW.round1(clamp(rng.normal(2.6, 0.6), 1, 4)); });
+    p.genre[FOCUS[focus].genre] = HW.round1(p.genre[FOCUS[focus].genre] + 1.8);
+    p.peakAge = 36;
+    p.fame = 2; p.prestige = 2;
+    HW.updateStats(p, w.year);
+    w.rngState = rng.s;
+    w.playerId = p.id;
+    w.follows = { p: {}, s: {} };
+    w.follows.p[p.id] = 1;
+    w.career = {
+      kind: 'actor', pid: p.id, name: p.name, focus: focus, started: w.year, q: 0, qi: 0,
+      ties: {}, studios: {}, seen: { qi: 0, ids: {} }, log: [], reports: [], history: [],
+      earnings: 0, peak: 2, slate: [], pitches: [], over: null, seed: (w.seed ^ 0x9e3779b9) >>> 0
+    };
+    log(w, p.name + ' arrives in Hollywood at 18 with nothing but a headshot.', 'milestone', { p: p.id });
+    beginYear(w);
+    prepareQuarter(w);
+    return w;
   };
 
-  function makeOffer(w, rng, p, s, seqOf) {
-    var genre = seqOf ? seqOf.genre : rng.weighted(HW.GENRE_KEYS, function (g) {
-      return Math.pow(HW.genreApt(p, g) / 50, 2) * w.trends[g] * s.prefs[g];
-    });
-    var t = HW.TIER[s.tier], G = HW.GENRES[genre];
-    var budget = clamp(t.budget * Math.exp(rng.normal(0, t.sd)) * G.budget, t.min, t.max);
-    if (seqOf) budget = Math.max(budget, seqOf.budget * rng.range(1.1, 1.4));
-    budget = Math.round(budget * 10) / 10;
-    var ovr = HW.ovr(p);
-    var leadP = seqOf ? 1 : clamp((p.fame - 10) / 55 + (ovr - 50) / 120 + (s.tier === 'Indie' ? 0.25 : s.tier === 'Major' ? -0.15 : 0), 0.05, 0.92);
-    var role = rng.chance(leadP) ? 'L' : 'S';
-    var dir = seqOf && w.people[seqOf.director].status === 'active' ? w.people[seqOf.director] : pickDirector(w, rng, s);
-    var asking = HW.fee(p) * (seqOf ? 1.3 : 1);
-    var cap = budget * (role === 'L' ? 0.14 : 0.04);
-    var fee = money2(Math.max(0.03, Math.min(asking, cap)));
-    // script buzz: a noisy read on the director's quality and the studio's taste
-    var q = (dir.stats.vision + dir.stats.craft) / 2 + rng.normal(0, 8);
-    var buzz = clamp(Math.round((q - 28) / 10), 1, 5);
+  // ---------- year & quarter plumbing ----------
+  function freshMods() { return { output: 1, boxOffice: 1, ancillary: 1, spectacle: 1, spectacleBO: 1, prestigeBO: 1 }; }
+  function ctxOf(w) {
+    var yc = w.yc;
     return {
-      id: 'o' + Math.floor(rng.next() * 1e9).toString(36), studio: s.id, genre: genre, budget: budget, role: role,
-      dir: dir.id, fee: fee, asking: money2(asking), buzz: buzz, fit: Math.round(HW.genreApt(p, genre)),
-      seqOf: seqOf ? seqOf.id : null
+      year: yc.year, rng: rngOf(w), films: [], booked: {}, resting: yc.resting, mods: yc.mods, event: yc.event,
+      worked: yc.worked, capOne: true, refDrift: 0.08
     };
   }
+  function exclude(w) { var e = {}; e[w.career.pid] = 1; return e; }
 
-  C.toggleOffer = function (w, pid, oid) {
-    var car = w.career, acc = car.accepted[pid] || (car.accepted[pid] = []);
-    var i = acc.indexOf(oid);
-    if (i >= 0) { acc.splice(i, 1); return { ok: true, on: false }; }
-    var p = w.people[pid];
-    if (acc.length >= C.capFor(p)) return { ok: false, msg: p.name + ' can only take ' + C.capFor(p) + ' role' + (C.capFor(p) > 1 ? 's' : '') + ' a year.' };
-    acc.push(oid);
-    return { ok: true, on: true };
+  function beginYear(w) {
+    var ctx = { year: w.year, rng: rngOf(w), films: [], booked: {}, resting: {}, mods: freshMods(), event: null, worked: {} };
+    Sim.rollEvent(w, ctx);
+    Sim.updateTrends(w, ctx);
+    Sim.restRoll(w, ctx, exclude(w));
+    w.yc = { year: w.year, mods: ctx.mods, event: ctx.event, resting: ctx.resting, worked: {}, ids: [] };
+    w.rngState = ctx.rng.s;
+  }
+
+  function endYear(w) {
+    var ctx = ctxOf(w), Y = w.year, p = player(w);
+    ctx.films = w.yc.ids.map(function (id) { return w.films[id]; });
+    if (ctx.films.length) {
+      HW.runAwards(w, ctx);
+      HW.relationsYear(w, ctx);
+    }
+    Sim.studioYearEnd(w, ctx);
+    Sim.peopleYearEnd(w, ctx);
+    HW.detectStories(w, ctx);
+    Sim.recordHistory(w, ctx);
+    restar(w, Y);
+    var c = w.career;
+    var mine = ctx.films.filter(function (f) { return f.cast.some(function (x) { return x.p === p.id; }); });
+    var aw = HW.personAwards(w, p.id).filter(function (a) { return a.y === Y; });
+    c.history.push({ y: Y, rep: Math.round(p.fame), films: mine.length, noms: aw.length, wins: aw.filter(function (a) { return a.won; }).length, earned: r2(c.earnedYear || 0) });
+    c.earnedYear = 0;
+    aw.forEach(function (a) { log(w, (a.won ? '🏆 You won ' : 'You were nominated for ') + HW.catName(a.k) + ' for "' + w.films[a.f].title + '".', a.won ? 'milestone' : 'good', { f: a.f }); });
+    w.rngState = ctx.rng.s;
+    w.year++;
+    c.q = 0;
+    beginYear(w);
+    if (C.age(w) >= 80) retire(w, 'At 80, you take your final bow.');
+  }
+
+  // Re-rank studios into 1-5 stars by prestige and money; new studios start at the bottom of the scale.
+  function restar(w, Y) {
+    var act = w.studios.filter(function (s) { return s.active; });
+    act.sort(function (a, b) { return score(b) - score(a); });
+    act.forEach(function (s, i) {
+      var st = STAR_SLOTS[Math.min(i, STAR_SLOTS.length - 1)], was = s.stars;
+      s.stars = st;
+      s.tier = TIER_OF[st];
+      if (was && was !== st && w.follows && w.follows.s[s.id]) HW.addNews(w, Y, s.name + ' is now a ' + st + '-star studio.', 'studio', { s: s.id });
+    });
+    function score(s) { return s.prestige + clamp(s.cash, -300, 2500) / 40 + (s.yearly.length ? s.yearly[s.yearly.length - 1].w * 3 : 0); }
+  }
+
+  // ---------- ties ----------
+  // Personal fondness (aff) is a hidden matter of temperament; professional willingness (work) follows results.
+  C.tie = function (w, id) {
+    var c = w.career, t = c.ties[id];
+    if (t) return t;
+    var o = w.people[id], rng = new HW.RNG((c.seed ^ Math.imul(id + 1, 2654435761)) >>> 0);
+    var aff = rng.normal(0, 28);
+    if (HW.has(o, 'diva')) aff -= 15;
+    if (HW.has(o, 'actorsdir')) aff += 10;
+    if (o.role === 'actor') aff += (o.stats.chemistry - 5) * 3;
+    t = c.ties[id] = { aff: Math.round(clamp(aff, -80, 80)), work: 0, films: 0, snub: 0, known: false, last: null };
+    return t;
+  };
+  C.stand = function (w, sid) { return w.career.studios[sid] || (w.career.studios[sid] = { stand: 0, until: 0 }); };
+  C.attitude = function (aff) { return aff >= 30 ? 'Fond of you' : aff >= 0 ? 'Gets along with you' : aff >= -30 ? 'Cool toward you' : 'Can\'t stand you'; };
+  C.stance = function (work) { return work >= 20 ? 'Wants to work with you again' : work >= 0 ? 'Open to working with you' : work >= -25 ? 'Wary of you after a bad result' : 'Won\'t hire you right now'; };
+  C.isPartner = function (t) { return t.films >= 2 && t.work >= 0 && t.aff >= 25; };
+  // Directors with bigger egos hold a grudge longer.
+  C.snubLength = function (d) {
+    var n = 1;
+    if (d.fame >= 50) n += 2;
+    if (HW.has(d, 'diva') || HW.has(d, 'auteur')) n += 2;
+    if (HW.has(d, 'perfectionist')) n += 1;
+    return n;
+  };
+  C.seen = function (w, id) {
+    var c = w.career;
+    if (c.seen.qi !== c.qi) c.seen = { qi: c.qi, ids: {} };
+    return !!c.seen.ids[id];
+  };
+  C.investigate = function (w, id) {
+    var c = w.career;
+    C.seen(w, id);
+    c.seen.ids[id] = 1;
+    C.tie(w, id).known = true;
   };
 
-  // ---------- simulation hook: projects built from accepted offers ----------
-  C.forcedProjects = function (w, ctx) {
-    var car = w.career, out = [];
-    if (car.offersFor !== ctx.year) return out;
-    Object.keys(car.accepted).forEach(function (pid) {
-      var p = w.people[pid];
-      if (!p || p.status !== 'active') return;
-      car.accepted[pid].forEach(function (oid) {
-        var o = (car.offers[pid] || []).filter(function (x) { return x.id === oid; })[0];
-        if (!o) return;
-        var s = w.studios[o.studio];
-        if (!s.active) { log(w, s.name + ' collapsed and the ' + o.genre.toLowerCase() + ' project with ' + p.name + ' was cancelled.', 'bad', p.id); return; }
-        var seq = o.seqOf != null ? w.films[o.seqOf] : null;
-        if (seq && seq.hasSeq) seq = null; // the studio already made it without us
-        if (seq) seq.hasSeq = true;
-        out.push({
-          id: null, title: null, year: ctx.year, month: 0, studio: s.id, genre: o.genre, budget: o.budget,
-          commercial: clamp(s.commercial + ctx.rng.normal(0, 0.15) + (seq ? 0.2 : 0), 0, 1),
-          seqOf: seq ? seq.id : null, seqNum: seq ? (seq.seqNum || 1) + 1 : 1, root: seq ? (seq.root != null ? seq.root : seq.id) : null,
-          director: null, writer: null, dp: null, composer: null, cast: [],
-          gross: 0, profit: 0, critic: 0, audience: 0, noms: 0, wins: 0, won: [], tags: [],
-          forced: { p: p.id, r: o.role, dir: o.dir, fee: o.fee, o: o.id }
-        });
-      });
+  // Recent record of a director: verdicts of their last few films, and the streak it adds up to.
+  C.form = function (w, did) {
+    var d = w.people[did], last = d.films.slice(-3).map(function (id) { return w.films[id]; });
+    var v = last.map(function (f) { return HW.postMortem(w, f); });
+    var good = v.filter(function (x) { return x.good; }).length, bad = v.filter(function (x) { return /Flop|disaster/.test(x.verdict); }).length;
+    var label = last.length < 2 ? 'Untested' : good >= 2 && !bad ? 'On a roll' : bad >= 2 ? 'Cold streak' : 'Mixed record';
+    return { films: last, verdicts: v, good: good, bad: bad, label: label, roll: label === 'On a roll', cold: label === 'Cold streak' };
+  };
+
+  // ---------- the quarter's slate and pitches ----------
+  function prepareQuarter(w) {
+    var c = w.career, ctx = ctxOf(w), rng = ctx.rng, p = player(w), rep = p.fame, q = c.q;
+    Sim.buildPools(w, ctx, exclude(w));
+    var slate = [];
+    w.studios.forEach(function (s) {
+      if (!s.active) return;
+      // each studio aims to start one production a quarter; struggling ones sometimes can't
+      if (!rng.chance(s.cash < 0 ? 0.55 : 0.88)) return;
+      var f = Sim.planProject(w, ctx, s);
+      f.month = q * 3 + rng.int(0, 2);
+      slate.push(f);
     });
+    slate.sort(function (a, b) { return b.budget * rng.range(0.7, 1.3) - a.budget * rng.range(0.7, 1.3); });
+    slate.forEach(function (f) { Sim.staffProject(w, ctx, f); });
+    slate = slate.filter(function (f) { return f.director != null && f.cast.length > 1; });
+    slate.forEach(function (f) { f.title = Sim.makeTitle(w, rng, f); });
+
+    // which productions would cast the player, and in what part
+    var cands = [];
+    slate.forEach(function (f, i) {
+      var s = w.studios[f.studio], st = C.stand(w, s.id), d = w.people[f.director], t = C.tie(w, d.id);
+      var sequelOfMine = f.seqOf != null && w.films[f.seqOf].cast.some(function (x) { return x.p === p.id && x.r === 'L'; });
+      var access = ACCESS[s.stars] - st.stand / 4;
+      var open = sequelOfMine || (rep >= access - 6 && st.until <= c.qi && t.snub <= c.qi && t.work > -35);
+      if (!open) return;
+      var leadP = sequelOfMine ? 1 : clamp((rep - ACCESS[s.stars]) / 20 + (s.stars <= 2 ? 0.3 : 0) + (t.aff >= 40 ? 0.1 : 0), 0.05, 0.9);
+      var want = rng.chance(leadP) ? 'L' : 'S';
+      var slot = pickSlot(w, f, want, p.gender) || pickSlot(w, f, want === 'L' ? 'S' : 'L', p.gender);
+      if (!slot) return;
+      var target = clamp(Math.round(rep / 18) + 1, 1, 5);
+      var wgt = Math.exp(-Math.abs(s.stars - target)) + (t.work >= 20 ? 1.5 : 0) + (t.aff >= 30 ? 0.8 : 0) + (sequelOfMine ? 5 : 0);
+      cands.push({ i: i, slot: slot, wgt: wgt, seq: sequelOfMine });
+    });
+    var picks = [];
+    if (cands.length < 3) slate.forEach(function (f, i) {
+      if (cands.some(function (x) { return x.i === i; })) return;
+      var s = w.studios[f.studio], t = C.tie(w, f.director), st = C.stand(w, s.id);
+      if (t.snub > c.qi || t.work <= -35 || st.until > c.qi || s.stars > 3) return; // grudges still hold
+      var slot = pickSlot(w, f, 'S', p.gender);
+      if (slot) cands.push({ i: i, slot: slot, wgt: 0.3 });
+    });
+    while (picks.length < 3 && cands.length) {
+      var pick = rng.weighted(cands, function (x) { return x.wgt; });
+      cands.splice(cands.indexOf(pick), 1);
+      picks.push(pick);
+    }
+    if (!picks.length && slate.length) {
+      // nobody wants you: the smallest production in town still needs a body on set
+      var small = slate.slice().sort(function (a, b) { return w.studios[a.studio].stars - w.studios[b.studio].stars || a.budget - b.budget; })[0];
+      var sl = pickSlot(w, small, 'S', p.gender) || pickSlot(w, small, 'L', p.gender);
+      if (sl) picks.push({ i: slate.indexOf(small), slot: sl, desperate: true });
+    }
+    c.slate = slate;
+    c.pitches = picks.map(function (x) {
+      var f = slate[x.i], role = x.slot.r, ask = HW.fee(p);
+      var fee = role === 'L' ? clamp(ask * rng.range(1, 1.4) + f.budget * 0.012, 0.03, Math.max(0.05, f.budget * 0.14))
+        : clamp(ask * rng.range(0.7, 1.1) + f.budget * 0.004, 0.02, Math.max(0.03, f.budget * 0.04));
+      return { f: x.i, r: role, alt: x.slot.p, fee: r2(fee), seq: !!x.seq, desperate: !!x.desperate };
+    });
+    w.rngState = rng.s;
+  }
+  // The cast member whose part the player would take (they keep it if the player passes).
+  function pickSlot(w, f, role, gender) {
+    for (var i = 0; i < f.cast.length; i++) {
+      var k = f.cast[i];
+      if (k.r === role && w.people[k.p].gender === gender) return k; // the part is written for the player's gender
+    }
+    return null;
+  }
+
+  // ---------- reading a pitch ----------
+  // What happens if you pass, what's risky, and what's good about it. Hidden items need investigating.
+  C.analyze = function (w, pitch) {
+    var c = w.career, f = c.slate[pitch.f], p = player(w), d = w.people[f.director], s = w.studios[f.studio];
+    var td = C.tie(w, d.id), out = { pass: [], risks: [], rewards: [] };
+    var dirSeen = C.seen(w, d.id), alt = w.people[pitch.alt];
+    // passing
+    var weeks = C.snubLength(d);
+    if (C.isPartner(td)) out.pass.push({ t: d.name + ' counts on you. Turning this down will strain your partnership, and they won\'t call for about ' + weeks + ' quarters.', ref: d.id, sev: 3 });
+    else out.pass.push({ t: d.name + ' won\'t pitch to you for about ' + weeks + ' quarter' + (weeks > 1 ? 's' : '') + '.', ref: d.id, sev: weeks >= 5 ? 2 : 1 });
+    out.pass.push({ t: s.name + ' (' + s.stars + '★) will be ' + (s.stars >= 4 ? 'noticeably' : 'a little') + ' cooler toward you.', sev: s.stars >= 4 ? 2 : 1 });
+    if (pitch.seq) out.pass.push({ t: 'They will recast your role in the sequel.', sev: 3 });
+    out.pass.push({ t: 'The part goes to ' + alt.name + ' instead.', ref: alt.id, sev: 0 });
+    // public risks
+    var others = f.cast.filter(function (k) { return k.p !== pitch.alt; });
+    others.forEach(function (k) {
+      var t = C.tie(w, k.p), o = w.people[k.p];
+      if (t.known && t.aff < -30) out.risks.push({ t: 'You and ' + o.name + ' don\'t get along. A tense set could sink the film.', ref: o.id });
+    });
+    if (td.known && td.aff < -30) out.risks.push({ t: d.name + ' doesn\'t like you. Expect a difficult shoot.', ref: d.id });
+    var lastD = d.films.length ? w.films[d.films[d.films.length - 1]] : null;
+    if (lastD && lastD.tags.indexOf('flop') >= 0) out.risks.push({ t: d.name + '\'s last film, "' + lastD.title + '", flopped.', ref: d.id });
+    if (s.cash < 0) out.risks.push({ t: s.name + ' is losing money; budgets get squeezed.' });
+    if (w.trends[f.genre] < 0.8) out.risks.push({ t: f.genre + ' films are out of fashion right now.' });
+    // fit is judged against your own best genre, so it means something at every stage of a career
+    var fit = HW.genreApt(p, f.genre), best = Math.max.apply(null, HW.GENRE_KEYS.map(function (g) { return HW.genreApt(p, g); }));
+    if (fit < best * 0.75) out.risks.push({ t: 'Not your kind of film: fit ' + Math.round(fit) + ', against ' + Math.round(best) + ' in your best genre.' });
+    else if (fit >= best * 0.95) out.rewards.push({ t: 'Plays to your strengths (fit ' + Math.round(fit) + ').' });
+    if (pitch.r === 'L' && f.budget >= 60) out.risks.push({ t: 'Leading a ' + HW.money(f.budget) + ' film puts your name on the poster: a flop would hit you hardest.' });
+    if (f.seqNum >= 4) out.risks.push({ t: 'Part ' + f.seqNum + ' of a franchise: audiences may be tiring of it.' });
+    // rewards: public ones first
+    if (C.isPartner(td)) out.rewards.push({ t: 'Your partnership with ' + d.name + ' (' + td.films + ' films together).', ref: d.id });
+    if (s.stars >= 4) out.rewards.push({ t: 'A ' + s.stars + '-star studio: a big stage.' });
+    if (w.trends[f.genre] >= 1.2) out.rewards.push({ t: f.genre + ' is hot right now.' });
+    others.forEach(function (k) {
+      var o = w.people[k.p];
+      if (o.fame >= 60) out.rewards.push({ t: o.name + ' is a box-office draw.', ref: o.id });
+    });
+    // hidden: the director's form and attitude
+    var form = C.form(w, d.id);
+    if (dirSeen) {
+      if (form.roll) out.rewards.push({ t: d.name + ' is on a roll: ' + form.good + ' of their last ' + form.films.length + ' films worked.', ref: d.id, found: true });
+      if (form.cold) out.risks.push({ t: d.name + ' is on a cold streak.', ref: d.id, found: true });
+      if (td.aff >= 30) out.rewards.push({ t: d.name + ' is fond of you.', ref: d.id, found: true });
+    }
+    // hidden: costars' attitude and fit for this film
+    others.forEach(function (k) {
+      if (!C.seen(w, k.p)) return;
+      var o = w.people[k.p], t = C.tie(w, k.p), apt = HW.genreApt(o, f.genre);
+      if (t.aff >= 30) out.rewards.push({ t: o.name + ' is fond of you: expect good chemistry.', ref: o.id, found: true });
+      if (t.aff < -30 && !out.risks.some(function (r) { return r.ref === o.id; })) out.risks.push({ t: o.name + ' can\'t stand you.', ref: o.id, found: true });
+      if (apt >= 65) out.rewards.push({ t: o.name + ' is perfect for this kind of film (fit ' + Math.round(apt) + ').', ref: o.id, found: true });
+      else if (apt < 35) out.risks.push({ t: o.name + ' is miscast here (fit ' + Math.round(apt) + ').', ref: o.id, found: true });
+    });
+    out.unexplored = [d.id].concat(others.map(function (k) { return k.p; })).filter(function (id) { return !C.seen(w, id); }).length;
     return out;
   };
 
-  // ---------- player actions ----------
-  function spend(w, amt) {
-    if (w.career.cash < amt) return false;
-    w.career.cash = money2(w.career.cash - amt);
-    return true;
-  }
-  function usedThisYear(w, c, what) {
-    if (!c.acts || c.acts.y !== w.year) c.acts = { y: w.year };
-    return !!c.acts[what];
-  }
+  // ---------- choosing ----------
+  // pick: index into c.pitches, or -1 to pass on everything.
+  C.choose = function (w, pick) {
+    var c = w.career, p = player(w), ctx = ctxOf(w), rng = ctx.rng, Y = w.year;
+    if (c.over) return null;
+    var slate = c.slate, chosen = pick >= 0 ? c.pitches[pick] : null, report = { y: Y, q: c.q, film: null, passed: [], changes: [] };
+    var repBefore = p.fame;
 
-  C.sign = function (w, pid) {
-    var p = w.people[pid], car = w.career;
-    if (C.client(w, pid)) return { ok: false, msg: p.name + ' is already your client.' };
-    if (p.status !== 'active' || p.role !== 'actor') return { ok: false, msg: 'Only active actors can be signed.' };
-    if (car.clients.length >= C.maxRoster(w)) return { ok: false, msg: 'Your roster is full. Grow your reputation to take on more clients.' };
-    if (!C.willSign(w, p)) return { ok: false, msg: p.name + ' won\'t sign with an agency of your standing yet.' };
-    var cost = C.signCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'Signing ' + p.name + ' costs ' + HW.money(cost) + '.' };
-    car.clients.push({ id: pid, signed: w.year, loyalty: 70, earned: 0, startFame: Math.round(p.fame) });
-    w.follows = w.follows || { p: {}, s: {} };
-    w.follows.p[pid] = 1;
-    log(w, 'Signed ' + p.name + (cost ? ' for ' + HW.money(cost) : '') + '.', 'good', pid);
-    if (car.offersFor === w.year) C.generateOffers(w, pid);
-    return { ok: true, msg: p.name + ' signs with ' + car.agency + '!' };
-  };
-
-  C.release = function (w, pid) {
-    var car = w.career, c = C.client(w, pid);
-    if (!c) return { ok: false };
-    car.clients.splice(car.clients.indexOf(c), 1);
-    car.alumni.push({ id: pid, from: c.signed, to: w.year, why: 'released', earned: c.earned });
-    delete car.offers[pid]; delete car.accepted[pid];
-    log(w, 'Released ' + w.people[pid].name + ' from the agency.', 'info', pid);
-    return { ok: true, msg: w.people[pid].name + ' is no longer your client.' };
-  };
-
-  C.coach = function (w, pid, stat) {
-    var p = w.people[pid], c = C.client(w, pid);
-    if (!c) return { ok: false };
-    if (usedThisYear(w, c, 'coach')) return { ok: false, msg: p.name + ' already trained this year.' };
-    var cost = C.coachCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'Coaching costs ' + HW.money(cost) + '.' };
-    c.acts.coach = stat;
-    var before, after;
-    if (HW.ACTOR_GENRES.indexOf(stat) >= 0) {
-      before = p.genre[stat];
-      p.genre[stat] = Math.round(clamp(before + 0.8 * Math.max(0.2, (10 - before) / 6), 1, 10) * 100) / 100;
-      after = p.genre[stat];
-    } else {
-      before = p.stats[stat];
-      p.genes[stat] = HW.round1(clamp(p.genes[stat] + 0.5 * Math.max(0.2, (10 - p.genes[stat]) / 5), 1, 10));
-      HW.updateStats(p, w.year);
-      after = p.stats[stat];
-    }
-    var label = HW.STAT_LABELS[stat];
-    log(w, p.name + ' trained ' + label + ' (' + before.toFixed(1) + ' → ' + after.toFixed(1) + ').', 'info', pid);
-    c.loyalty = clamp(c.loyalty + 2, 0, 100);
-    return { ok: true, msg: p.name + '\'s ' + label + ' improved to ' + after.toFixed(1) + '.' };
-  };
-
-  C.campaign = function (w, pid) {
-    var p = w.people[pid], c = C.client(w, pid);
-    if (!c) return { ok: false };
-    if (p.campaign === w.year) return { ok: false, msg: 'Already campaigning for ' + p.name + ' this year.' };
-    var hasRole = (w.career.accepted[pid] || []).length > 0;
-    if (!hasRole) return { ok: false, msg: p.name + ' needs a role this year for a campaign to matter.' };
-    var cost = C.campaignCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'An awards campaign costs ' + HW.money(cost) + '.' };
-    p.campaign = w.year;
-    log(w, 'Launched a "For Your Consideration" campaign for ' + p.name + '.', 'info', pid);
-    return { ok: true, msg: 'The campaign for ' + p.name + ' is on: voters will hear about this year\'s performance.' };
-  };
-
-  C.publicity = function (w, pid) {
-    var p = w.people[pid], c = C.client(w, pid);
-    if (!c) return { ok: false };
-    if (usedThisYear(w, c, 'pr')) return { ok: false, msg: 'One publicity push per client per year.' };
-    var cost = C.publicityCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'A publicity push costs ' + HW.money(cost) + '.' };
-    c.acts.pr = 1;
-    var before = p.fame;
-    HW.gainFame(p, 5);
-    p.fame = Math.round(p.fame * 10) / 10;
-    c.loyalty = clamp(c.loyalty + 2, 0, 100);
-    log(w, 'Publicity push for ' + p.name + ': talk shows, magazine covers, premieres.', 'info', pid);
-    return { ok: true, msg: p.name + '\'s fame: ' + Math.round(before) + ' → ' + Math.round(p.fame) + '.' };
-  };
-
-  // ---------- simulation hook: end of year ----------
-  C.afterYear = function (w, ctx) {
-    var car = w.career, Y = ctx.year, rng = rngFor(w);
-    if (car.over) return;
-    var commission = 0, winsY = 0, nomsY = 0;
-    var aw = w.awards[Y];
-    car.clients.slice().forEach(function (c) {
-      var p = w.people[c.id];
-      var films = ctx.films.filter(function (f) { return f.cast.some(function (x) { return x.p === p.id; }); });
-      var earned = 0, led = false;
-      var dl = -3 - p.fame / 25; // every client wants a little more each year, stars most of all
-      films.forEach(function (f) {
-        var x = f.cast.filter(function (k) { return k.p === p.id; })[0];
-        earned += x.fee * COMMISSION;
-        dl += 1;
-        if (x.r === 'L') { dl += 2; led = true; }
-        if (f.forced && f.forced.dirSwap && f.forced.p === p.id) log(w, 'The promised director dropped out of "' + f.title + '"; ' + w.people[f.director].name + ' stepped in.', 'info', p.id);
-        if (f.tags.indexOf('smash') >= 0) dl += 5;
-        if (f.tags.indexOf('flop') >= 0) dl -= 4;
-        if (x.fee < HW.fee(p) * 0.8) dl -= 2; // took less than their asking price
-        milestone(w, 'firstLead', x.r === 'L', 'First leading role: ' + p.name + ' in "' + f.title + '".', p.id);
-        milestone(w, 'hundred', f.gross >= 100, 'First $100M film: "' + f.title + '".', p.id);
-        milestone(w, 'billion', f.gross >= 1000, 'A client in a billion-dollar movie: "' + f.title + '".', p.id);
-      });
-      if (!films.length && p.status === 'active') dl -= 10; // an idle client gets restless
-      else if (p.fame >= 40 && !led) dl -= 4;                // an established name wants leading roles
-      if (aw) aw.cats.forEach(function (cat) {
-        cat.noms.forEach(function (n, i) {
-          if (n.p !== p.id) return;
-          var won = i === cat.win;
-          nomsY++; dl += won ? 10 : 4;
-          if (won) winsY++;
-          milestone(w, 'nom', true, 'First Golden Laurel nomination: ' + p.name + ' for ' + HW.catName(cat.k) + '.', p.id);
-          if (won) milestone(w, 'win', true, 'First Golden Laurel win: ' + p.name + ', ' + HW.catName(cat.k) + '!', p.id);
-        });
-        var bp = cat.k === 'picture' ? w.films[cat.noms[cat.win].f] : null;
-        if (bp && bp.cast.some(function (x) { return x.p === p.id; })) milestone(w, 'bestPicture', true, 'A client starred in Best Picture winner "' + bp.title + '".', p.id);
-      });
-      var i = p.hf ? p.hf.length - 1 : -1;
-      if (i >= 1 && p.hf[i] - p.hf[i - 1] >= 5) dl += 3;
-      c.loyalty = Math.round(clamp(c.loyalty + dl, 0, 100));
-      c.earned = money2(c.earned + earned);
-      commission += earned;
-
-      // leaving the agency
-      var why = null;
-      if (p.status === 'deceased') why = 'died';
-      else if (p.status === 'retired') why = 'retired';
-      else if (c.loyalty < 30 && rng.chance((30 - c.loyalty) / 40 + 0.1)) why = 'left';
-      else if (p.fame >= 65 && car.rep < p.fame - 30 && rng.chance(0.2)) why = 'poached';
-      else if (p.fame >= 60 && c.loyalty < 90 && rng.chance((p.fame - 50) / 400)) why = 'poached'; // rivals circle every star
-      if (why) {
-        car.clients.splice(car.clients.indexOf(c), 1);
-        var rival = rng.pick(RIVAL_AGENCIES);
-        car.alumni.push({ id: p.id, from: c.signed, to: Y, why: why, earned: c.earned, rival: why === 'left' || why === 'poached' ? rival : null });
-        var msg = why === 'died' ? 'Your client ' + p.name + ' has died, aged ' + (Y - p.born) + '.' :
-          why === 'retired' ? p.name + ' retired from acting.' :
-          why === 'poached' ? p.name + ' was poached by ' + rival + ', a bigger agency.' :
-          p.name + ' fired the agency and signed with ' + rival + '.';
-        log(w, msg, why === 'retired' ? 'info' : 'bad', p.id);
-        if (why === 'left' || why === 'poached') HW.addNews(w, Y, p.name + ' leaves ' + car.agency + ' for ' + rival + '.', 'people', { p: p.id });
-      }
+    // the passed pitches: grudges and cooler studios
+    c.pitches.forEach(function (pt, i) {
+      if (i === pick) return;
+      var f = slate[pt.f], d = w.people[f.director], td = C.tie(w, d.id), st = C.stand(w, f.studio), s = w.studios[f.studio];
+      var partner = C.isPartner(td);
+      td.snub = c.qi + 1 + C.snubLength(d);
+      td.work -= partner ? 12 : 5;
+      if (partner) { td.aff -= 20; report.changes.push({ t: d.name + ' is hurt that you turned them down.', ref: d.id, bad: true }); }
+      else report.changes.push({ t: d.name + ' won\'t call for a while.', ref: d.id, bad: true });
+      st.stand -= s.stars >= 4 ? 6 : 3;
+      report.passed.push({ f: f, alt: pt.alt, r: pt.r });
     });
 
-    var upkeep = money2(0.05 + 0.012 * car.clients.length);
-    car.cash = money2(car.cash + commission - upkeep);
-    var top = car.clients.map(function (c) { return w.people[c.id].fame; }).sort(function (a, b) { return b - a; }).slice(0, 3);
-    var topAvg = top.length ? top.reduce(function (a, b) { return a + b; }, 0) / top.length : 0;
-    car.rep = Math.round(clamp(car.rep * 0.75 + 0.25 * Math.min(100, topAvg + winsY * 8 + nomsY * 2), 0, 100));
-    var stars = w.people.filter(function (p) { return p.role === 'actor' && p.status === 'active'; }).sort(function (a, b) { return b.fame - a.fame; }).slice(0, 10);
-    stars.forEach(function (p) { if (C.client(w, p.id)) milestone(w, 'topTen', true, p.name + ' is one of Hollywood\'s ten biggest stars.', p.id); });
-    milestone(w, 'tenM', car.cash >= 10, 'The agency has $10M in the bank.');
-    milestone(w, 'fullHouse', car.clients.length >= 8, 'Eight clients on the roster.');
-    car.history.push({ y: Y, cash: car.cash, rep: car.rep, com: money2(commission), up: upkeep, n: car.clients.length, value: C.value(w) });
-    log(w, Y + ' closed: ' + HW.money(commission) + ' in commission, ' + HW.money(upkeep) + ' overhead.', 'year');
-    if (car.cash < 0) {
-      car.over = { y: Y, why: 'The agency ran out of money.' };
-      log(w, car.agency + ' has folded.', 'bad');
-      return;
+    var mine = null;
+    if (chosen) {
+      mine = slate[chosen.f];
+      var entry = mine.cast.filter(function (k) { return k.p === chosen.alt; })[0];
+      entry.p = p.id; entry.fee = chosen.fee; entry.cut = undefined;
+      // on-set dynamics: fondness lifts performances, bad blood can wreck a shoot
+      var mods = mine.mods = { perf: {}, q: 0 };
+      var d = w.people[mine.director], td = C.tie(w, d.id), form = C.form(w, d.id);
+      if (td.aff >= 30) mods.perf[p.id] = (mods.perf[p.id] || 0) + 3;
+      if (td.aff < -30 && rng.chance(0.4)) { mods.q -= 3; mods.perf[p.id] = (mods.perf[p.id] || 0) - 5; mine.clash = d.id; }
+      if (C.isPartner(td)) mods.q += 1;
+      if (form.roll) mods.q += 2; else if (form.cold) mods.q -= 1;
+      mine.cast.forEach(function (k) {
+        if (k.p === p.id) return;
+        var t = C.tie(w, k.p), o = w.people[k.p];
+        if (t.aff >= 30) { mods.perf[p.id] = (mods.perf[p.id] || 0) + 2; mods.perf[k.p] = (mods.perf[k.p] || 0) + 2; }
+        else if (t.aff < -30 && rng.chance(0.35 + (HW.has(o, 'diva') ? 0.2 : 0))) {
+          mods.perf[p.id] = (mods.perf[p.id] || 0) - 8; mods.perf[k.p] = (mods.perf[k.p] || 0) - 6; mods.q -= 4;
+          mine.clash = mine.clash || k.p;
+        }
+      });
+      mine.agent = { p: p.id };
     }
-    // next year's offers arrive as soon as the year ends
-    w.year = Y + 1; C.generateOffers(w); w.year = Y;
+
+    // release the whole quarter
+    ctx.seqCount = {};
+    slate.forEach(function (f) { if (f.seqOf != null) ctx.seqCount[f.genre] = (ctx.seqCount[f.genre] || 0) + 1; });
+    Sim.releaseFilms(w, ctx, slate);
+    Sim.careerUpdates(w, ctx, slate);
+    slate.forEach(function (f) { w.yc.ids.push(f.id); delete f.mods; });
+    w.yc.worked = ctx.worked;
+
+    if (mine) {
+      var pm = HW.postMortem(w, mine), x = mine.cast.filter(function (k) { return k.p === p.id; })[0], lead = x.r === 'L' ? 0 : 1;
+      // reputation is slow to build and quick to lose
+      var delta = REP[pm.verdict][lead], before = repBefore, after;
+      if (typeof delta === 'string') after = before * parseFloat(delta.slice(1));
+      else after = before + (delta > 0 ? delta * (1 - before / 115) : delta);
+      // a strong performance gets noticed even in a weak film; a bad one gets noticed too
+      var shine = x.perf >= 65 ? clamp((x.perf - 65) / 8, 0, 3) * (lead ? 0.6 : 1) : x.perf < 50 ? clamp((x.perf - 50) / 8, -2, 0) : 0;
+      after += shine > 0 ? shine * (1 - before / 115) : shine;
+      if (before < 20 && !/Flop|disaster/.test(pm.verdict)) after += 0.5; // an unknown gains a little just from being seen
+      p.fame = Math.round(clamp(after, 0, 100) * 10) / 10;
+      c.earnings = r2(c.earnings + x.fee);
+      c.earnedYear = r2((c.earnedYear || 0) + x.fee);
+      c.peak = Math.max(c.peak, p.fame);
+      report.film = { id: mine.id, verdict: pm.verdict, good: pm.good, perf: x.perf, r: x.r, fee: x.fee, repBefore: Math.round(before * 10) / 10, repAfter: p.fame, clash: mine.clash != null ? mine.clash : null };
+      // the people and the studio react, for career reasons
+      var wk = WORK[pm.verdict] * (lead ? 0.6 : 1), sd = STAND[pm.verdict] * (lead ? 0.6 : 1);
+      var d2 = w.people[mine.director], td2 = C.tie(w, d2.id);
+      var wasPartner = C.isPartner(td2);
+      td2.films++; td2.last = mine.id; td2.known = true;
+      td2.work = clamp(td2.work + wk, -100, 100);
+      td2.aff = clamp(td2.aff + 6 + (x.perf >= 80 ? 4 : 0) - (mine.clash === d2.id ? 15 : 0), -100, 100);
+      if (!wasPartner && C.isPartner(td2)) report.changes.push({ t: 'You and ' + d2.name + ' are now regular collaborators.', ref: d2.id, good: true });
+      else if (wk <= -25) report.changes.push({ t: d2.name + ' will think twice before casting you again. Nothing personal: the flop hurt them too.', ref: d2.id, bad: true });
+      else if (wk >= 15) report.changes.push({ t: d2.name + ' wants to work with you again.', ref: d2.id, good: true });
+      mine.cast.forEach(function (k) {
+        if (k.p === p.id) return;
+        var t = C.tie(w, k.p), o = w.people[k.p];
+        t.films++; t.known = true; t.last = mine.id;
+        t.work = clamp(t.work + wk * 0.5, -100, 100);
+        if (mine.clash === k.p) { t.aff = clamp(t.aff - 15, -100, 100); report.changes.push({ t: 'You clashed with ' + o.name + ' on set.', ref: o.id, bad: true }); }
+        else t.aff = clamp(t.aff + 4, -100, 100);
+      });
+      var st2 = C.stand(w, mine.studio), s2 = w.studios[mine.studio];
+      st2.stand = clamp(st2.stand + sd, -100, 100);
+      if (st2.stand < -30) { st2.until = c.qi + 4; report.changes.push({ t: s2.name + ' won\'t hire you for about a year.', bad: true }); }
+      else if (sd >= 12) report.changes.push({ t: s2.name + ' will remember this hit.', good: true });
+      var tag = pm.verdict + (x.r === 'L' ? ' (lead)' : ' (supporting)');
+      log(w, '"' + mine.title + '": ' + tag + '. Reputation ' + Math.round(before) + ' → ' + Math.round(p.fame) + '.', pm.good ? 'good' : /Flop|disaster/.test(pm.verdict) ? 'bad' : 'info', { f: mine.id });
+      milestones(w, mine, x, pm);
+    } else {
+      log(w, 'You passed on every pitch this quarter.', 'info');
+    }
+    report.passed = report.passed.map(function (x) {
+      var pm = HW.postMortem(w, x.f), k = x.f.cast.filter(function (q) { return q.p === x.alt; })[0];
+      return { id: x.f.id, verdict: pm.verdict, good: pm.good, alt: x.alt, perf: k ? k.perf : null, r: x.r };
+    });
+    report.passed.forEach(function (x) { if (x.good && /Smash/.test(x.verdict)) log(w, 'You passed on "' + w.films[x.id].title + '". It became a smash for ' + w.people[x.alt].name + '.', 'bad', { f: x.id }); });
+
+    // grudges and standing slowly fade
+    Object.keys(c.ties).forEach(function (id) { var t = c.ties[id]; if (t.work < 0) t.work = Math.min(0, t.work + 2.5); });
+    Object.keys(c.studios).forEach(function (id) { var st = c.studios[id]; if (st.stand < 0) st.stand = Math.min(0, st.stand + 2); });
+
+    w.rngState = rng.s;
+    report.repNow = p.fame;
+    c.reports.push(report);
+    if (c.reports.length > 40) c.reports.shift();
+    c.qi++;
+    c.q++;
+    if (c.q === 4) { report.yearEnded = Y; endYear(w); }
+    if (!c.over) prepareQuarter(w);
+    return report;
   };
 
-  function milestone(w, key, cond, text, pid) {
-    var m = w.career.milestones;
-    if (!cond || m[key]) return;
-    m[key] = { y: w.year, t: text };
-    log(w, '🏅 ' + text, 'milestone', pid);
+  function milestones(w, f, x, pm) {
+    var c = w.career, m = c.milestones || (c.milestones = {});
+    var hit = function (k, cond, t) { if (cond && !m[k]) { m[k] = { y: w.year, q: c.q }; log(w, '🏅 ' + t, 'milestone', { f: f.id }); } };
+    hit('lead', x.r === 'L', 'Your first leading role: "' + f.title + '".');
+    hit('hit', pm.good, 'Your first hit: "' + f.title + '".');
+    hit('hundred', f.gross >= 100, 'Your first $100M movie.');
+    hit('fiveStar', w.studios[f.studio].stars === 5, 'You worked for a 5-star studio.');
+    hit('billion', f.gross >= 1000, 'A billion-dollar movie.');
+    hit('aList', player(w).fame >= 70, 'You are on the A-list.');
   }
-  C.MILESTONES = [
-    ['firstLead', 'First leading role'], ['hundred', 'A $100M movie'], ['nom', 'First Laurel nomination'], ['win', 'First Laurel win'],
-    ['topTen', 'A top-10 star'], ['billion', 'A billion-dollar movie'], ['bestPicture', 'Star of a Best Picture winner'],
-    ['fullHouse', 'Eight clients'], ['tenM', '$10M in the bank']
-  ];
+  C.MILESTONES = [['lead', 'First leading role'], ['hit', 'First hit'], ['hundred', 'A $100M movie'], ['fiveStar', 'Work for a 5-star studio'], ['billion', 'A billion-dollar movie'], ['aList', 'Reputation 70: the A-list']];
+
+  function retire(w, why) {
+    var c = w.career, p = player(w);
+    c.over = { y: w.year, why: why };
+    p.status = 'retired';
+    p.retired = w.year;
+    log(w, why, 'milestone');
+  }
+  C.retire = function (w) { retire(w, player(w).name + ' retires from acting at ' + C.age(w) + '.'); };
 })(globalThis.HW = globalThis.HW || {});
 </script>
   <script>
@@ -3935,244 +4078,278 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
 })(globalThis.HW = globalThis.HW || {});
 </script>
   <script>
-// Career mode screens: start / continue, open auditions, and the agency office.
+// Career mode screens: create your actor, then each quarter read three pitches and sign on to one.
 (function (HW) {
   var UI = HW.UI, C = HW.Career;
-  var h = function () { return UI.h; };
   function W() { return HW.world; }
-  function inCareer() { return W().mode === 'career' && W().career; }
+  function inCareer() { var w = W(); return w.mode === 'career' && w.career && w.career.kind === 'actor'; }
+  function qLabel(qi) { var c = W().career; return C.QUARTERS[qi % 4] + ' ' + (c.started + Math.floor(qi / 4)); }
+  var REP_LABELS = [[70, 'A-list'], [50, 'Star'], [35, 'Rising name'], [20, 'Working actor'], [8, 'Bit-part regular'], [0, 'Unknown']];
+  function repLabel(r) { for (var i = 0; i < REP_LABELS.length; i++) if (r >= REP_LABELS[i][0]) return REP_LABELS[i][1]; return 'Unknown'; }
+  function starsOf(n) { return '<span class="stars" title="' + n + '-star studio">' + '★★★★★'.slice(0, n) + '<span class="off">' + '★★★★★'.slice(n) + '</span></span>'; }
+  function verdictTone(v) { return /Smash|Hit|Solid/.test(v) ? 'good' : /Broke/.test(v) ? 'even' : 'bad'; }
 
   UI.addRoute('career', function () {
-    var H = h();
+    var H = UI.h;
     if (!inCareer()) return startScreen(H);
-    var car = W().career;
-    if (!car.auditionsDone && car.clients.length + car.alumni.length < 3 && !car.over) return auditions(H);
-    return office(H);
+    var c = W().career;
+    if (c.over) return overScreen(H);
+    return careerHome(H);
   });
 
   // ---------- start ----------
   function startScreen(H) {
-    var meta = HW.careerMeta;
+    var meta = HW.careerMeta && HW.careerMeta.kind === 'actor' ? HW.careerMeta : null;
     var x = '<section class="hero career-hero"><h1>🎬 Career Mode</h1>' +
-      '<p>Run your own talent agency in a brand-new Hollywood. Sign unknown actors at open auditions, choose which roles they take, coach them, ' +
-      'buy publicity and awards campaigns, and keep them loyal, or watch them walk out to a rival agency. You earn ' + Math.round(10) + '% of every fee they make.</p>' +
-      '<p class="muted">Career Mode has its own world and its own save. Your sandbox world stays exactly as it is, and you can switch back at any time.</p></section>';
+      '<p>You are an 18-year-old actor with a headshot and a dream, in a town of 20 studios and 20 directors. Every quarter the studios start new productions and you get pitches for three of them. Pick one, or none.</p>' +
+      '<p>Every choice has weight. Directors you turn down stop calling. Old partners feel snubbed. Co-stars who can\'t stand you can wreck a shoot. A flop knocks a quarter off your reputation and makes people wary of hiring you, and reputation is slow to earn back.</p>' +
+      '<p class="muted">Career Mode has its own world and its own save. Your sandbox world stays as it is, and you can switch back at any time.</p></section>';
     x += '<div class="grid two">';
-    if (meta) {
-      x += H.card('Continue', '<p><b>' + H.esc(meta.agency) + '</b>, ' + meta.year + (meta.over ? ' <span class="neg">(folded)</span>' : '') + '</p>' +
-        '<button class="btn primary" data-action="toCareer">Continue career</button>');
-    }
-    x += H.card(meta ? 'Start a new career' : 'Start your agency',
-      '<div class="form"><label>Agency name <input type="text" id="cAgency" maxlength="40" placeholder="Starmaker Agency"></label>' +
+    if (meta) x += H.card('Continue', '<p><b>' + H.esc(meta.name) + '</b>, ' + (meta.q != null ? C.QUARTERS[meta.q] + ' ' : '') + meta.year + (meta.over ? ' <span class="muted">(retired)</span>' : '') + '</p><button class="btn primary" data-action="toCareer">Continue career</button>');
+    var focusOpts = Object.keys(C.FOCUS).map(function (k) {
+      return '<label class="focus-opt"><input type="radio" name="cFocus" value="' + k + '"' + (k === 'presence' ? ' checked' : '') + '><span><b>' + C.FOCUS[k].label + '</b><span class="muted small">' + HW.STAT_LABELS[k] + ': ' + H.esc(HW.STAT_DESC[k]) + '</span></span></label>';
+    }).join('');
+    x += H.card(meta ? 'Start a new career' : 'Create your actor',
+      '<div class="form"><label>Name <input type="text" id="cName" maxlength="40" placeholder="Your stage name"></label>' +
+      '<label>Gender <select id="cGender"><option value="F">Female</option><option value="M">Male</option></select></label>' +
+      '<div class="focus-list"><span class="muted small">What stands out about you?</span>' + focusOpts + '</div>' +
       '<label>Start year <input type="number" id="cStart" value="1980" min="1920" max="2030"></label>' +
       '<label>Seed <input type="text" id="cSeed" placeholder="random"></label>' +
-      '<button class="btn primary" data-career="start">Open the agency</button>' +
-      (meta ? '<p class="muted small">Starting a new career replaces ' + H.esc(meta.agency) + '.</p>' : '') + '</div>');
+      '<button class="btn primary" data-career="start">Step off the bus</button>' +
+      (meta ? '<p class="muted small">Starting a new career replaces ' + H.esc(meta.name) + '\'s.</p>' : '') + '</div>');
     x += '</div>';
-    x += H.card('How it plays', '<ol class="howto">' +
-      '<li><b>Sign clients.</b> Pick your first three actors at open auditions for free. Bigger names only sign once your reputation is high enough.</li>' +
-      '<li><b>Answer offers.</b> Every year each client gets role offers: studio, genre, budget, lead or supporting, director, fee, script buzz and genre fit. Accept up to two per client.</li>' +
-      '<li><b>Advance the year.</b> Accepted offers become real films in the simulation. Clients you don\'t place sit idle and get restless.</li>' +
-      '<li><b>Invest.</b> Coaching raises a stat or genre skill, a publicity push raises fame, and a For Your Consideration campaign gives a client\'s performance a boost with Golden Laurel voters.</li>' +
-      '<li><b>Keep them happy.</b> Loyalty rises with good roles, hits and awards, and falls with idle years, flops and supporting parts for stars. Unhappy clients leave, and stars can be poached by bigger agencies.</li>' +
-      '<li><b>Grow.</b> Your reputation comes from your clients\' fame and awards. It decides who will sign and how big your roster can be. Run out of money and the agency folds.</li></ol>');
     return x;
   }
 
-  // ---------- auditions ----------
-  function auditions(H) {
-    var w = W(), car = w.career;
-    var x = '<div class="pagehead"><h1>Open auditions</h1><span class="muted">' + H.esc(car.agency) + ' · ' + w.year + '</span></div>';
-    var n = car.clients.length;
-    x += '<div class="toolbar"><p>Pick up to three founding clients; they sign for free. You start with ' + H.money(car.cash) + '. <b>' + n + ' / 3 signed.</b></p>' +
-      (n ? '<button class="btn primary" data-career="openOffice">Open the office with ' + n + ' client' + (n > 1 ? 's' : '') + ' ›</button>' : '') + '</div>';
-    var list = car.auditions.map(function (id) { return w.people[id]; }).filter(function (p) { return p.status === 'active'; });
-    x += '<div class="grid audition">' + list.map(function (p) {
-      var signed = !!C.client(w, p.id);
-      return actorCard(H, p, signed ? '<button class="btn small" disabled>✓ Signed</button>' : '<button class="btn primary small" data-career="sign:' + p.id + '">Sign</button>');
-    }).join('') + '</div>';
+  function overScreen(H) {
+    var w = W(), c = w.career, p = C.player(w);
+    return '<section class="hero career-hero"><h1>' + H.esc(p.name) + '</h1><p>' + H.esc(c.over.why) + '</p>' +
+      '<p>' + p.films.length + ' films · peak reputation ' + Math.round(c.peak) + ' · ' + H.money(c.earnings) + ' earned · ' + p.wins + ' Golden Laurel' + (p.wins === 1 ? '' : 's') + '</p>' +
+      '<p><a class="btn" href="#/person/' + p.id + '">Read your career story</a> <button class="btn primary" data-career="new">Start a new career</button></p></section>';
+  }
+
+  // ---------- home ----------
+  function careerHome(H) {
+    var w = W(), c = w.career, p = C.player(w), rep = C.rep(w);
+    var x = '<div class="pagehead"><h1>' + H.esc(p.name) + '</h1><span class="muted">' + C.age(w) + ' · ' + C.label(w) + '</span></div>';
+    x += '<div class="stats-row">' +
+      H.stat('Reputation', rep + ' <span class="small muted">/ 100</span>', repLabel(rep)) +
+      H.stat('Overall', H.ovrText(p), 'Best genre: ' + HW.STAT_LABELS[H.topGenre(p)]) +
+      H.stat('Films', p.films.length, p.wins ? '🏆 ' + p.wins + ' Golden Laurel' + (p.wins > 1 ? 's' : '') : p.noms ? p.noms + ' nomination' + (p.noms > 1 ? 's' : '') : 'No awards yet') +
+      H.stat('Earned', H.money(c.earnings), 'Peak reputation ' + Math.round(c.peak)) + '</div>';
+    var last = c.reports[c.reports.length - 1];
+    if (last && c.reportSeen !== c.qi) x += reportCard(H, last);
+    var tab = UI.filters.careerTab || 'pitches';
+    x += '<div class="toolbar">' + H.seg('careerTab', tab, [['pitches', 'Pitches · ' + C.label(w)], ['people', 'Relationships'], ['history', 'Your career'], ['log', 'Log']]) + '</div>';
+    if (tab === 'pitches') x += pitchesTab(H);
+    else if (tab === 'people') x += peopleTab(H);
+    else if (tab === 'history') x += historyTab(H);
+    else x += logTab(H);
     return x;
   }
 
-  function actorCard(H, p, actions) {
-    var w = W(), g = H.topGenre(p);
-    return '<section class="card actor-card"><div class="ac-head"><div>' + H.pLink(p.id) + '<div class="sub">' + (p.gender === 'M' ? 'Male' : 'Female') + ', ' + (w.year - p.born) +
-      (p.traits.length ? ' · ' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(', ') : '') + '</div></div>' +
-      '<div class="ac-ovr"><span class="score ' + H.scoreCls(HW.ovr(p)) + '">' + H.ovrText(p) + '</span>' + H.stars(HW.potentialStars(p)) + '</div></div>' +
-      '<div class="ac-stats">' + HW.ROLES.actor.stats.map(function (k) {
-        return '<span title="' + H.esc(HW.STAT_DESC[k]) + '">' + HW.STAT_LABELS[k].slice(0, 4) + ' <b>' + Math.round(p.stats[k]) + '</b></span>';
-      }).join('') + '</div>' +
-      '<div class="sub">Best genre: ' + HW.STAT_LABELS[g] + ' ' + Math.round(p.genre[g]) + ' · Fame ' + Math.round(p.fame) + ' · Asks ' + H.money(HW.fee(p)) + '</div>' +
-      '<div class="ac-actions">' + actions + '</div></section>';
+  function reportCard(H, r) {
+    var w = W(), x = '<section class="card report"><div class="story-head"><h3>' + C.QUARTERS[r.q] + ' ' + r.y + ' report</h3><button class="btn small ghost" data-career="seen">Dismiss</button></div>';
+    if (r.film) {
+      var f = w.films[r.film.id];
+      var pct = r.film.repBefore >= 5 ? Math.round((r.film.repAfter - r.film.repBefore) / r.film.repBefore * 100) : 0;
+      x += '<div class="rep-film"><div>' + H.fLink(f.id) + ' <span class="verdict v-' + verdictTone(r.film.verdict) + '">' + r.film.verdict + '</span>' +
+        '<div class="sub">' + (r.film.r === 'L' ? 'Lead' : 'Supporting') + ' · performance <span class="grade ' + H.scoreCls(r.film.perf) + '">' + H.grade(r.film.perf) + '</span> · ' + H.money(f.gross) + ' gross · paid ' + H.money(r.film.fee) + '</div></div>' +
+        '<div class="rep-delta ' + (r.film.repAfter >= r.film.repBefore ? 'pos' : 'neg') + '">Reputation ' + Math.round(r.film.repBefore) + ' → ' + Math.round(r.film.repAfter) +
+        (pct <= -15 ? ' <b>(' + pct + '%)</b>' : '') + '</div></div>';
+      if (r.film.clash != null) x += '<p class="neg small">Trouble on set with ' + H.pLink(r.film.clash) + ' dragged the film down.</p>';
+    } else x += '<p class="muted">You sat this quarter out.</p>';
+    if (r.changes.length) x += '<ul class="reasons">' + r.changes.map(function (ch) {
+      return '<li class="' + (ch.good ? 'up' : ch.bad ? 'down' : '') + '"><span class="ic">' + (ch.good ? '▲' : ch.bad ? '▼' : '•') + '</span>' + H.esc(ch.t) + '</li>';
+    }).join('') + '</ul>';
+    if (r.passed.length) x += '<h4>The ones you passed on</h4><ul class="reasons">' + r.passed.map(function (pz) {
+      var f = w.films[pz.id], tone = verdictTone(pz.verdict);
+      var note = tone === 'good' ? ' It worked out for ' + w.people[pz.alt].name + '.' : tone === 'bad' ? ' You dodged that one.' : '';
+      return '<li><span class="ic">↩</span><span>' + H.fLink(f.id) + ' <span class="verdict v-' + tone + '">' + pz.verdict + '</span> <span class="muted small">' + H.esc(note) + '</span></span></li>';
+    }).join('') + '</ul>';
+    if (r.yearEnded) x += '<p class="small"><a class="lnk" href="#/awards/' + r.yearEnded + '">See the ' + r.yearEnded + ' Golden Laurels →</a></p>';
+    return x + '</section>';
   }
 
-  // ---------- office ----------
-  function office(H) {
-    var w = W(), car = w.career, last = car.history[car.history.length - 1];
-    var x = '<div class="pagehead"><h1>' + H.esc(car.agency) + '</h1><span class="muted">founded ' + car.founded + ' · planning ' + w.year + '</span></div>';
-    if (car.over) x += '<section class="card over"><h3>The agency has folded</h3><p>' + H.esc(car.over.why) + ' ' + H.esc(car.agency) + ' closed its doors in ' + car.over.y + ' after ' + (car.over.y - car.founded + 1) + ' years.</p><button class="btn primary" data-career="new">Start a new career</button></section>';
-    x += '<div class="stats-row">' + H.stat('Cash', H.money(car.cash)) + H.stat('Reputation', car.rep, repHint(car.rep)) +
-      H.stat('Clients', car.clients.length + ' / ' + C.maxRoster(w)) + H.stat('Agency value', H.money(C.value(w))) +
-      H.stat('Last year', last ? H.money(last.com) : '—', last ? 'commission, ' + H.money(last.up) + ' overhead' : 'no films yet') + '</div>';
-
-    var tabs = [['offers', 'Offers ' + w.year], ['clients', 'Clients'], ['scout', 'Scouting'], ['agency', 'Agency']];
-    var tab = UI.filters.careerTab || 'offers';
-    x += '<div class="toolbar">' + H.seg('careerTab', tab, tabs) + '</div>';
-    if (tab === 'offers') x += offersTab(H);
-    else if (tab === 'clients') x += clientsTab(H);
-    else if (tab === 'scout') x += scoutTab(H);
-    else x += agencyTab(H);
-    return x;
-  }
-  function repHint(r) { return r < 20 ? 'Unknowns only' : r < 40 ? 'Rising names will talk' : r < 60 ? 'A serious agency' : r < 80 ? 'Stars take your calls' : 'The town\'s power agency'; }
-
-  function offersTab(H) {
-    var w = W(), car = w.career;
-    if (car.over) return H.empty('No more offers.');
-    if (!car.clients.length) return H.empty('No clients. Head to Scouting to sign someone.');
-    var x = '<p class="muted">Accept up to two roles per client (one for Reclusive, three for Workhorse), then press <b>Next Year</b>. Fees are what the studio pays; you take 10%.</p>';
-    car.clients.forEach(function (c) {
-      var p = w.people[c.id], offers = car.offers[c.id] || [], acc = car.accepted[c.id] || [];
-      x += '<section class="card client-offers"><div class="co-head">' + H.pLink(p.id) + '<span class="muted small">' + (w.year - p.born) + ' · OVR ' + H.ovrText(p) + ' · fame ' + Math.round(p.fame) + '</span>' +
-        loyalty(H, c.loyalty) + '<span class="right small ' + (acc.length ? 'pos' : 'muted') + '">' + acc.length + ' / ' + C.capFor(p) + ' roles</span></div>';
-      if (!offers.length) x += H.empty(p.status === 'active' ? 'No offers this year.' : 'No longer working.');
-      else x += '<div class="offers">' + offers.map(function (o) { return offerRow(H, p, o, acc.indexOf(o.id) >= 0); }).join('') + '</div>';
-      x += '</section>';
-    });
+  // ---------- pitches ----------
+  function pitchesTab(H) {
+    var w = W(), c = w.career;
+    if (!c.pitches.length) return H.card('No calls this quarter', '<p>Nobody pitched you this quarter. Too many bridges burned, or too little buzz. Sit it out and try again next quarter.</p><button class="btn primary" data-career="pass">Wait for next quarter</button>');
+    var x = '<p class="muted">Pick one film for this quarter. Click the director and the cast to find out more about them; that\'s where the hidden rewards and risks are.</p>';
+    x += '<div class="grid pitches">' + c.pitches.map(function (pt, i) { return pitchCard(H, pt, i); }).join('') + '</div>';
+    x += '<p class="center"><button class="btn ghost" data-career="passAll">Pass on all ' + c.pitches.length + '</button></p>';
     return x;
   }
 
-  function offerRow(H, p, o, on) {
-    var w = W(), s = w.studios[o.studio], d = w.people[o.dir];
-    var under = o.fee < o.asking * 0.8;
-    return '<div class="offer' + (on ? ' on' : '') + '">' +
-      '<div class="of-main"><span class="role ' + (o.role === 'L' ? 'lead' : '') + '">' + (o.role === 'L' ? 'Lead' : 'Supporting') + '</span> ' +
-      '<b>' + o.genre + '</b>' + (o.seqOf != null ? ' <span class="tag gold">Sequel to ' + H.esc(w.films[o.seqOf].title) + '</span>' : '') +
-      '<div class="sub">' + H.sLink(s.id) + ' ' + H.tierBadge(s.tier) + ' · ' + H.money(o.budget) + ' budget · dir. ' + H.pLink(d.id) + '</div></div>' +
-      '<div class="of-facts"><span title="Script buzz: a rough read on how good the film will be">Buzz ' + H.stars(o.buzz) + '</span>' +
-      '<span title="How well the role suits this actor\'s genre skills and core stats">Fit ' + H.meter(o.fit) + ' ' + o.fit + '</span>' +
-      '<span>Fee <b>' + H.money(o.fee) + '</b>' + (under ? ' <span class="tag red" title="Below their asking price of ' + H.money(o.asking) + '; they\'ll grumble">under asking</span>' : '') + '</span></div>' +
-      '<button class="btn small ' + (on ? 'primary' : '') + '" data-career="offer:' + p.id + ':' + o.id + '">' + (on ? '✓ Accepted' : 'Accept') + '</button></div>';
+  function pitchCard(H, pt, i) {
+    var w = W(), c = w.career, f = c.slate[pt.f], s = w.studios[f.studio], d = w.people[f.director], p = C.player(w);
+    var a = C.analyze(w, pt), others = f.cast.filter(function (k) { return k.p !== pt.alt; });
+    var fit = Math.round(HW.genreApt(p, f.genre));
+    var x = '<section class="card pitch"><div class="pitch-head"><div class="pitch-title">' + H.esc(f.title) + '</div>' +
+      '<div class="sub">' + f.genre + (f.seqOf != null ? ' · sequel' : '') + ' · ' + H.money(f.budget) + ' budget</div>' +
+      '<div class="pitch-studio">' + H.sLink(s.id) + ' ' + starsOf(s.stars) + '</div></div>';
+    x += '<div class="pitch-deal"><span class="role ' + (pt.r === 'L' ? 'lead' : '') + '">' + (pt.r === 'L' ? 'Lead role' : 'Supporting role') + '</span>' +
+      '<span>Fee <b>' + H.money(pt.fee) + '</b></span><span title="How well this genre suits your skills">Fit ' + H.meter(fit) + ' ' + fit + '</span></div>';
+    if (pt.seq) x += '<p class="tag gold">They want you back for the sequel</p>';
+    if (pt.desperate) x += '<p class="muted small">The only call this quarter.</p>';
+    // director & cast: click to look into them
+    x += '<h4>Director</h4>' + personChip(H, d.id, f, true);
+    x += '<h4>Cast</h4><div class="chips">' + others.map(function (k) { return personChip(H, k.p, f, false, k.r); }).join('') + '</div>';
+    x += others.map(function (k) { return C.seen(w, k.p) ? scoutPanel(H, k.p, f) : ''; }).join('');
+    // what we know
+    x += list('Rewards', 'up', '✓', a.rewards, H) + (a.unexplored ? '<p class="muted small hint">🔍 ' + a.unexplored + ' ' + (a.unexplored === 1 ? 'person' : 'people') + ' you haven\'t looked into.</p>' : '');
+    x += list('Risks', 'down', '⚠', a.risks, H);
+    x += list('If you pass', 'pass', '↩', a.pass, H);
+    x += '<button class="btn primary sign" data-career="sign:' + i + '">Sign on</button></section>';
+    return x;
+  }
+  function list(title, cls, icon, items, H) {
+    if (!items.length) return '<h4>' + title + '</h4><p class="muted small">' + (cls === 'up' ? 'Nothing obvious yet.' : 'None known.') + '</p>';
+    return '<h4>' + title + '</h4><ul class="reasons ' + cls + '">' + items.map(function (it) {
+      return '<li class="' + (cls === 'up' ? 'up' : cls === 'down' ? 'down' : '') + (it.found ? ' found' : '') + '"><span class="ic">' + icon + '</span><span>' + H.esc(it.t) + (it.found ? ' <span class="tag">found</span>' : '') + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  function personChip(H, id, f, isDir, role) {
+    var w = W(), o = w.people[id], seen = C.seen(w, id);
+    var chip = '<button class="pchip' + (seen ? ' seen' : '') + '" data-career="inv:' + id + '" title="' + (seen ? 'Looked into' : 'Click to look into them') + '">' +
+      (seen ? '' : '🔍 ') + H.esc(o.name) + (role ? ' <span class="muted small">' + (role === 'L' ? 'lead' : 'supp.') + '</span>' : '') + '</button>';
+    return isDir ? chip + (seen ? scoutPanel(H, id, f) : '') : chip;
+  }
+  // What looking into someone tells you.
+  function scoutPanel(H, id, f) {
+    var w = W(), o = w.people[id], t = C.tie(w, id);
+    var x = '<div class="scout"><div class="scout-head">' + H.pLink(id) + ' <span class="muted small">' + HW.ROLES[o.role].label + ', ' + (w.year - o.born) + ' · fame ' + Math.round(o.fame) + '</span></div>';
+    if (o.role === 'director') {
+      var form = C.form(w, id);
+      x += '<div class="kvline"><span>Form</span><b class="' + (form.roll ? 'pos' : form.cold ? 'neg' : '') + '">' + form.label + '</b></div>';
+      if (form.films.length) x += '<div class="scout-films">' + form.films.map(function (ff, j) {
+        return '<span>' + H.esc(ff.title) + ' <span class="verdict v-' + verdictTone(form.verdicts[j].verdict) + '">' + form.verdicts[j].verdict + '</span></span>';
+      }).join('') + '</div>';
+    } else {
+      var apt = Math.round(HW.genreApt(o, f.genre));
+      x += '<div class="kvline"><span>Fit for this film</span><b class="' + (apt >= 65 ? 'pos' : apt < 35 ? 'neg' : '') + '">' + apt + (apt >= 65 ? ' · perfect' : apt < 35 ? ' · miscast' : '') + '</b></div>';
+    }
+    x += '<div class="kvline"><span>Toward you</span><b class="' + (t.aff >= 30 ? 'pos' : t.aff < -30 ? 'neg' : '') + '">' + C.attitude(t.aff) + '</b></div>';
+    if (t.films) x += '<div class="kvline"><span>Work</span><b class="' + (t.work >= 20 ? 'pos' : t.work < 0 ? 'neg' : '') + '">' + C.stance(t.work) + ' · ' + t.films + ' film' + (t.films > 1 ? 's' : '') + ' together</b></div>';
+    return x + '</div>';
   }
 
-  function loyalty(H, v) {
-    var cls = v >= 60 ? 'good' : v >= 35 ? 'ok' : 'bad';
-    return '<span class="loyal loyal-' + cls + '" title="Loyalty: below 30 they may leave">♥ ' + v + '</span>';
-  }
-
-  function clientsTab(H) {
-    var w = W(), car = w.career;
-    if (!car.clients.length) return H.empty('No clients yet.');
-    var coachOpts = HW.ROLES.actor.stats.concat(HW.ACTOR_GENRES).map(function (k) { return '<option value="' + k + '">' + HW.STAT_LABELS[k] + '</option>'; }).join('');
-    return '<div class="grid two">' + car.clients.map(function (c) {
-      var p = w.people[c.id], used = c.acts && c.acts.y === w.year ? c.acts : {};
-      var acts = '<div class="ca-row"><select id="coach-' + p.id + '">' + coachOpts + '</select><button class="btn small" data-career="coach:' + p.id + '"' + (used.coach ? ' disabled' : '') + '>Coach ' + H.money(C.coachCost(w, p)) + '</button></div>' +
-        '<div class="ca-row"><button class="btn small" data-career="pr:' + p.id + '"' + (used.pr ? ' disabled' : '') + '>Publicity push ' + H.money(C.publicityCost(w, p)) + '</button>' +
-        '<button class="btn small" data-career="campaign:' + p.id + '"' + (p.campaign === w.year ? ' disabled' : '') + '>Laurel campaign ' + H.money(C.campaignCost(w, p)) + '</button></div>' +
-        '<div class="ca-row"><span class="muted small">Signed ' + c.signed + ' · earned you ' + H.money(c.earned) + ' · ' + loyalty(H, c.loyalty) + '</span><button class="btn small ghost" data-career="release:' + p.id + '">Release</button></div>';
-      return actorCard(H, p, acts) + '';
-    }).join('') + '</div>';
-  }
-
-  function scoutTab(H) {
-    var w = W(), car = w.career, mine = C.clientSet(w);
-    var q = (UI.filters.scoutQ || '').toLowerCase();
-    var list = w.people.filter(function (p) { return p.role === 'actor' && p.status === 'active' && !mine[p.id] && (!q || p.name.toLowerCase().indexOf(q) >= 0); });
-    var full = car.clients.length >= C.maxRoster(w);
-    var x = '<p class="muted">Free agents and actors at other agencies. Actors sign only if their fame is no more than 25 above your reputation (' + car.rep + '). Roster ' + car.clients.length + ' / ' + C.maxRoster(w) + '.</p>' +
-      '<div class="toolbar"><input type="search" id="scoutSearch" placeholder="Search name…" value="' + H.esc(UI.filters.scoutQ || '') + '"></div>';
-    x += H.table('scout', [
-      { h: 'Name', v: function (p) { return p.name; }, html: function (p) { return H.pLink(p.id) + (p.traits.length ? '<div class="sub">' + p.traits.map(function (t) { return HW.TRAITS[t].name; }).join(' · ') + '</div>' : ''); } },
-      { h: 'Age', cls: 'num', v: function (p) { return w.year - p.born; } },
-      { h: 'OVR', cls: 'num', v: function (p) { return HW.ovr(p); }, html: function (p) { return '<span class="score ' + H.scoreCls(HW.ovr(p)) + '">' + H.ovrText(p) + '</span>'; } },
-      { h: 'Pot.', cls: 'num', v: function (p) { return HW.potentialStars(p); }, html: function (p) { return H.stars(HW.potentialStars(p)); } },
-      { h: 'Best genre', v: function (p) { return p.genre[H.topGenre(p)]; }, html: function (p) { var g = H.topGenre(p); return HW.STAT_LABELS[g] + ' <span class="muted">' + Math.round(p.genre[g]) + '</span>'; } },
-      { h: 'Fame', cls: 'num', v: function (p) { return p.fame; }, html: function (p) { return Math.round(p.fame); } },
-      { h: 'Sign', cls: 'num', v: function (p) { return C.willSign(w, p) ? C.signCost(w, p) : 1e9; }, html: function (p) {
-        if (!C.willSign(w, p)) return '<span class="muted small">needs rep ' + Math.ceil(p.fame - 25) + '</span>';
-        return '<button class="btn small" data-career="sign:' + p.id + '"' + (full || car.over ? ' disabled' : '') + '>Sign ' + H.money(C.signCost(w, p)) + '</button>';
-      } }
-    ], list, { per: 25, sort: [3, -1] });
+  // ---------- relationships ----------
+  function peopleTab(H) {
+    var w = W(), c = w.career;
+    var dirs = w.people.filter(function (p) { return p.role === 'director' && p.status === 'active'; });
+    var x = H.card('Directors', '<p class="muted small">Directors you\'ve turned down stop pitching to you for a while; proud and famous ones hold a grudge longer. After a flop, even friends get careful.</p>' +
+      H.table('c-dirs', [
+        { h: 'Director', v: function (d) { return d.name; }, html: function (d) { return H.pLink(d.id); } },
+        { h: 'Form', v: function (d) { return C.form(w, d.id).label; } },
+        { h: 'Toward you', v: function (d) { var t = C.tie(w, d.id); return t.known ? t.aff : -999; }, html: function (d) { var t = C.tie(w, d.id); return t.known ? '<span class="' + (t.aff >= 30 ? 'pos' : t.aff < -30 ? 'neg' : '') + '">' + C.attitude(t.aff) + '</span>' : '<span class="muted">Unknown</span>'; } },
+        { h: 'Work', v: function (d) { return C.tie(w, d.id).work; }, html: function (d) { var t = C.tie(w, d.id); return t.films || t.work ? '<span class="' + (t.work >= 20 ? 'pos' : t.work < 0 ? 'neg' : '') + '">' + C.stance(t.work) + '</span>' : '<span class="muted">—</span>'; } },
+        { h: 'Films', cls: 'num', v: function (d) { return C.tie(w, d.id).films; } },
+        { h: 'Calling you?', v: function (d) { return C.tie(w, d.id).snub; }, html: function (d) {
+          var t = C.tie(w, d.id);
+          if (t.work <= -35) return '<span class="neg">No, until things improve</span>';
+          return t.snub > c.qi ? '<span class="neg">Not until ' + qLabel(t.snub) + '</span>' : (C.isPartner(t) ? '<span class="pos">Partner</span>' : 'Yes');
+        } }
+      ], dirs, { sort: [4, -1] }));
+    var costars = Object.keys(c.ties).map(Number).filter(function (id) { return w.people[id].role === 'actor' && c.ties[id].known; }).map(function (id) { return w.people[id]; });
+    x += H.card('Actors you know', costars.length ? H.table('c-act', [
+      { h: 'Actor', v: function (o) { return o.name; }, html: function (o) { return H.pLink(o.id); } },
+      { h: 'Toward you', v: function (o) { return C.tie(w, o.id).aff; }, html: function (o) { var t = C.tie(w, o.id); return '<span class="' + (t.aff >= 30 ? 'pos' : t.aff < -30 ? 'neg' : '') + '">' + C.attitude(t.aff) + '</span>'; } },
+      { h: 'Work', v: function (o) { return C.tie(w, o.id).work; }, html: function (o) { var t = C.tie(w, o.id); return t.films ? C.stance(t.work) : '<span class="muted">—</span>'; } },
+      { h: 'Films', cls: 'num', v: function (o) { return C.tie(w, o.id).films; } },
+      { h: 'Fame', cls: 'num', v: function (o) { return o.fame; }, html: function (o) { return Math.round(o.fame); } }
+    ], costars, { sort: [3, -1], per: 15 }) : H.empty('Look into co-stars on your pitches, or work with them, to learn how they feel about you.'));
+    var studios = w.studios.filter(function (s) { return s.active; });
+    x += H.card('Studios', H.table('c-st', [
+      { h: 'Studio', v: function (s) { return s.name; }, html: function (s) { return H.sLink(s.id); } },
+      { h: 'Rating', v: function (s) { return s.stars; }, html: function (s) { return starsOf(s.stars); } },
+      { h: 'Your standing', v: function (s) { return C.stand(w, s.id).stand; }, html: function (s) { var st = C.stand(w, s.id); return '<span class="' + (st.stand >= 15 ? 'pos' : st.stand < 0 ? 'neg' : '') + '">' + Math.round(st.stand) + '</span>' + (st.until > c.qi ? ' <span class="neg small">won\'t hire you until ' + qLabel(st.until) + '</span>' : ''); } },
+      { h: 'Cash', cls: 'num', v: function (s) { return s.cash; }, html: function (s) { return H.money(s.cash); } }
+    ], studios, { sort: [1, -1] }));
     return x;
   }
 
-  function agencyTab(H) {
-    var w = W(), car = w.career;
+  // ---------- history ----------
+  function historyTab(H) {
+    var w = W(), c = w.career, p = C.player(w);
+    var films = p.films.map(function (id) { return w.films[id]; }).reverse();
     var x = '<div class="grid two">';
     x += H.card('Milestones', '<ul class="milestones">' + C.MILESTONES.map(function (m) {
-      var got = car.milestones[m[0]];
+      var got = c.milestones && c.milestones[m[0]];
       return '<li class="' + (got ? 'got' : '') + '"><span>' + (got ? '🏅' : '○') + '</span>' + m[1] + (got ? ' <span class="muted small">' + got.y + '</span>' : '') + '</li>';
     }).join('') + '</ul>');
-    x += H.card('Agency log', '<ul class="news">' + car.log.slice(-40).reverse().map(function (l) {
-      var t = H.esc(l.t);
-      if (l.p != null) t = '<a href="#/person/' + l.p + '" class="lnk plain">' + t + '</a>';
-      return '<li class="nk-' + ({ good: 'boxoffice', bad: 'scandal', milestone: 'awards', year: 'event' }[l.k] || 'people') + '"><span class="ny">' + l.y + '</span> ' + t + '</li>';
-    }).join('') + '</ul>');
+    x += H.card('Year by year', c.history.length ? H.table('c-hist', [
+      { h: 'Year', cls: 'num', v: function (r) { return r.y; } },
+      { h: 'Reputation', cls: 'num', v: function (r) { return r.rep; } },
+      { h: 'Films', cls: 'num', v: function (r) { return r.films; } },
+      { h: 'Laurels', cls: 'num', v: function (r) { return r.wins * 100 + r.noms; }, html: function (r) { return r.noms ? (r.wins ? '🏆' + r.wins + ' ' : '') + r.noms + 'n' : ''; } },
+      { h: 'Earned', cls: 'num', v: function (r) { return r.earned; }, html: function (r) { return H.money(r.earned); } }
+    ], c.history.slice().reverse(), { per: 12 }) : H.empty('Your first year isn\'t over yet.'));
     x += '</div>';
-    if (car.history.length) {
-      x += H.card('Year by year', H.table('car-hist', [
-        { h: 'Year', cls: 'num', v: function (r) { return r.y; } },
-        { h: 'Commission', cls: 'num', v: function (r) { return r.com; }, html: function (r) { return H.money(r.com); } },
-        { h: 'Overhead', cls: 'num', v: function (r) { return r.up; }, html: function (r) { return H.money(r.up); } },
-        { h: 'Cash', cls: 'num', v: function (r) { return r.cash; }, html: function (r) { return H.money(r.cash); } },
-        { h: 'Reputation', cls: 'num', v: function (r) { return r.rep; } },
-        { h: 'Clients', cls: 'num', v: function (r) { return r.n; } }
-      ], car.history.slice().reverse(), { per: 15 }));
-    }
-    if (car.alumni.length) {
-      var WHY = { released: 'Released', left: 'Fired the agency', poached: 'Poached', retired: 'Retired', died: 'Died' };
-      x += H.card('Former clients', '<ul class="plist">' + car.alumni.slice().reverse().map(function (a) {
-        return '<li>' + H.pLink(a.id) + ' <span class="muted small">' + a.from + '–' + a.to + ' · ' + WHY[a.why] + (a.rival ? ' (to ' + H.esc(a.rival) + ')' : '') + '</span><span class="right">earned you ' + H.money(a.earned) + '</span></li>';
-      }).join('') + '</ul>');
-    }
-    x += '<p><button class="btn ghost small" data-career="new">Abandon this career and start over</button></p>';
+    x += H.card('Your films', H.table('c-films', [
+      { h: 'Year', cls: 'num', v: function (f) { return f.year * 12 + f.month; }, html: function (f) { return HW.MONTHS[f.month] + ' ' + f.year; } },
+      { h: 'Title', v: function (f) { return f.title; }, html: function (f) { return H.fLink(f.id); } },
+      { h: 'Studio', html: function (f) { var s = w.studios[f.studio]; return H.sLink(s.id); } },
+      { h: 'Role', v: function (f) { return castOf(f).r; }, html: function (f) { return castOf(f).r === 'L' ? 'Lead' : 'Supporting'; } },
+      { h: 'Result', v: function (f) { return f.gross / ((f.why && f.why.be) || 1); }, html: function (f) { var v = HW.postMortem(w, f).verdict; return '<span class="verdict v-' + verdictTone(v) + '">' + v + '</span>'; } },
+      { h: 'Perf.', cls: 'num', v: function (f) { return castOf(f).perf; }, html: function (f) { var k = castOf(f); return '<span class="grade ' + H.scoreCls(k.perf) + '">' + H.grade(k.perf) + '</span>'; } },
+      { h: 'Fee', cls: 'num', v: function (f) { return castOf(f).fee; }, html: function (f) { return H.money(castOf(f).fee); } }
+    ], films, { per: 20 }));
+    x += '<p><a class="btn" href="#/person/' + p.id + '">Your character sheet and career story</a> <button class="btn ghost" data-career="retire">Retire</button></p>';
     return x;
+    function castOf(f) { return f.cast.filter(function (k) { return k.p === p.id; })[0]; }
+  }
+
+  function logTab(H) {
+    var c = W().career;
+    return H.card('Career log', '<ul class="news">' + c.log.slice(-60).reverse().map(function (l) {
+      var t = H.esc(l.t);
+      if (l.r && l.r.f != null) t = '<a href="#/film/' + l.r.f + '" class="lnk plain">' + t + '</a>';
+      else if (l.r && l.r.p != null) t = '<a href="#/person/' + l.r.p + '" class="lnk plain">' + t + '</a>';
+      return '<li class="nk-' + ({ good: 'boxoffice', bad: 'scandal', milestone: 'awards' }[l.k] || 'people') + '"><span class="ny">' + C.QUARTERS[l.q].slice(0, 3) + ' ' + l.y + '</span> ' + t + '</li>';
+    }).join('') + '</ul>');
   }
 
   // ---------- actions ----------
-  function done(res) {
-    if (res && res.msg) HW.toast(res.msg);
+  function after(report) {
+    var w = W();
     HW.save();
+    UI.filters.careerTab = 'pitches';
     UI.render();
+    window.scrollTo(0, 0);
+    if (report && report.film) HW.toast('"' + w.films[report.film.id].title + '": ' + report.film.verdict + '. Reputation ' + Math.round(report.film.repBefore) + ' → ' + Math.round(report.film.repAfter) + '.');
+    if (report && report.yearEnded && HW.ceremonyWanted()) UI.startCeremony(report.yearEnded);
   }
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-career]');
     if (!t) return;
-    var a = t.dataset.career.split(':'), w = W(), pid = +a[1];
+    var a = t.dataset.career.split(':'), w = W();
     switch (a[0]) {
       case 'start':
         var seedTxt = document.getElementById('cSeed').value.trim();
+        var focus = document.querySelector('input[name="cFocus"]:checked');
         HW.startCareer({
-          agency: document.getElementById('cAgency').value,
+          name: document.getElementById('cName').value,
+          gender: document.getElementById('cGender').value,
+          focus: focus ? focus.value : 'presence',
           startYear: parseInt(document.getElementById('cStart').value, 10) || 1980,
           seed: seedTxt ? (/^\d+$/.test(seedTxt) ? +seedTxt : Array.from(seedTxt).reduce(function (h, ch) { return Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; }, 2166136261)) : undefined
         });
         return;
       case 'new':
-        HW.ask('Abandon ' + w.career.agency + ' and start over? This career\'s save will be deleted.', 'Abandon career')
-          .then(function (ok) { if (ok) HW.abandonCareer(); });
+        HW.ask('Start over with a new actor? This career\'s save will be deleted.', 'Start over').then(function (ok) { if (ok) HW.abandonCareer(); });
         return;
-      case 'sign': return done(C.sign(w, pid));
-      case 'openOffice': w.career.auditionsDone = true; return done(null);
-      case 'release':
-        HW.ask('Release ' + w.people[pid].name + ' from the agency?', 'Release').then(function (ok) { if (ok) done(C.release(w, pid)); });
+      case 'inv': C.investigate(w, +a[1]); HW.save(); UI.render(); return;
+      case 'seen': w.career.reportSeen = w.career.qi; HW.save(); UI.render(); return;
+      case 'sign': after(C.choose(w, +a[1])); return;
+      case 'pass': after(C.choose(w, -1)); return;
+      case 'passAll':
+        HW.ask('Pass on all three? Every director here will stop calling for a while, and you\'ll spend the quarter out of work.', 'Pass on all').then(function (ok) { if (ok) after(C.choose(w, -1)); });
         return;
-      case 'offer': var r = C.toggleOffer(w, pid, a[2]); if (!r.ok) HW.toast(r.msg); HW.save(); UI.render(); return;
-      case 'coach': return done(C.coach(w, pid, document.getElementById('coach-' + pid).value));
-      case 'pr': return done(C.publicity(w, pid));
-      case 'campaign': return done(C.campaign(w, pid));
+      case 'retire':
+        HW.ask('Retire from acting? Your career ends here.', 'Retire').then(function (ok) { if (ok) { C.retire(w); HW.save(); UI.render(); } });
+        return;
     }
-  });
-  var timer;
-  document.addEventListener('input', function (e) {
-    if (e.target.id !== 'scoutSearch') return;
-    clearTimeout(timer);
-    var v = e.target.value;
-    timer = setTimeout(function () {
-      UI.filters.scoutQ = v; UI.pages.scout = 0; UI.render();
-      var el = document.getElementById('scoutSearch');
-      if (el) { el.focus(); el.setSelectionRange(v.length, v.length); }
-    }, 200);
   });
 })(globalThis.HW = globalThis.HW || {});
 </script>
@@ -4187,7 +4364,14 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
 
   function isCareer(w) { return !!(w && w.mode === 'career'); }
   function slotOf(w) { return isCareer(w) ? 'career' : 'current'; }
-  function parse(txt) { try { var w = txt ? JSON.parse(txt) : null; return w && w.version === 2 ? w : null; } catch (e) { return null; } }
+  function parse(txt) {
+    try {
+      var w = txt ? JSON.parse(txt) : null;
+      if (!w || w.version !== 2) return null;
+      if (w.mode === 'career' && (!w.career || w.career.kind !== 'actor')) return null; // agency-era careers don't carry over
+      return w;
+    } catch (e) { return null; }
+  }
   function stateDoc() { return { mode: isCareer(HW.world) ? 'career' : 'sandbox', careerMeta: HW.careerMeta || null }; }
 
   // ---------- saving ----------
@@ -4197,7 +4381,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     w.savedAt = Date.now();
     var text = JSON.stringify(w), e = { mode: isCareer(w) ? 'career' : 'sandbox' };
     e[slotOf(w)] = text;
-    if (isCareer(w)) e.careerMeta = HW.careerMeta = { agency: w.career.agency, year: w.year, over: !!w.career.over };
+    if (isCareer(w)) e.careerMeta = HW.careerMeta = { kind: 'actor', name: w.career.name, year: w.year, q: w.career.q, over: !!w.career.over };
     pending = { slot: slotOf(w), text: text, meta: { savedAt: w.savedAt, year: w.year }, state: stateDoc() };
     scheduleCloud();
     return S.put(e).catch(function (err) {
@@ -4285,7 +4469,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
       touched = true;
       save();
       HW.go(mode === 'career' ? '#/career' : '#/');
-      toast(mode === 'career' ? 'Welcome back to ' + HW.world.career.agency + '.' : 'Back to the sandbox.');
+      toast(mode === 'career' ? 'Welcome back, ' + HW.world.career.name + '.' : 'Back to the sandbox.');
     });
   };
   // Delete the career save and return to the sandbox.
@@ -4313,7 +4497,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
       resetView();
       save();
       HW.go('#/career');
-      toast(HW.world.career.agency + ' opens its doors in ' + HW.world.year + '.');
+      toast(HW.world.career.name + ' arrives in Hollywood. Your first three pitches are in.');
     };
     // keep the sandbox safe before replacing the open world
     if (isCareer(HW.world)) start(); else save().then(start);
@@ -4324,11 +4508,11 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var w = HW.world, banner = document.getElementById('modeBanner');
     document.body.classList.toggle('career-mode', isCareer(w));
     if (!isCareer(w)) { banner.hidden = true; return; }
-    var c = w.career;
+    var c = w.career, C = HW.Career;
     banner.hidden = false;
-    banner.innerHTML = '<span class="mb-tag">Career Mode</span><b>' + HW.UI.h.esc(c.agency) + '</b><span class="muted">' + HW.money(c.cash) + ' · reputation ' + c.rep + ' · ' + c.clients.length + ' client' + (c.clients.length === 1 ? '' : 's') + '</span>' +
-      (c.over ? '<span class="neg">Agency folded</span>' : '') +
-      '<span class="mb-actions"><a class="btn small" href="#/career">Agency</a><button class="btn small ghost" data-action="toSandbox">Back to sandbox</button></span>';
+    banner.innerHTML = '<span class="mb-tag">Career Mode</span><b>' + HW.UI.h.esc(c.name) + '</b><span class="muted">' + C.age(w) + ' · ' + C.label(w) + ' · reputation ' + C.rep(w) + '</span>' +
+      (c.over ? '<span class="muted">Retired</span>' : '') +
+      '<span class="mb-actions"><a class="btn small" href="#/career">' + (c.over ? 'Your career' : 'Your pitches') + '</a><button class="btn small ghost" data-action="toSandbox">Back to sandbox</button></span>';
   }
   HW.UI.afterRender = updateChrome;
 
@@ -4347,6 +4531,7 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
     var box = document.getElementById('watchCeremony');
     return box ? box.checked : true;
   }
+  HW.ceremonyWanted = ceremonyWanted;
   try {
     var pref = localStorage.getItem('hd-watch-ceremony');
     if (pref === '0') document.getElementById('watchCeremony').checked = false;
@@ -4373,12 +4558,10 @@ body.career-mode .controls [data-years="5"], body.career-mode .controls [data-ye
   async function advance(n) {
     if (busy) return;
     if (isCareer(HW.world)) {
-      // the agency plays one year at a time: offers have to be answered
-      var car = HW.world.career;
-      n = 1;
-      if (car.over) { toast('Your agency has folded. Start a new career from the Career Mode tab.'); return; }
-      var idle = car.clients.filter(function (c) { return (car.offers[c.id] || []).length && !(car.accepted[c.id] || []).length; });
-      if (idle.length && !(await HW.ask(idle.length + ' client' + (idle.length > 1 ? 's have' : ' has') + ' no role this year and will sit idle. Idle clients lose loyalty.', 'Advance anyway'))) return;
+      // in a career, time moves when you choose a pitch
+      toast('In Career Mode, time moves when you sign on to a film or pass.');
+      HW.go('#/career');
+      return;
     }
     touched = true;
     busy = true;

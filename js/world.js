@@ -25,16 +25,21 @@
     HW.GENRE_KEYS.forEach(function (g) { w.trends[g] = clamp(rng.normal(1, 0.12), 0.7, 1.3); });
     w.trends['Superhero'] = 0.45; // a niche genre... for now
 
+    // opts.targets / opts.tiers build a smaller world (career mode); the defaults are the sandbox
+    if (opts.targets) w.targets = opts.targets;
     HW.ROLE_KEYS.forEach(function (role) {
-      for (var i = 0; i < HW.ROLES[role].target; i++) createPerson(w, rng, role, { initial: true });
+      var n = (w.targets && w.targets[role]) || HW.ROLES[role].target;
+      for (var i = 0; i < n; i++) createPerson(w, rng, role, { initial: true });
     });
 
     var names = rng.shuffle(HW.STUDIO_NAMES.slice());
-    var tiers = [];
+    var tiers = opts.tiers ? opts.tiers.slice() : [];
     var i;
-    for (i = 0; i < 6; i++) tiers.push('Major');
-    for (i = 0; i < 8; i++) tiers.push('Mid');
-    for (i = 0; i < 8; i++) tiers.push('Indie');
+    if (!opts.tiers) {
+      for (i = 0; i < 6; i++) tiers.push('Major');
+      for (i = 0; i < 8; i++) tiers.push('Mid');
+      for (i = 0; i < 8; i++) tiers.push('Indie');
+    }
     tiers.forEach(function (tier, idx) {
       createStudio(w, rng, tier, { name: names[idx], founded: w.startYear - rng.int(tier === 'Major' ? 40 : 2, tier === 'Major' ? 70 : 30) });
     });

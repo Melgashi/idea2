@@ -1,347 +1,454 @@
-// Career mode: you run a talent agency inside your own world.
-// Sign actors, pick which role offers they take, coach them, campaign for awards, keep them loyal.
-// All state lives in w.career; the simulation only reads it through the hooks below.
+// Career mode: you are an 18-year-old actor in a small Hollywood of 20 studios (1-5 stars) and 20 directors.
+// Every quarter each studio aims to start a production; you get pitches for three of them and sign on to one (or none).
+// Choices have weight: directors you turn down stop calling, partners feel snubbed, flops make people wary of you
+// for career reasons, and a flop costs you a quarter of your reputation.
+// State lives in w.career; the year's running context in w.yc so a save can resume between quarters.
 (function (HW) {
-  var clamp = HW.clamp;
+  var clamp = HW.clamp, Sim = HW.Sim;
   var C = HW.Career = {};
 
-  var COMMISSION = 0.1;
-  var RIVAL_AGENCIES = ['Apex Talent', 'Silverline Artists', 'Meridian Management', 'Crown & Quill', 'Northlight Talent', 'Marquee Partners', 'Bel Air Artists'];
-
-  function money2(v) { return Math.round(v * 100) / 100; }
-  function rngFor(w) { return new HW.RNG((w.career.seed = (w.career.seed * 1103515245 + 12345) >>> 0) || 1); }
-
-  // ---------- setup ----------
-  C.newCareer = function (opts) {
-    var w = HW.newWorld({ startYear: opts.startYear, seed: opts.seed });
-    w.mode = 'career';
-    w.career = {
-      agency: (opts.agency || '').trim() || 'Starmaker Agency',
-      founded: w.year, cash: 1.5, rep: 10, seed: w.seed ^ 0x5bd1e995,
-      clients: [], alumni: [], offers: {}, offersFor: w.year, accepted: {},
-      log: [], history: [], milestones: {}, over: null, auditions: []
-    };
-    var rng = rngFor(w);
-    // open auditions: hungry unknowns, plus a couple of journeymen
-    var pool = w.people.filter(function (p) { return p.role === 'actor' && p.status === 'active'; });
-    var young = rng.shuffle(pool.filter(function (p) { return w.year - p.born <= 27 && p.fame <= 12; })).slice(0, 9);
-    var vets = rng.shuffle(pool.filter(function (p) { return w.year - p.born >= 30 && p.fame >= 10 && p.fame <= 30; })).slice(0, 3);
-    w.career.auditions = young.concat(vets).map(function (p) { return p.id; });
-    return w;
+  C.QUARTERS = ['Winter', 'Spring', 'Summer', 'Fall'];
+  var STAR_SLOTS = [5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1];
+  var TIER_OF = { 1: 'Indie', 2: 'Indie', 3: 'Mid', 4: 'Major', 5: 'Major' };
+  var ACCESS = [0, 0, 6, 18, 35, 55];          // reputation a studio of N stars expects before it calls
+  var TARGETS = { actor: 160, director: 20, writer: 30, cinematographer: 24, composer: 20 };
+  var FOCUS = {
+    presence: { label: 'Camera magnet', genre: 'romance' }, craft: { label: 'Trained actor', genre: 'drama' },
+    intensity: { label: 'Intense', genre: 'thriller' }, physicality: { label: 'Physical', genre: 'action' },
+    chemistry: { label: 'Funny', genre: 'comedy' }, range: { label: 'Chameleon', genre: 'drama' }
   };
+  C.FOCUS = FOCUS;
+  // Reputation after a release, by verdict: [lead, supporting]. Numbers are added; strings ('x0.75') multiply.
+  var REP = {
+    'Smash hit': [8, 5], 'Hit': [5, 3], 'Solid earner': [2, 1], 'Broke even': [0.5, 0.3],
+    'Disappointment': [-2, -0.5], 'Flop': ['x0.75', 'x0.85'], 'Box office disaster': ['x0.75', 'x0.8']
+  };
+  // How a result changes people's willingness to work with you again (career reasons, not personal ones)
+  var WORK = { 'Smash hit': 25, 'Hit': 15, 'Solid earner': 8, 'Broke even': 2, 'Disappointment': -10, 'Flop': -30, 'Box office disaster': -40 };
+  var STAND = { 'Smash hit': 20, 'Hit': 12, 'Solid earner': 5, 'Broke even': 0, 'Disappointment': -8, 'Flop': -25, 'Box office disaster': -35 };
 
-  // ---------- queries ----------
-  C.clientSet = function (w) {
-    var s = {};
-    (w.career ? w.career.clients : []).forEach(function (c) { s[c.id] = 1; });
-    return s;
-  };
-  C.client = function (w, id) { return w.career.clients.filter(function (c) { return c.id === id; })[0] || null; };
-  C.maxRoster = function (w) { return Math.min(10, 4 + Math.floor(w.career.rep / 12)); };
-  C.capFor = function (p) { return HW.has(p, 'reclusive') ? 1 : HW.has(p, 'workhorse') ? 3 : 2; };
-  // stars won't sign with an agency far below their level
-  C.willSign = function (w, p) { return p.fame <= w.career.rep + 25; };
-  C.signCost = function (w, p) {
-    var first = w.career.clients.length + w.career.alumni.length < 3; // the founding clients sign for free
-    return first ? 0 : money2(0.03 + HW.fee(p) * 0.25);
-  };
-  C.coachCost = function (w, p) { return money2(0.06 + HW.fee(p) * 0.03 + HW.ovr(p) / 1000); };
-  C.campaignCost = function (w, p) { return money2(0.15 + p.fame * 0.008); };
-  C.publicityCost = function (w, p) { return money2(0.08 + p.fame * 0.004); };
-  C.value = function (w) {
-    var v = w.career.cash;
-    w.career.clients.forEach(function (c) { v += HW.fee(w.people[c.id]) * COMMISSION * 3; });
-    return money2(v);
-  };
-
-  function log(w, text, kind, pid) {
-    w.career.log.push({ y: w.year, t: text, k: kind || 'info', p: pid == null ? null : pid });
-    if (w.career.log.length > 600) w.career.log.splice(0, w.career.log.length - 600);
+  function r2(v) { return Math.round(v * 100) / 100; }
+  function rngOf(w) { return new HW.RNG(w.rngState); }
+  function player(w) { return w.people[w.career.pid]; }
+  C.player = player;
+  C.rep = function (w) { return Math.round(player(w).fame); };
+  C.age = function (w) { return w.year - player(w).born; };
+  C.label = function (w) { return C.QUARTERS[w.career.q] + ' ' + w.year; };
+  function log(w, t, k, ref) {
+    var c = w.career;
+    c.log.push({ y: w.year, q: c.q, t: t, k: k || 'info', r: ref || null });
+    if (c.log.length > 500) c.log.splice(0, c.log.length - 500);
   }
   C.log = log;
 
-  // ---------- offers ----------
-  function pickStudio(w, rng, p) {
-    var f = p.fame / 100, studios = w.studios.filter(function (s) { return s.active; });
-    return rng.weighted(studios, function (s) {
-      return s.tier === 'Major' ? Math.pow(f, 1.3) * 3 + 0.05 : s.tier === 'Mid' ? 0.6 + f : 1.6 * (1 - f) + 0.15;
-    });
-  }
-  function pickDirector(w, rng, s) {
-    var target = { Major: 60, Mid: 35, Indie: 12 }[s.tier];
-    var dirs = w.people.filter(function (d) { return d.role === 'director' && d.status === 'active'; });
-    return rng.weighted(dirs, function (d) { return Math.exp(-Math.abs(d.fame - target) / 15); });
-  }
-
-  // A few offers per client for the coming year. Better-known clients get more and bigger ones.
-  C.generateOffers = function (w, onlyId) {
-    var car = w.career, rng = rngFor(w), Y = w.year;
-    if (onlyId == null) { car.offers = {}; car.accepted = {}; car.offersFor = Y; }
-    car.clients.forEach(function (c) {
-      if (onlyId != null && c.id !== onlyId) return;
-      var p = w.people[c.id];
-      if (p.status !== 'active') return;
-      var list = [];
-      // a hit they led earns a sequel offer from the same studio
-      p.films.slice(-6).forEach(function (fid) {
-        var f = w.films[fid];
-        var led = f.cast.some(function (x) { return x.p === p.id && x.r === 'L'; });
-        if (led && !f.hasSeq && (f.seqNum || 1) < 5 && Y - f.year <= 3 && f.gross / f.budget >= 2.4 && f.audience >= 55 && w.studios[f.studio].active && list.length < 1) {
-          list.push(makeOffer(w, rng, p, w.studios[f.studio], f));
-        }
-      });
-      var n = clamp(1 + Math.floor(p.fame / 22) + rng.int(0, 2), 1, 5);
-      while (list.length < n) list.push(makeOffer(w, rng, p, pickStudio(w, rng, p), null));
-      car.offers[c.id] = list;
-      car.accepted[c.id] = [];
-    });
+  // ---------- setup ----------
+  C.newCareer = function (o) {
+    var tiers = STAR_SLOTS.map(function (s) { return TIER_OF[s]; });
+    var w = HW.newWorld({ startYear: o.startYear, seed: o.seed, targets: TARGETS, tiers: tiers });
+    w.mode = 'career';
+    w.studioCount = 20;
+    w.studios.forEach(function (s, i) { s.stars = STAR_SLOTS[i]; });
+    var rng = rngOf(w);
+    var p = HW.createPerson(w, rng, 'actor', {});
+    // shape the player: an unknown 18-year-old with one standout quality
+    var name = (o.name || '').trim();
+    if (name && !w.usedNames[name]) { delete w.usedNames[p.name]; p.name = name; w.usedNames[name] = 1; }
+    p.gender = o.gender === 'M' ? 'M' : 'F';
+    p.born = w.year - 18;
+    p.debut = w.year;
+    p.traits = [];
+    p.exp = 0;
+    HW.ROLES.actor.stats.forEach(function (k) { p.genes[k] = HW.round1(clamp(rng.normal(5.3, 0.8), 3, 7.5)); });
+    var focus = FOCUS[o.focus] ? o.focus : 'craft';
+    p.genes[focus] = HW.round1(clamp(p.genes[focus] + 2, 1, 9.5));
+    HW.ACTOR_GENRES.forEach(function (g) { p.genre[g] = HW.round1(clamp(rng.normal(2.6, 0.6), 1, 4)); });
+    p.genre[FOCUS[focus].genre] = HW.round1(p.genre[FOCUS[focus].genre] + 1.8);
+    p.peakAge = 36;
+    p.fame = 2; p.prestige = 2;
+    HW.updateStats(p, w.year);
+    w.rngState = rng.s;
+    w.playerId = p.id;
+    w.follows = { p: {}, s: {} };
+    w.follows.p[p.id] = 1;
+    w.career = {
+      kind: 'actor', pid: p.id, name: p.name, focus: focus, started: w.year, q: 0, qi: 0,
+      ties: {}, studios: {}, seen: { qi: 0, ids: {} }, log: [], reports: [], history: [],
+      earnings: 0, peak: 2, slate: [], pitches: [], over: null, seed: (w.seed ^ 0x9e3779b9) >>> 0
+    };
+    log(w, p.name + ' arrives in Hollywood at 18 with nothing but a headshot.', 'milestone', { p: p.id });
+    beginYear(w);
+    prepareQuarter(w);
+    return w;
   };
 
-  function makeOffer(w, rng, p, s, seqOf) {
-    var genre = seqOf ? seqOf.genre : rng.weighted(HW.GENRE_KEYS, function (g) {
-      return Math.pow(HW.genreApt(p, g) / 50, 2) * w.trends[g] * s.prefs[g];
-    });
-    var t = HW.TIER[s.tier], G = HW.GENRES[genre];
-    var budget = clamp(t.budget * Math.exp(rng.normal(0, t.sd)) * G.budget, t.min, t.max);
-    if (seqOf) budget = Math.max(budget, seqOf.budget * rng.range(1.1, 1.4));
-    budget = Math.round(budget * 10) / 10;
-    var ovr = HW.ovr(p);
-    var leadP = seqOf ? 1 : clamp((p.fame - 10) / 55 + (ovr - 50) / 120 + (s.tier === 'Indie' ? 0.25 : s.tier === 'Major' ? -0.15 : 0), 0.05, 0.92);
-    var role = rng.chance(leadP) ? 'L' : 'S';
-    var dir = seqOf && w.people[seqOf.director].status === 'active' ? w.people[seqOf.director] : pickDirector(w, rng, s);
-    var asking = HW.fee(p) * (seqOf ? 1.3 : 1);
-    var cap = budget * (role === 'L' ? 0.14 : 0.04);
-    var fee = money2(Math.max(0.03, Math.min(asking, cap)));
-    // script buzz: a noisy read on the director's quality and the studio's taste
-    var q = (dir.stats.vision + dir.stats.craft) / 2 + rng.normal(0, 8);
-    var buzz = clamp(Math.round((q - 28) / 10), 1, 5);
+  // ---------- year & quarter plumbing ----------
+  function freshMods() { return { output: 1, boxOffice: 1, ancillary: 1, spectacle: 1, spectacleBO: 1, prestigeBO: 1 }; }
+  function ctxOf(w) {
+    var yc = w.yc;
     return {
-      id: 'o' + Math.floor(rng.next() * 1e9).toString(36), studio: s.id, genre: genre, budget: budget, role: role,
-      dir: dir.id, fee: fee, asking: money2(asking), buzz: buzz, fit: Math.round(HW.genreApt(p, genre)),
-      seqOf: seqOf ? seqOf.id : null
+      year: yc.year, rng: rngOf(w), films: [], booked: {}, resting: yc.resting, mods: yc.mods, event: yc.event,
+      worked: yc.worked, capOne: true, refDrift: 0.08
     };
   }
+  function exclude(w) { var e = {}; e[w.career.pid] = 1; return e; }
 
-  C.toggleOffer = function (w, pid, oid) {
-    var car = w.career, acc = car.accepted[pid] || (car.accepted[pid] = []);
-    var i = acc.indexOf(oid);
-    if (i >= 0) { acc.splice(i, 1); return { ok: true, on: false }; }
-    var p = w.people[pid];
-    if (acc.length >= C.capFor(p)) return { ok: false, msg: p.name + ' can only take ' + C.capFor(p) + ' role' + (C.capFor(p) > 1 ? 's' : '') + ' a year.' };
-    acc.push(oid);
-    return { ok: true, on: true };
+  function beginYear(w) {
+    var ctx = { year: w.year, rng: rngOf(w), films: [], booked: {}, resting: {}, mods: freshMods(), event: null, worked: {} };
+    Sim.rollEvent(w, ctx);
+    Sim.updateTrends(w, ctx);
+    Sim.restRoll(w, ctx, exclude(w));
+    w.yc = { year: w.year, mods: ctx.mods, event: ctx.event, resting: ctx.resting, worked: {}, ids: [] };
+    w.rngState = ctx.rng.s;
+  }
+
+  function endYear(w) {
+    var ctx = ctxOf(w), Y = w.year, p = player(w);
+    ctx.films = w.yc.ids.map(function (id) { return w.films[id]; });
+    if (ctx.films.length) {
+      HW.runAwards(w, ctx);
+      HW.relationsYear(w, ctx);
+    }
+    Sim.studioYearEnd(w, ctx);
+    Sim.peopleYearEnd(w, ctx);
+    HW.detectStories(w, ctx);
+    Sim.recordHistory(w, ctx);
+    restar(w, Y);
+    var c = w.career;
+    var mine = ctx.films.filter(function (f) { return f.cast.some(function (x) { return x.p === p.id; }); });
+    var aw = HW.personAwards(w, p.id).filter(function (a) { return a.y === Y; });
+    c.history.push({ y: Y, rep: Math.round(p.fame), films: mine.length, noms: aw.length, wins: aw.filter(function (a) { return a.won; }).length, earned: r2(c.earnedYear || 0) });
+    c.earnedYear = 0;
+    aw.forEach(function (a) { log(w, (a.won ? '🏆 You won ' : 'You were nominated for ') + HW.catName(a.k) + ' for "' + w.films[a.f].title + '".', a.won ? 'milestone' : 'good', { f: a.f }); });
+    w.rngState = ctx.rng.s;
+    w.year++;
+    c.q = 0;
+    beginYear(w);
+    if (C.age(w) >= 80) retire(w, 'At 80, you take your final bow.');
+  }
+
+  // Re-rank studios into 1-5 stars by prestige and money; new studios start at the bottom of the scale.
+  function restar(w, Y) {
+    var act = w.studios.filter(function (s) { return s.active; });
+    act.sort(function (a, b) { return score(b) - score(a); });
+    act.forEach(function (s, i) {
+      var st = STAR_SLOTS[Math.min(i, STAR_SLOTS.length - 1)], was = s.stars;
+      s.stars = st;
+      s.tier = TIER_OF[st];
+      if (was && was !== st && w.follows && w.follows.s[s.id]) HW.addNews(w, Y, s.name + ' is now a ' + st + '-star studio.', 'studio', { s: s.id });
+    });
+    function score(s) { return s.prestige + clamp(s.cash, -300, 2500) / 40 + (s.yearly.length ? s.yearly[s.yearly.length - 1].w * 3 : 0); }
+  }
+
+  // ---------- ties ----------
+  // Personal fondness (aff) is a hidden matter of temperament; professional willingness (work) follows results.
+  C.tie = function (w, id) {
+    var c = w.career, t = c.ties[id];
+    if (t) return t;
+    var o = w.people[id], rng = new HW.RNG((c.seed ^ Math.imul(id + 1, 2654435761)) >>> 0);
+    var aff = rng.normal(0, 28);
+    if (HW.has(o, 'diva')) aff -= 15;
+    if (HW.has(o, 'actorsdir')) aff += 10;
+    if (o.role === 'actor') aff += (o.stats.chemistry - 5) * 3;
+    t = c.ties[id] = { aff: Math.round(clamp(aff, -80, 80)), work: 0, films: 0, snub: 0, known: false, last: null };
+    return t;
+  };
+  C.stand = function (w, sid) { return w.career.studios[sid] || (w.career.studios[sid] = { stand: 0, until: 0 }); };
+  C.attitude = function (aff) { return aff >= 30 ? 'Fond of you' : aff >= 0 ? 'Gets along with you' : aff >= -30 ? 'Cool toward you' : 'Can\'t stand you'; };
+  C.stance = function (work) { return work >= 20 ? 'Wants to work with you again' : work >= 0 ? 'Open to working with you' : work >= -25 ? 'Wary of you after a bad result' : 'Won\'t hire you right now'; };
+  C.isPartner = function (t) { return t.films >= 2 && t.work >= 0 && t.aff >= 25; };
+  // Directors with bigger egos hold a grudge longer.
+  C.snubLength = function (d) {
+    var n = 1;
+    if (d.fame >= 50) n += 2;
+    if (HW.has(d, 'diva') || HW.has(d, 'auteur')) n += 2;
+    if (HW.has(d, 'perfectionist')) n += 1;
+    return n;
+  };
+  C.seen = function (w, id) {
+    var c = w.career;
+    if (c.seen.qi !== c.qi) c.seen = { qi: c.qi, ids: {} };
+    return !!c.seen.ids[id];
+  };
+  C.investigate = function (w, id) {
+    var c = w.career;
+    C.seen(w, id);
+    c.seen.ids[id] = 1;
+    C.tie(w, id).known = true;
   };
 
-  // ---------- simulation hook: projects built from accepted offers ----------
-  C.forcedProjects = function (w, ctx) {
-    var car = w.career, out = [];
-    if (car.offersFor !== ctx.year) return out;
-    Object.keys(car.accepted).forEach(function (pid) {
-      var p = w.people[pid];
-      if (!p || p.status !== 'active') return;
-      car.accepted[pid].forEach(function (oid) {
-        var o = (car.offers[pid] || []).filter(function (x) { return x.id === oid; })[0];
-        if (!o) return;
-        var s = w.studios[o.studio];
-        if (!s.active) { log(w, s.name + ' collapsed and the ' + o.genre.toLowerCase() + ' project with ' + p.name + ' was cancelled.', 'bad', p.id); return; }
-        var seq = o.seqOf != null ? w.films[o.seqOf] : null;
-        if (seq && seq.hasSeq) seq = null; // the studio already made it without us
-        if (seq) seq.hasSeq = true;
-        out.push({
-          id: null, title: null, year: ctx.year, month: 0, studio: s.id, genre: o.genre, budget: o.budget,
-          commercial: clamp(s.commercial + ctx.rng.normal(0, 0.15) + (seq ? 0.2 : 0), 0, 1),
-          seqOf: seq ? seq.id : null, seqNum: seq ? (seq.seqNum || 1) + 1 : 1, root: seq ? (seq.root != null ? seq.root : seq.id) : null,
-          director: null, writer: null, dp: null, composer: null, cast: [],
-          gross: 0, profit: 0, critic: 0, audience: 0, noms: 0, wins: 0, won: [], tags: [],
-          forced: { p: p.id, r: o.role, dir: o.dir, fee: o.fee, o: o.id }
-        });
-      });
+  // Recent record of a director: verdicts of their last few films, and the streak it adds up to.
+  C.form = function (w, did) {
+    var d = w.people[did], last = d.films.slice(-3).map(function (id) { return w.films[id]; });
+    var v = last.map(function (f) { return HW.postMortem(w, f); });
+    var good = v.filter(function (x) { return x.good; }).length, bad = v.filter(function (x) { return /Flop|disaster/.test(x.verdict); }).length;
+    var label = last.length < 2 ? 'Untested' : good >= 2 && !bad ? 'On a roll' : bad >= 2 ? 'Cold streak' : 'Mixed record';
+    return { films: last, verdicts: v, good: good, bad: bad, label: label, roll: label === 'On a roll', cold: label === 'Cold streak' };
+  };
+
+  // ---------- the quarter's slate and pitches ----------
+  function prepareQuarter(w) {
+    var c = w.career, ctx = ctxOf(w), rng = ctx.rng, p = player(w), rep = p.fame, q = c.q;
+    Sim.buildPools(w, ctx, exclude(w));
+    var slate = [];
+    w.studios.forEach(function (s) {
+      if (!s.active) return;
+      // each studio aims to start one production a quarter; struggling ones sometimes can't
+      if (!rng.chance(s.cash < 0 ? 0.55 : 0.88)) return;
+      var f = Sim.planProject(w, ctx, s);
+      f.month = q * 3 + rng.int(0, 2);
+      slate.push(f);
     });
+    slate.sort(function (a, b) { return b.budget * rng.range(0.7, 1.3) - a.budget * rng.range(0.7, 1.3); });
+    slate.forEach(function (f) { Sim.staffProject(w, ctx, f); });
+    slate = slate.filter(function (f) { return f.director != null && f.cast.length > 1; });
+    slate.forEach(function (f) { f.title = Sim.makeTitle(w, rng, f); });
+
+    // which productions would cast the player, and in what part
+    var cands = [];
+    slate.forEach(function (f, i) {
+      var s = w.studios[f.studio], st = C.stand(w, s.id), d = w.people[f.director], t = C.tie(w, d.id);
+      var sequelOfMine = f.seqOf != null && w.films[f.seqOf].cast.some(function (x) { return x.p === p.id && x.r === 'L'; });
+      var access = ACCESS[s.stars] - st.stand / 4;
+      var open = sequelOfMine || (rep >= access - 6 && st.until <= c.qi && t.snub <= c.qi && t.work > -35);
+      if (!open) return;
+      var leadP = sequelOfMine ? 1 : clamp((rep - ACCESS[s.stars]) / 20 + (s.stars <= 2 ? 0.3 : 0) + (t.aff >= 40 ? 0.1 : 0), 0.05, 0.9);
+      var want = rng.chance(leadP) ? 'L' : 'S';
+      var slot = pickSlot(w, f, want, p.gender) || pickSlot(w, f, want === 'L' ? 'S' : 'L', p.gender);
+      if (!slot) return;
+      var target = clamp(Math.round(rep / 18) + 1, 1, 5);
+      var wgt = Math.exp(-Math.abs(s.stars - target)) + (t.work >= 20 ? 1.5 : 0) + (t.aff >= 30 ? 0.8 : 0) + (sequelOfMine ? 5 : 0);
+      cands.push({ i: i, slot: slot, wgt: wgt, seq: sequelOfMine });
+    });
+    var picks = [];
+    if (cands.length < 3) slate.forEach(function (f, i) {
+      if (cands.some(function (x) { return x.i === i; })) return;
+      var s = w.studios[f.studio], t = C.tie(w, f.director), st = C.stand(w, s.id);
+      if (t.snub > c.qi || t.work <= -35 || st.until > c.qi || s.stars > 3) return; // grudges still hold
+      var slot = pickSlot(w, f, 'S', p.gender);
+      if (slot) cands.push({ i: i, slot: slot, wgt: 0.3 });
+    });
+    while (picks.length < 3 && cands.length) {
+      var pick = rng.weighted(cands, function (x) { return x.wgt; });
+      cands.splice(cands.indexOf(pick), 1);
+      picks.push(pick);
+    }
+    if (!picks.length && slate.length) {
+      // nobody wants you: the smallest production in town still needs a body on set
+      var small = slate.slice().sort(function (a, b) { return w.studios[a.studio].stars - w.studios[b.studio].stars || a.budget - b.budget; })[0];
+      var sl = pickSlot(w, small, 'S', p.gender) || pickSlot(w, small, 'L', p.gender);
+      if (sl) picks.push({ i: slate.indexOf(small), slot: sl, desperate: true });
+    }
+    c.slate = slate;
+    c.pitches = picks.map(function (x) {
+      var f = slate[x.i], role = x.slot.r, ask = HW.fee(p);
+      var fee = role === 'L' ? clamp(ask * rng.range(1, 1.4) + f.budget * 0.012, 0.03, Math.max(0.05, f.budget * 0.14))
+        : clamp(ask * rng.range(0.7, 1.1) + f.budget * 0.004, 0.02, Math.max(0.03, f.budget * 0.04));
+      return { f: x.i, r: role, alt: x.slot.p, fee: r2(fee), seq: !!x.seq, desperate: !!x.desperate };
+    });
+    w.rngState = rng.s;
+  }
+  // The cast member whose part the player would take (they keep it if the player passes).
+  function pickSlot(w, f, role, gender) {
+    for (var i = 0; i < f.cast.length; i++) {
+      var k = f.cast[i];
+      if (k.r === role && w.people[k.p].gender === gender) return k; // the part is written for the player's gender
+    }
+    return null;
+  }
+
+  // ---------- reading a pitch ----------
+  // What happens if you pass, what's risky, and what's good about it. Hidden items need investigating.
+  C.analyze = function (w, pitch) {
+    var c = w.career, f = c.slate[pitch.f], p = player(w), d = w.people[f.director], s = w.studios[f.studio];
+    var td = C.tie(w, d.id), out = { pass: [], risks: [], rewards: [] };
+    var dirSeen = C.seen(w, d.id), alt = w.people[pitch.alt];
+    // passing
+    var weeks = C.snubLength(d);
+    if (C.isPartner(td)) out.pass.push({ t: d.name + ' counts on you. Turning this down will strain your partnership, and they won\'t call for about ' + weeks + ' quarters.', ref: d.id, sev: 3 });
+    else out.pass.push({ t: d.name + ' won\'t pitch to you for about ' + weeks + ' quarter' + (weeks > 1 ? 's' : '') + '.', ref: d.id, sev: weeks >= 5 ? 2 : 1 });
+    out.pass.push({ t: s.name + ' (' + s.stars + '★) will be ' + (s.stars >= 4 ? 'noticeably' : 'a little') + ' cooler toward you.', sev: s.stars >= 4 ? 2 : 1 });
+    if (pitch.seq) out.pass.push({ t: 'They will recast your role in the sequel.', sev: 3 });
+    out.pass.push({ t: 'The part goes to ' + alt.name + ' instead.', ref: alt.id, sev: 0 });
+    // public risks
+    var others = f.cast.filter(function (k) { return k.p !== pitch.alt; });
+    others.forEach(function (k) {
+      var t = C.tie(w, k.p), o = w.people[k.p];
+      if (t.known && t.aff < -30) out.risks.push({ t: 'You and ' + o.name + ' don\'t get along. A tense set could sink the film.', ref: o.id });
+    });
+    if (td.known && td.aff < -30) out.risks.push({ t: d.name + ' doesn\'t like you. Expect a difficult shoot.', ref: d.id });
+    var lastD = d.films.length ? w.films[d.films[d.films.length - 1]] : null;
+    if (lastD && lastD.tags.indexOf('flop') >= 0) out.risks.push({ t: d.name + '\'s last film, "' + lastD.title + '", flopped.', ref: d.id });
+    if (s.cash < 0) out.risks.push({ t: s.name + ' is losing money; budgets get squeezed.' });
+    if (w.trends[f.genre] < 0.8) out.risks.push({ t: f.genre + ' films are out of fashion right now.' });
+    // fit is judged against your own best genre, so it means something at every stage of a career
+    var fit = HW.genreApt(p, f.genre), best = Math.max.apply(null, HW.GENRE_KEYS.map(function (g) { return HW.genreApt(p, g); }));
+    if (fit < best * 0.75) out.risks.push({ t: 'Not your kind of film: fit ' + Math.round(fit) + ', against ' + Math.round(best) + ' in your best genre.' });
+    else if (fit >= best * 0.95) out.rewards.push({ t: 'Plays to your strengths (fit ' + Math.round(fit) + ').' });
+    if (pitch.r === 'L' && f.budget >= 60) out.risks.push({ t: 'Leading a ' + HW.money(f.budget) + ' film puts your name on the poster: a flop would hit you hardest.' });
+    if (f.seqNum >= 4) out.risks.push({ t: 'Part ' + f.seqNum + ' of a franchise: audiences may be tiring of it.' });
+    // rewards: public ones first
+    if (C.isPartner(td)) out.rewards.push({ t: 'Your partnership with ' + d.name + ' (' + td.films + ' films together).', ref: d.id });
+    if (s.stars >= 4) out.rewards.push({ t: 'A ' + s.stars + '-star studio: a big stage.' });
+    if (w.trends[f.genre] >= 1.2) out.rewards.push({ t: f.genre + ' is hot right now.' });
+    others.forEach(function (k) {
+      var o = w.people[k.p];
+      if (o.fame >= 60) out.rewards.push({ t: o.name + ' is a box-office draw.', ref: o.id });
+    });
+    // hidden: the director's form and attitude
+    var form = C.form(w, d.id);
+    if (dirSeen) {
+      if (form.roll) out.rewards.push({ t: d.name + ' is on a roll: ' + form.good + ' of their last ' + form.films.length + ' films worked.', ref: d.id, found: true });
+      if (form.cold) out.risks.push({ t: d.name + ' is on a cold streak.', ref: d.id, found: true });
+      if (td.aff >= 30) out.rewards.push({ t: d.name + ' is fond of you.', ref: d.id, found: true });
+    }
+    // hidden: costars' attitude and fit for this film
+    others.forEach(function (k) {
+      if (!C.seen(w, k.p)) return;
+      var o = w.people[k.p], t = C.tie(w, k.p), apt = HW.genreApt(o, f.genre);
+      if (t.aff >= 30) out.rewards.push({ t: o.name + ' is fond of you: expect good chemistry.', ref: o.id, found: true });
+      if (t.aff < -30 && !out.risks.some(function (r) { return r.ref === o.id; })) out.risks.push({ t: o.name + ' can\'t stand you.', ref: o.id, found: true });
+      if (apt >= 65) out.rewards.push({ t: o.name + ' is perfect for this kind of film (fit ' + Math.round(apt) + ').', ref: o.id, found: true });
+      else if (apt < 35) out.risks.push({ t: o.name + ' is miscast here (fit ' + Math.round(apt) + ').', ref: o.id, found: true });
+    });
+    out.unexplored = [d.id].concat(others.map(function (k) { return k.p; })).filter(function (id) { return !C.seen(w, id); }).length;
     return out;
   };
 
-  // ---------- player actions ----------
-  function spend(w, amt) {
-    if (w.career.cash < amt) return false;
-    w.career.cash = money2(w.career.cash - amt);
-    return true;
-  }
-  function usedThisYear(w, c, what) {
-    if (!c.acts || c.acts.y !== w.year) c.acts = { y: w.year };
-    return !!c.acts[what];
-  }
+  // ---------- choosing ----------
+  // pick: index into c.pitches, or -1 to pass on everything.
+  C.choose = function (w, pick) {
+    var c = w.career, p = player(w), ctx = ctxOf(w), rng = ctx.rng, Y = w.year;
+    if (c.over) return null;
+    var slate = c.slate, chosen = pick >= 0 ? c.pitches[pick] : null, report = { y: Y, q: c.q, film: null, passed: [], changes: [] };
+    var repBefore = p.fame;
 
-  C.sign = function (w, pid) {
-    var p = w.people[pid], car = w.career;
-    if (C.client(w, pid)) return { ok: false, msg: p.name + ' is already your client.' };
-    if (p.status !== 'active' || p.role !== 'actor') return { ok: false, msg: 'Only active actors can be signed.' };
-    if (car.clients.length >= C.maxRoster(w)) return { ok: false, msg: 'Your roster is full. Grow your reputation to take on more clients.' };
-    if (!C.willSign(w, p)) return { ok: false, msg: p.name + ' won\'t sign with an agency of your standing yet.' };
-    var cost = C.signCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'Signing ' + p.name + ' costs ' + HW.money(cost) + '.' };
-    car.clients.push({ id: pid, signed: w.year, loyalty: 70, earned: 0, startFame: Math.round(p.fame) });
-    w.follows = w.follows || { p: {}, s: {} };
-    w.follows.p[pid] = 1;
-    log(w, 'Signed ' + p.name + (cost ? ' for ' + HW.money(cost) : '') + '.', 'good', pid);
-    if (car.offersFor === w.year) C.generateOffers(w, pid);
-    return { ok: true, msg: p.name + ' signs with ' + car.agency + '!' };
-  };
-
-  C.release = function (w, pid) {
-    var car = w.career, c = C.client(w, pid);
-    if (!c) return { ok: false };
-    car.clients.splice(car.clients.indexOf(c), 1);
-    car.alumni.push({ id: pid, from: c.signed, to: w.year, why: 'released', earned: c.earned });
-    delete car.offers[pid]; delete car.accepted[pid];
-    log(w, 'Released ' + w.people[pid].name + ' from the agency.', 'info', pid);
-    return { ok: true, msg: w.people[pid].name + ' is no longer your client.' };
-  };
-
-  C.coach = function (w, pid, stat) {
-    var p = w.people[pid], c = C.client(w, pid);
-    if (!c) return { ok: false };
-    if (usedThisYear(w, c, 'coach')) return { ok: false, msg: p.name + ' already trained this year.' };
-    var cost = C.coachCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'Coaching costs ' + HW.money(cost) + '.' };
-    c.acts.coach = stat;
-    var before, after;
-    if (HW.ACTOR_GENRES.indexOf(stat) >= 0) {
-      before = p.genre[stat];
-      p.genre[stat] = Math.round(clamp(before + 0.8 * Math.max(0.2, (10 - before) / 6), 1, 10) * 100) / 100;
-      after = p.genre[stat];
-    } else {
-      before = p.stats[stat];
-      p.genes[stat] = HW.round1(clamp(p.genes[stat] + 0.5 * Math.max(0.2, (10 - p.genes[stat]) / 5), 1, 10));
-      HW.updateStats(p, w.year);
-      after = p.stats[stat];
-    }
-    var label = HW.STAT_LABELS[stat];
-    log(w, p.name + ' trained ' + label + ' (' + before.toFixed(1) + ' → ' + after.toFixed(1) + ').', 'info', pid);
-    c.loyalty = clamp(c.loyalty + 2, 0, 100);
-    return { ok: true, msg: p.name + '\'s ' + label + ' improved to ' + after.toFixed(1) + '.' };
-  };
-
-  C.campaign = function (w, pid) {
-    var p = w.people[pid], c = C.client(w, pid);
-    if (!c) return { ok: false };
-    if (p.campaign === w.year) return { ok: false, msg: 'Already campaigning for ' + p.name + ' this year.' };
-    var hasRole = (w.career.accepted[pid] || []).length > 0;
-    if (!hasRole) return { ok: false, msg: p.name + ' needs a role this year for a campaign to matter.' };
-    var cost = C.campaignCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'An awards campaign costs ' + HW.money(cost) + '.' };
-    p.campaign = w.year;
-    log(w, 'Launched a "For Your Consideration" campaign for ' + p.name + '.', 'info', pid);
-    return { ok: true, msg: 'The campaign for ' + p.name + ' is on: voters will hear about this year\'s performance.' };
-  };
-
-  C.publicity = function (w, pid) {
-    var p = w.people[pid], c = C.client(w, pid);
-    if (!c) return { ok: false };
-    if (usedThisYear(w, c, 'pr')) return { ok: false, msg: 'One publicity push per client per year.' };
-    var cost = C.publicityCost(w, p);
-    if (!spend(w, cost)) return { ok: false, msg: 'A publicity push costs ' + HW.money(cost) + '.' };
-    c.acts.pr = 1;
-    var before = p.fame;
-    HW.gainFame(p, 5);
-    p.fame = Math.round(p.fame * 10) / 10;
-    c.loyalty = clamp(c.loyalty + 2, 0, 100);
-    log(w, 'Publicity push for ' + p.name + ': talk shows, magazine covers, premieres.', 'info', pid);
-    return { ok: true, msg: p.name + '\'s fame: ' + Math.round(before) + ' → ' + Math.round(p.fame) + '.' };
-  };
-
-  // ---------- simulation hook: end of year ----------
-  C.afterYear = function (w, ctx) {
-    var car = w.career, Y = ctx.year, rng = rngFor(w);
-    if (car.over) return;
-    var commission = 0, winsY = 0, nomsY = 0;
-    var aw = w.awards[Y];
-    car.clients.slice().forEach(function (c) {
-      var p = w.people[c.id];
-      var films = ctx.films.filter(function (f) { return f.cast.some(function (x) { return x.p === p.id; }); });
-      var earned = 0, led = false;
-      var dl = -3 - p.fame / 25; // every client wants a little more each year, stars most of all
-      films.forEach(function (f) {
-        var x = f.cast.filter(function (k) { return k.p === p.id; })[0];
-        earned += x.fee * COMMISSION;
-        dl += 1;
-        if (x.r === 'L') { dl += 2; led = true; }
-        if (f.forced && f.forced.dirSwap && f.forced.p === p.id) log(w, 'The promised director dropped out of "' + f.title + '"; ' + w.people[f.director].name + ' stepped in.', 'info', p.id);
-        if (f.tags.indexOf('smash') >= 0) dl += 5;
-        if (f.tags.indexOf('flop') >= 0) dl -= 4;
-        if (x.fee < HW.fee(p) * 0.8) dl -= 2; // took less than their asking price
-        milestone(w, 'firstLead', x.r === 'L', 'First leading role: ' + p.name + ' in "' + f.title + '".', p.id);
-        milestone(w, 'hundred', f.gross >= 100, 'First $100M film: "' + f.title + '".', p.id);
-        milestone(w, 'billion', f.gross >= 1000, 'A client in a billion-dollar movie: "' + f.title + '".', p.id);
-      });
-      if (!films.length && p.status === 'active') dl -= 10; // an idle client gets restless
-      else if (p.fame >= 40 && !led) dl -= 4;                // an established name wants leading roles
-      if (aw) aw.cats.forEach(function (cat) {
-        cat.noms.forEach(function (n, i) {
-          if (n.p !== p.id) return;
-          var won = i === cat.win;
-          nomsY++; dl += won ? 10 : 4;
-          if (won) winsY++;
-          milestone(w, 'nom', true, 'First Golden Laurel nomination: ' + p.name + ' for ' + HW.catName(cat.k) + '.', p.id);
-          if (won) milestone(w, 'win', true, 'First Golden Laurel win: ' + p.name + ', ' + HW.catName(cat.k) + '!', p.id);
-        });
-        var bp = cat.k === 'picture' ? w.films[cat.noms[cat.win].f] : null;
-        if (bp && bp.cast.some(function (x) { return x.p === p.id; })) milestone(w, 'bestPicture', true, 'A client starred in Best Picture winner "' + bp.title + '".', p.id);
-      });
-      var i = p.hf ? p.hf.length - 1 : -1;
-      if (i >= 1 && p.hf[i] - p.hf[i - 1] >= 5) dl += 3;
-      c.loyalty = Math.round(clamp(c.loyalty + dl, 0, 100));
-      c.earned = money2(c.earned + earned);
-      commission += earned;
-
-      // leaving the agency
-      var why = null;
-      if (p.status === 'deceased') why = 'died';
-      else if (p.status === 'retired') why = 'retired';
-      else if (c.loyalty < 30 && rng.chance((30 - c.loyalty) / 40 + 0.1)) why = 'left';
-      else if (p.fame >= 65 && car.rep < p.fame - 30 && rng.chance(0.2)) why = 'poached';
-      else if (p.fame >= 60 && c.loyalty < 90 && rng.chance((p.fame - 50) / 400)) why = 'poached'; // rivals circle every star
-      if (why) {
-        car.clients.splice(car.clients.indexOf(c), 1);
-        var rival = rng.pick(RIVAL_AGENCIES);
-        car.alumni.push({ id: p.id, from: c.signed, to: Y, why: why, earned: c.earned, rival: why === 'left' || why === 'poached' ? rival : null });
-        var msg = why === 'died' ? 'Your client ' + p.name + ' has died, aged ' + (Y - p.born) + '.' :
-          why === 'retired' ? p.name + ' retired from acting.' :
-          why === 'poached' ? p.name + ' was poached by ' + rival + ', a bigger agency.' :
-          p.name + ' fired the agency and signed with ' + rival + '.';
-        log(w, msg, why === 'retired' ? 'info' : 'bad', p.id);
-        if (why === 'left' || why === 'poached') HW.addNews(w, Y, p.name + ' leaves ' + car.agency + ' for ' + rival + '.', 'people', { p: p.id });
-      }
+    // the passed pitches: grudges and cooler studios
+    c.pitches.forEach(function (pt, i) {
+      if (i === pick) return;
+      var f = slate[pt.f], d = w.people[f.director], td = C.tie(w, d.id), st = C.stand(w, f.studio), s = w.studios[f.studio];
+      var partner = C.isPartner(td);
+      td.snub = c.qi + 1 + C.snubLength(d);
+      td.work -= partner ? 12 : 5;
+      if (partner) { td.aff -= 20; report.changes.push({ t: d.name + ' is hurt that you turned them down.', ref: d.id, bad: true }); }
+      else report.changes.push({ t: d.name + ' won\'t call for a while.', ref: d.id, bad: true });
+      st.stand -= s.stars >= 4 ? 6 : 3;
+      report.passed.push({ f: f, alt: pt.alt, r: pt.r });
     });
 
-    var upkeep = money2(0.05 + 0.012 * car.clients.length);
-    car.cash = money2(car.cash + commission - upkeep);
-    var top = car.clients.map(function (c) { return w.people[c.id].fame; }).sort(function (a, b) { return b - a; }).slice(0, 3);
-    var topAvg = top.length ? top.reduce(function (a, b) { return a + b; }, 0) / top.length : 0;
-    car.rep = Math.round(clamp(car.rep * 0.75 + 0.25 * Math.min(100, topAvg + winsY * 8 + nomsY * 2), 0, 100));
-    var stars = w.people.filter(function (p) { return p.role === 'actor' && p.status === 'active'; }).sort(function (a, b) { return b.fame - a.fame; }).slice(0, 10);
-    stars.forEach(function (p) { if (C.client(w, p.id)) milestone(w, 'topTen', true, p.name + ' is one of Hollywood\'s ten biggest stars.', p.id); });
-    milestone(w, 'tenM', car.cash >= 10, 'The agency has $10M in the bank.');
-    milestone(w, 'fullHouse', car.clients.length >= 8, 'Eight clients on the roster.');
-    car.history.push({ y: Y, cash: car.cash, rep: car.rep, com: money2(commission), up: upkeep, n: car.clients.length, value: C.value(w) });
-    log(w, Y + ' closed: ' + HW.money(commission) + ' in commission, ' + HW.money(upkeep) + ' overhead.', 'year');
-    if (car.cash < 0) {
-      car.over = { y: Y, why: 'The agency ran out of money.' };
-      log(w, car.agency + ' has folded.', 'bad');
-      return;
+    var mine = null;
+    if (chosen) {
+      mine = slate[chosen.f];
+      var entry = mine.cast.filter(function (k) { return k.p === chosen.alt; })[0];
+      entry.p = p.id; entry.fee = chosen.fee; entry.cut = undefined;
+      // on-set dynamics: fondness lifts performances, bad blood can wreck a shoot
+      var mods = mine.mods = { perf: {}, q: 0 };
+      var d = w.people[mine.director], td = C.tie(w, d.id), form = C.form(w, d.id);
+      if (td.aff >= 30) mods.perf[p.id] = (mods.perf[p.id] || 0) + 3;
+      if (td.aff < -30 && rng.chance(0.4)) { mods.q -= 3; mods.perf[p.id] = (mods.perf[p.id] || 0) - 5; mine.clash = d.id; }
+      if (C.isPartner(td)) mods.q += 1;
+      if (form.roll) mods.q += 2; else if (form.cold) mods.q -= 1;
+      mine.cast.forEach(function (k) {
+        if (k.p === p.id) return;
+        var t = C.tie(w, k.p), o = w.people[k.p];
+        if (t.aff >= 30) { mods.perf[p.id] = (mods.perf[p.id] || 0) + 2; mods.perf[k.p] = (mods.perf[k.p] || 0) + 2; }
+        else if (t.aff < -30 && rng.chance(0.35 + (HW.has(o, 'diva') ? 0.2 : 0))) {
+          mods.perf[p.id] = (mods.perf[p.id] || 0) - 8; mods.perf[k.p] = (mods.perf[k.p] || 0) - 6; mods.q -= 4;
+          mine.clash = mine.clash || k.p;
+        }
+      });
+      mine.agent = { p: p.id };
     }
-    // next year's offers arrive as soon as the year ends
-    w.year = Y + 1; C.generateOffers(w); w.year = Y;
+
+    // release the whole quarter
+    ctx.seqCount = {};
+    slate.forEach(function (f) { if (f.seqOf != null) ctx.seqCount[f.genre] = (ctx.seqCount[f.genre] || 0) + 1; });
+    Sim.releaseFilms(w, ctx, slate);
+    Sim.careerUpdates(w, ctx, slate);
+    slate.forEach(function (f) { w.yc.ids.push(f.id); delete f.mods; });
+    w.yc.worked = ctx.worked;
+
+    if (mine) {
+      var pm = HW.postMortem(w, mine), x = mine.cast.filter(function (k) { return k.p === p.id; })[0], lead = x.r === 'L' ? 0 : 1;
+      // reputation is slow to build and quick to lose
+      var delta = REP[pm.verdict][lead], before = repBefore, after;
+      if (typeof delta === 'string') after = before * parseFloat(delta.slice(1));
+      else after = before + (delta > 0 ? delta * (1 - before / 115) : delta);
+      // a strong performance gets noticed even in a weak film; a bad one gets noticed too
+      var shine = x.perf >= 65 ? clamp((x.perf - 65) / 8, 0, 3) * (lead ? 0.6 : 1) : x.perf < 50 ? clamp((x.perf - 50) / 8, -2, 0) : 0;
+      after += shine > 0 ? shine * (1 - before / 115) : shine;
+      if (before < 20 && !/Flop|disaster/.test(pm.verdict)) after += 0.5; // an unknown gains a little just from being seen
+      p.fame = Math.round(clamp(after, 0, 100) * 10) / 10;
+      c.earnings = r2(c.earnings + x.fee);
+      c.earnedYear = r2((c.earnedYear || 0) + x.fee);
+      c.peak = Math.max(c.peak, p.fame);
+      report.film = { id: mine.id, verdict: pm.verdict, good: pm.good, perf: x.perf, r: x.r, fee: x.fee, repBefore: Math.round(before * 10) / 10, repAfter: p.fame, clash: mine.clash != null ? mine.clash : null };
+      // the people and the studio react, for career reasons
+      var wk = WORK[pm.verdict] * (lead ? 0.6 : 1), sd = STAND[pm.verdict] * (lead ? 0.6 : 1);
+      var d2 = w.people[mine.director], td2 = C.tie(w, d2.id);
+      var wasPartner = C.isPartner(td2);
+      td2.films++; td2.last = mine.id; td2.known = true;
+      td2.work = clamp(td2.work + wk, -100, 100);
+      td2.aff = clamp(td2.aff + 6 + (x.perf >= 80 ? 4 : 0) - (mine.clash === d2.id ? 15 : 0), -100, 100);
+      if (!wasPartner && C.isPartner(td2)) report.changes.push({ t: 'You and ' + d2.name + ' are now regular collaborators.', ref: d2.id, good: true });
+      else if (wk <= -25) report.changes.push({ t: d2.name + ' will think twice before casting you again. Nothing personal: the flop hurt them too.', ref: d2.id, bad: true });
+      else if (wk >= 15) report.changes.push({ t: d2.name + ' wants to work with you again.', ref: d2.id, good: true });
+      mine.cast.forEach(function (k) {
+        if (k.p === p.id) return;
+        var t = C.tie(w, k.p), o = w.people[k.p];
+        t.films++; t.known = true; t.last = mine.id;
+        t.work = clamp(t.work + wk * 0.5, -100, 100);
+        if (mine.clash === k.p) { t.aff = clamp(t.aff - 15, -100, 100); report.changes.push({ t: 'You clashed with ' + o.name + ' on set.', ref: o.id, bad: true }); }
+        else t.aff = clamp(t.aff + 4, -100, 100);
+      });
+      var st2 = C.stand(w, mine.studio), s2 = w.studios[mine.studio];
+      st2.stand = clamp(st2.stand + sd, -100, 100);
+      if (st2.stand < -30) { st2.until = c.qi + 4; report.changes.push({ t: s2.name + ' won\'t hire you for about a year.', bad: true }); }
+      else if (sd >= 12) report.changes.push({ t: s2.name + ' will remember this hit.', good: true });
+      var tag = pm.verdict + (x.r === 'L' ? ' (lead)' : ' (supporting)');
+      log(w, '"' + mine.title + '": ' + tag + '. Reputation ' + Math.round(before) + ' → ' + Math.round(p.fame) + '.', pm.good ? 'good' : /Flop|disaster/.test(pm.verdict) ? 'bad' : 'info', { f: mine.id });
+      milestones(w, mine, x, pm);
+    } else {
+      log(w, 'You passed on every pitch this quarter.', 'info');
+    }
+    report.passed = report.passed.map(function (x) {
+      var pm = HW.postMortem(w, x.f), k = x.f.cast.filter(function (q) { return q.p === x.alt; })[0];
+      return { id: x.f.id, verdict: pm.verdict, good: pm.good, alt: x.alt, perf: k ? k.perf : null, r: x.r };
+    });
+    report.passed.forEach(function (x) { if (x.good && /Smash/.test(x.verdict)) log(w, 'You passed on "' + w.films[x.id].title + '". It became a smash for ' + w.people[x.alt].name + '.', 'bad', { f: x.id }); });
+
+    // grudges and standing slowly fade
+    Object.keys(c.ties).forEach(function (id) { var t = c.ties[id]; if (t.work < 0) t.work = Math.min(0, t.work + 2.5); });
+    Object.keys(c.studios).forEach(function (id) { var st = c.studios[id]; if (st.stand < 0) st.stand = Math.min(0, st.stand + 2); });
+
+    w.rngState = rng.s;
+    report.repNow = p.fame;
+    c.reports.push(report);
+    if (c.reports.length > 40) c.reports.shift();
+    c.qi++;
+    c.q++;
+    if (c.q === 4) { report.yearEnded = Y; endYear(w); }
+    if (!c.over) prepareQuarter(w);
+    return report;
   };
 
-  function milestone(w, key, cond, text, pid) {
-    var m = w.career.milestones;
-    if (!cond || m[key]) return;
-    m[key] = { y: w.year, t: text };
-    log(w, '🏅 ' + text, 'milestone', pid);
+  function milestones(w, f, x, pm) {
+    var c = w.career, m = c.milestones || (c.milestones = {});
+    var hit = function (k, cond, t) { if (cond && !m[k]) { m[k] = { y: w.year, q: c.q }; log(w, '🏅 ' + t, 'milestone', { f: f.id }); } };
+    hit('lead', x.r === 'L', 'Your first leading role: "' + f.title + '".');
+    hit('hit', pm.good, 'Your first hit: "' + f.title + '".');
+    hit('hundred', f.gross >= 100, 'Your first $100M movie.');
+    hit('fiveStar', w.studios[f.studio].stars === 5, 'You worked for a 5-star studio.');
+    hit('billion', f.gross >= 1000, 'A billion-dollar movie.');
+    hit('aList', player(w).fame >= 70, 'You are on the A-list.');
   }
-  C.MILESTONES = [
-    ['firstLead', 'First leading role'], ['hundred', 'A $100M movie'], ['nom', 'First Laurel nomination'], ['win', 'First Laurel win'],
-    ['topTen', 'A top-10 star'], ['billion', 'A billion-dollar movie'], ['bestPicture', 'Star of a Best Picture winner'],
-    ['fullHouse', 'Eight clients'], ['tenM', '$10M in the bank']
-  ];
+  C.MILESTONES = [['lead', 'First leading role'], ['hit', 'First hit'], ['hundred', 'A $100M movie'], ['fiveStar', 'Work for a 5-star studio'], ['billion', 'A billion-dollar movie'], ['aList', 'Reputation 70: the A-list']];
+
+  function retire(w, why) {
+    var c = w.career, p = player(w);
+    c.over = { y: w.year, why: why };
+    p.status = 'retired';
+    p.retired = w.year;
+    log(w, why, 'milestone');
+  }
+  C.retire = function (w) { retire(w, player(w).name + ' retires from acting at ' + C.age(w) + '.'); };
 })(globalThis.HW = globalThis.HW || {});

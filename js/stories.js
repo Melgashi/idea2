@@ -225,7 +225,7 @@
     var y = f.why, G = HW.GENRES[f.genre], g = f.genre.toLowerCase();
     var verdict = f.tags.indexOf('flop') >= 0 ? (f.profit < -100 ? 'Box office disaster' : 'Flop') : null;
     var ratio = y ? f.gross / y.be : 0;
-    if (!verdict) verdict = ratio >= 3 ? 'Smash hit' : ratio >= 1.6 ? 'Hit' : ratio >= 1.1 ? 'Solid earner' : ratio >= 0.9 ? 'Broke even' : 'Disappointment';
+    if (!verdict) verdict = ratio >= 3 ? 'Smash hit' : ratio >= 1.6 ? 'Hit' : ratio >= 1.1 ? 'Solid earner' : ratio >= 0.9 ? 'Broke even' : ratio >= 0.45 ? 'Disappointment' : 'Flop';
     var good = ratio >= 1.1 && f.tags.indexOf('flop') < 0;
     var out = { verdict: verdict, good: good, ratio: ratio, reasons: [], breakEven: y ? y.be : null };
     if (!y) return out;

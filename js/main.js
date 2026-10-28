@@ -8,7 +8,14 @@
 
   function isCareer(w) { return !!(w && w.mode === 'career'); }
   function slotOf(w) { return isCareer(w) ? 'career' : 'current'; }
-  function parse(txt) { try { var w = txt ? JSON.parse(txt) : null; return w && w.version === 2 ? w : null; } catch (e) { return null; } }
+  function parse(txt) {
+    try {
+      var w = txt ? JSON.parse(txt) : null;
+      if (!w || w.version !== 2) return null;
+      if (w.mode === 'career' && (!w.career || w.career.kind !== 'actor')) return null; // agency-era careers don't carry over
+      return w;
+    } catch (e) { return null; }
+  }
   function stateDoc() { return { mode: isCareer(HW.world) ? 'career' : 'sandbox', careerMeta: HW.careerMeta || null }; }
 
   // ---------- saving ----------
@@ -18,7 +25,7 @@
     w.savedAt = Date.now();
     var text = JSON.stringify(w), e = { mode: isCareer(w) ? 'career' : 'sandbox' };
     e[slotOf(w)] = text;
-    if (isCareer(w)) e.careerMeta = HW.careerMeta = { agency: w.career.agency, year: w.year, over: !!w.career.over };
+    if (isCareer(w)) e.careerMeta = HW.careerMeta = { kind: 'actor', name: w.career.name, year: w.year, q: w.career.q, over: !!w.career.over };
     pending = { slot: slotOf(w), text: text, meta: { savedAt: w.savedAt, year: w.year }, state: stateDoc() };
     scheduleCloud();
     return S.put(e).catch(function (err) {
@@ -106,7 +113,7 @@
       touched = true;
       save();
       HW.go(mode === 'career' ? '#/career' : '#/');
-      toast(mode === 'career' ? 'Welcome back to ' + HW.world.career.agency + '.' : 'Back to the sandbox.');
+      toast(mode === 'career' ? 'Welcome back, ' + HW.world.career.name + '.' : 'Back to the sandbox.');
     });
   };
   // Delete the career save and return to the sandbox.
@@ -134,7 +141,7 @@
       resetView();
       save();
       HW.go('#/career');
-      toast(HW.world.career.agency + ' opens its doors in ' + HW.world.year + '.');
+      toast(HW.world.career.name + ' arrives in Hollywood. Your first three pitches are in.');
     };
     // keep the sandbox safe before replacing the open world
     if (isCareer(HW.world)) start(); else save().then(start);
@@ -145,11 +152,11 @@
     var w = HW.world, banner = document.getElementById('modeBanner');
     document.body.classList.toggle('career-mode', isCareer(w));
     if (!isCareer(w)) { banner.hidden = true; return; }
-    var c = w.career;
+    var c = w.career, C = HW.Career;
     banner.hidden = false;
-    banner.innerHTML = '<span class="mb-tag">Career Mode</span><b>' + HW.UI.h.esc(c.agency) + '</b><span class="muted">' + HW.money(c.cash) + ' · reputation ' + c.rep + ' · ' + c.clients.length + ' client' + (c.clients.length === 1 ? '' : 's') + '</span>' +
-      (c.over ? '<span class="neg">Agency folded</span>' : '') +
-      '<span class="mb-actions"><a class="btn small" href="#/career">Agency</a><button class="btn small ghost" data-action="toSandbox">Back to sandbox</button></span>';
+    banner.innerHTML = '<span class="mb-tag">Career Mode</span><b>' + HW.UI.h.esc(c.name) + '</b><span class="muted">' + C.age(w) + ' · ' + C.label(w) + ' · reputation ' + C.rep(w) + '</span>' +
+      (c.over ? '<span class="muted">Retired</span>' : '') +
+      '<span class="mb-actions"><a class="btn small" href="#/career">' + (c.over ? 'Your career' : 'Your pitches') + '</a><button class="btn small ghost" data-action="toSandbox">Back to sandbox</button></span>';
   }
   HW.UI.afterRender = updateChrome;
 
@@ -168,6 +175,7 @@
     var box = document.getElementById('watchCeremony');
     return box ? box.checked : true;
   }
+  HW.ceremonyWanted = ceremonyWanted;
   try {
     var pref = localStorage.getItem('hd-watch-ceremony');
     if (pref === '0') document.getElementById('watchCeremony').checked = false;
@@ -194,12 +202,10 @@
   async function advance(n) {
     if (busy) return;
     if (isCareer(HW.world)) {
-      // the agency plays one year at a time: offers have to be answered
-      var car = HW.world.career;
-      n = 1;
-      if (car.over) { toast('Your agency has folded. Start a new career from the Career Mode tab.'); return; }
-      var idle = car.clients.filter(function (c) { return (car.offers[c.id] || []).length && !(car.accepted[c.id] || []).length; });
-      if (idle.length && !(await HW.ask(idle.length + ' client' + (idle.length > 1 ? 's have' : ' has') + ' no role this year and will sit idle. Idle clients lose loyalty.', 'Advance anyway'))) return;
+      // in a career, time moves when you choose a pitch
+      toast('In Career Mode, time moves when you sign on to a film or pass.');
+      HW.go('#/career');
+      return;
     }
     touched = true;
     busy = true;
