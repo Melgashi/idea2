@@ -71,15 +71,18 @@ Each genre has its own vocabulary and title patterns, plus hand-written titles: 
 
 The **🎬 Career Mode** tab at the far right starts a separate single-player game: you are an **18-year-old actor** trying to make it. A career has **its own world and its own save**, so your sandbox world is never touched. The banner shows your age, the quarter and your reputation, and **Back to sandbox** switches worlds.
 
-- **A smaller Hollywood:** 20 studios rated from 1 to 5 stars (re-ranked every year by prestige and money), 20 directors and about 160 actors.
-- **Quarterly pitches:** each studio aims to start one production every quarter. You get pitches for three of them, each showing the studio and its stars, genre, budget, lead or supporting role, fee, how well it fits your skills, the director and the rest of the cast. Sign on to one, or pass on all three. Time only moves when you choose.
-- **If you pass:** every pitch says what passing costs. The director stops pitching to you for a while (proud and famous directors hold a grudge longer), regular collaborators feel snubbed, the studio cools on you, and the part goes to someone else, whose result you see afterwards.
-- **Risks** are shown up front: co-stars you've clashed with, a director coming off a flop, a studio in trouble, an unfashionable genre, a poor fit for you, or leading a big film too early.
-- **Rewards you have to find:** click the director to see their form (on a roll, cold streak) and how they feel about you; click a co-star to see whether they're right for the film and whether they like you. What you find shows up on the pitch.
-- **On set:** co-stars who are fond of you lift both performances; ones who can't stand you can wreck the shoot. A director on a roll lifts the film.
-- **Consequences:** a hit makes directors and studios want you back; a flop costs you **25% of your reputation** (15% in a supporting part) and makes the director, co-stars and studio wary of hiring you, for career reasons, not personal ones. Studios that sour on you stop calling for about a year. Reputation is slow to build: an unknown climbs a little with each film, and big jumps need hits and strong performances.
-- **Every quarter** ends with a report: your film's result and performance grade, the reputation change, who now wants or avoids you, and how the films you passed on did. Year ends bring the Golden Laurels, with you among the nominees if you've earned it.
-- **Relationships, career and log tabs** track every director (form, attitude, whether they're calling), the actors you know, your standing with each studio, milestones, your filmography and year-by-year reputation. Retire whenever you like.
+- **A smaller Hollywood:** 20 studios rated from 1 to 5 stars (re-ranked every year by prestige and money), 20 directors and about 160 actors. The world runs for three years before you arrive, so everyone already has a track record.
+- **Pitches:** each studio aims to start one production every quarter. When you're free, you get pitches for three of them: studio and stars, genre, budget, lead or supporting role, fee, director and cast. **Signing on books you for a year**; the quarters in between play out without you. Passing on all three just waits for the next quarter and upsets nobody.
+- **You're equally good in every genre.** What decides a film is what you can read in the pitch:
+  - **The director:** are they right for this genre (specialties and how their films in it did) and in form (on a roll or on a cold streak)?
+  - **The cast:** will you have chemistry? Most people get along with you, about a third have great chemistry with you, and only a few can't stand you.
+  - **Your history:** past collaborations with this director and these actors, and how they turned out.
+  - **The studio:** each studio has a hidden eye for casting and choosing directors, which lifts or sinks all its films; you read it from its recent track record.
+  Click the director, the studio and each co-star to look into them. What you find shows up on the pitch as a reward or a risk.
+- **Choosing a film over another** costs you with the directors you turned down: they stop pitching to you for a year or more (proud and famous ones for longer), regular collaborators feel snubbed, and the studios cool on you.
+- **Consequences:** a hit makes directors and studios want you back and can lift your reputation by 15-25 points; a flop costs you **25% of your reputation** (15% in a supporting part) and makes the director, co-stars and studio wary of hiring you, for career reasons, not personal ones.
+- **Every film** ends with a report: its result, your performance grade, the reputation change, who now wants or avoids you, and how the films you passed on did. Year ends bring the Golden Laurels.
+- **Relationships, career and log tabs** track every director (form, attitude, whether they're calling), the actors you know, each studio's track record and your standing with it, milestones, your filmography and year-by-year reputation. Retire whenever you like.
 
 ## How a year plays out
 

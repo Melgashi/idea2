@@ -1,7 +1,8 @@
 // Career mode: you are an 18-year-old actor in a small Hollywood of 20 studios (1-5 stars) and 20 directors.
-// Every quarter each studio aims to start a production; you get pitches for three of them and sign on to one (or none).
-// Choices have weight: directors you turn down stop calling, partners feel snubbed, flops make people wary of you
-// for career reasons, and a flop costs you a quarter of your reputation.
+// Every quarter each studio aims to start a production. When you're free, you get pitches for three of them.
+// Signing on books you for a year. The game is about reading opportunities: is the director right for this film
+// and in form, will you have chemistry with this cast, did past collaborations work, does the studio cast and
+// hire well? Those are what decide how a film turns out.
 // State lives in w.career; the year's running context in w.yc so a save can resume between quarters.
 (function (HW) {
   var clamp = HW.clamp, Sim = HW.Sim;
@@ -10,18 +11,18 @@
   C.QUARTERS = ['Winter', 'Spring', 'Summer', 'Fall'];
   var STAR_SLOTS = [5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1];
   var TIER_OF = { 1: 'Indie', 2: 'Indie', 3: 'Mid', 4: 'Major', 5: 'Major' };
-  var ACCESS = [0, 0, 6, 18, 35, 55];          // reputation a studio of N stars expects before it calls
+  var ACCESS = [0, 0, 5, 14, 26, 42];          // reputation a studio of N stars expects before it calls
   var TARGETS = { actor: 160, director: 20, writer: 30, cinematographer: 24, composer: 20 };
+  var BOOKED_QUARTERS = 4;                     // a film takes a year of your life
   var FOCUS = {
-    presence: { label: 'Camera magnet', genre: 'romance' }, craft: { label: 'Trained actor', genre: 'drama' },
-    intensity: { label: 'Intense', genre: 'thriller' }, physicality: { label: 'Physical', genre: 'action' },
-    chemistry: { label: 'Funny', genre: 'comedy' }, range: { label: 'Chameleon', genre: 'drama' }
+    presence: { label: 'Camera magnet' }, craft: { label: 'Trained actor' }, intensity: { label: 'Intense' },
+    physicality: { label: 'Physical' }, chemistry: { label: 'Natural chemistry' }, range: { label: 'Chameleon' }
   };
   C.FOCUS = FOCUS;
   // Reputation after a release, by verdict: [lead, supporting]. Numbers are added; strings ('x0.75') multiply.
   var REP = {
-    'Smash hit': [8, 5], 'Hit': [5, 3], 'Solid earner': [2, 1], 'Broke even': [0.5, 0.3],
-    'Disappointment': [-2, -0.5], 'Flop': ['x0.75', 'x0.85'], 'Box office disaster': ['x0.75', 'x0.8']
+    'Smash hit': [24, 14], 'Hit': [16, 9], 'Solid earner': [8, 4], 'Broke even': [2, 1],
+    'Disappointment': [-3, -1], 'Flop': ['x0.75', 'x0.85'], 'Box office disaster': ['x0.75', 'x0.8']
   };
   // How a result changes people's willingness to work with you again (career reasons, not personal ones)
   var WORK = { 'Smash hit': 25, 'Hit': 15, 'Solid earner': 8, 'Broke even': 2, 'Disappointment': -10, 'Flop': -30, 'Box office disaster': -40 };
@@ -34,35 +35,39 @@
   C.rep = function (w) { return Math.round(player(w).fame); };
   C.age = function (w) { return w.year - player(w).born; };
   C.label = function (w) { return C.QUARTERS[w.career.q] + ' ' + w.year; };
+  C.qLabel = function (w, qi) { return C.QUARTERS[qi % 4] + ' ' + (w.career.started + Math.floor(qi / 4)); };
   function log(w, t, k, ref) {
     var c = w.career;
     c.log.push({ y: w.year, q: c.q, t: t, k: k || 'info', r: ref || null });
     if (c.log.length > 500) c.log.splice(0, c.log.length - 500);
   }
   C.log = log;
+  function isGood(v) { return /Smash|Hit|Solid/.test(v); }
+  function isBad(v) { return /Flop|disaster/.test(v); }
 
   // ---------- setup ----------
   C.newCareer = function (o) {
     var tiers = STAR_SLOTS.map(function (s) { return TIER_OF[s]; });
-    var w = HW.newWorld({ startYear: o.startYear, seed: o.seed, targets: TARGETS, tiers: tiers });
+    // the world starts three years before you arrive, so studios and directors already have track records
+    var arrival = o.startYear || 1980, WARMUP = 3;
+    var w = HW.newWorld({ startYear: arrival - WARMUP, seed: o.seed, targets: TARGETS, tiers: tiers });
     w.mode = 'career';
     w.studioCount = 20;
-    w.studios.forEach(function (s, i) { s.stars = STAR_SLOTS[i]; });
     var rng = rngOf(w);
+    w.studios.forEach(function (s, i) { s.stars = STAR_SLOTS[i]; s.judgment = judgment(rng); });
     var p = HW.createPerson(w, rng, 'actor', {});
-    // shape the player: an unknown 18-year-old with one standout quality
+    // shape the player: an unknown 18-year-old, equally at home in every genre, with one standout quality
     var name = (o.name || '').trim();
     if (name && !w.usedNames[name]) { delete w.usedNames[p.name]; p.name = name; w.usedNames[name] = 1; }
     p.gender = o.gender === 'M' ? 'M' : 'F';
-    p.born = w.year - 18;
-    p.debut = w.year;
+    p.born = arrival - 18;
+    p.debut = arrival;
     p.traits = [];
     p.exp = 0;
-    HW.ROLES.actor.stats.forEach(function (k) { p.genes[k] = HW.round1(clamp(rng.normal(5.3, 0.8), 3, 7.5)); });
+    HW.ROLES.actor.stats.forEach(function (k) { p.genes[k] = HW.round1(clamp(rng.normal(5.8, 0.5), 4.5, 7)); });
     var focus = FOCUS[o.focus] ? o.focus : 'craft';
-    p.genes[focus] = HW.round1(clamp(p.genes[focus] + 2, 1, 9.5));
-    HW.ACTOR_GENRES.forEach(function (g) { p.genre[g] = HW.round1(clamp(rng.normal(2.6, 0.6), 1, 4)); });
-    p.genre[FOCUS[focus].genre] = HW.round1(p.genre[FOCUS[focus].genre] + 1.8);
+    p.genes[focus] = HW.round1(clamp(p.genes[focus] + 1.8, 1, 9.5));
+    HW.ACTOR_GENRES.forEach(function (g) { p.genre[g] = 5.5; });
     p.peakAge = 36;
     p.fame = 2; p.prestige = 2;
     HW.updateStats(p, w.year);
@@ -71,15 +76,18 @@
     w.follows = { p: {}, s: {} };
     w.follows.p[p.id] = 1;
     w.career = {
-      kind: 'actor', pid: p.id, name: p.name, focus: focus, started: w.year, q: 0, qi: 0,
+      kind: 'actor', pid: p.id, name: p.name, focus: focus, started: w.year, q: 0, qi: 0, busyUntil: WARMUP * 4,
       ties: {}, studios: {}, seen: { qi: 0, ids: {} }, log: [], reports: [], history: [],
       earnings: 0, peak: 2, slate: [], pitches: [], over: null, seed: (w.seed ^ 0x9e3779b9) >>> 0
     };
-    log(w, p.name + ' arrives in Hollywood at 18 with nothing but a headshot.', 'milestone', { p: p.id });
     beginYear(w);
     prepareQuarter(w);
+    while (w.career.qi < WARMUP * 4) resolveQuarter(w, -1);   // Hollywood carries on before you get there
+    log(w, p.name + ' arrives in Hollywood at 18 with nothing but a headshot.', 'milestone', { p: p.id });
     return w;
   };
+  // A studio's hidden eye for casting and hiring directors (0-100). Players read it from the studio's track record.
+  function judgment(rng) { return Math.round(clamp(rng.normal(50, 16), 10, 95)); }
 
   // ---------- year & quarter plumbing ----------
   function freshMods() { return { output: 1, boxOffice: 1, ancillary: 1, spectacle: 1, spectacleBO: 1, prestigeBO: 1 }; }
@@ -112,7 +120,7 @@
     Sim.peopleYearEnd(w, ctx);
     HW.detectStories(w, ctx);
     Sim.recordHistory(w, ctx);
-    restar(w, Y);
+    restar(w, Y, ctx.rng);
     var c = w.career;
     var mine = ctx.films.filter(function (f) { return f.cast.some(function (x) { return x.p === p.id; }); });
     var aw = HW.personAwards(w, p.id).filter(function (a) { return a.y === Y; });
@@ -126,9 +134,10 @@
     if (C.age(w) >= 80) retire(w, 'At 80, you take your final bow.');
   }
 
-  // Re-rank studios into 1-5 stars by prestige and money; new studios start at the bottom of the scale.
-  function restar(w, Y) {
+  // Re-rank studios into 1-5 stars by prestige and money; new studios get their own judgment.
+  function restar(w, Y, rng) {
     var act = w.studios.filter(function (s) { return s.active; });
+    act.forEach(function (s) { if (s.judgment == null) s.judgment = judgment(rng); });
     act.sort(function (a, b) { return score(b) - score(a); });
     act.forEach(function (s, i) {
       var st = STAR_SLOTS[Math.min(i, STAR_SLOTS.length - 1)], was = s.stars;
@@ -140,49 +149,69 @@
   }
 
   // ---------- ties ----------
-  // Personal fondness (aff) is a hidden matter of temperament; professional willingness (work) follows results.
+  // Personal fondness (aff) decides on-screen chemistry; most people are friendly, very few dislike you.
+  // Professional willingness (work) follows results.
   C.tie = function (w, id) {
     var c = w.career, t = c.ties[id];
     if (t) return t;
     var o = w.people[id], rng = new HW.RNG((c.seed ^ Math.imul(id + 1, 2654435761)) >>> 0);
-    var aff = rng.normal(0, 28);
-    if (HW.has(o, 'diva')) aff -= 15;
+    var aff = rng.normal(14, 20);
+    if (HW.has(o, 'diva')) aff -= 10;
     if (HW.has(o, 'actorsdir')) aff += 10;
     if (o.role === 'actor') aff += (o.stats.chemistry - 5) * 3;
-    t = c.ties[id] = { aff: Math.round(clamp(aff, -80, 80)), work: 0, films: 0, snub: 0, known: false, last: null };
+    t = c.ties[id] = { aff: Math.round(clamp(aff, -80, 90)), work: 0, films: 0, good: 0, bad: 0, snub: 0, known: false, last: null };
     return t;
   };
   C.stand = function (w, sid) { return w.career.studios[sid] || (w.career.studios[sid] = { stand: 0, until: 0 }); };
-  C.attitude = function (aff) { return aff >= 30 ? 'Fond of you' : aff >= 0 ? 'Gets along with you' : aff >= -30 ? 'Cool toward you' : 'Can\'t stand you'; };
+  C.attitude = function (aff) { return aff >= 30 ? 'Great chemistry with you' : aff >= -10 ? 'Gets along with you' : aff >= -30 ? 'Lukewarm toward you' : 'Can\'t stand you'; };
   C.stance = function (work) { return work >= 20 ? 'Wants to work with you again' : work >= 0 ? 'Open to working with you' : work >= -25 ? 'Wary of you after a bad result' : 'Won\'t hire you right now'; };
-  C.isPartner = function (t) { return t.films >= 2 && t.work >= 0 && t.aff >= 25; };
-  // Directors with bigger egos hold a grudge longer.
+  C.isPartner = function (t) { return t.films >= 2 && t.good > t.bad && t.aff >= 20; };
+  // How long a director you turned down (for another film) stops calling, in quarters. Bigger egos, longer grudges.
   C.snubLength = function (d) {
-    var n = 1;
-    if (d.fame >= 50) n += 2;
-    if (HW.has(d, 'diva') || HW.has(d, 'auteur')) n += 2;
-    if (HW.has(d, 'perfectionist')) n += 1;
+    var n = 4;
+    if (d.fame >= 50) n += 4;
+    if (HW.has(d, 'diva') || HW.has(d, 'auteur')) n += 4;
     return n;
   };
-  C.seen = function (w, id) {
+  C.years = function (q) { var y = Math.round(q / 4); return y <= 1 ? 'a year' : y + ' years'; };
+  // Investigation: people by numeric id, studios as 's<id>'
+  C.seen = function (w, key) {
     var c = w.career;
     if (c.seen.qi !== c.qi) c.seen = { qi: c.qi, ids: {} };
-    return !!c.seen.ids[id];
+    return !!c.seen.ids[key];
   };
-  C.investigate = function (w, id) {
+  C.investigate = function (w, key) {
     var c = w.career;
-    C.seen(w, id);
-    c.seen.ids[id] = 1;
-    C.tie(w, id).known = true;
+    C.seen(w, key);
+    c.seen.ids[key] = 1;
+    if (typeof key === 'number') C.tie(w, key).known = true;
   };
 
-  // Recent record of a director: verdicts of their last few films, and the streak it adds up to.
+  // A director's recent form.
   C.form = function (w, did) {
     var d = w.people[did], last = d.films.slice(-3).map(function (id) { return w.films[id]; });
-    var v = last.map(function (f) { return HW.postMortem(w, f); });
-    var good = v.filter(function (x) { return x.good; }).length, bad = v.filter(function (x) { return /Flop|disaster/.test(x.verdict); }).length;
+    var v = last.map(function (f) { return HW.postMortem(w, f).verdict; });
+    var good = v.filter(isGood).length, bad = v.filter(isBad).length;
     var label = last.length < 2 ? 'Untested' : good >= 2 && !bad ? 'On a roll' : bad >= 2 ? 'Cold streak' : 'Mixed record';
     return { films: last, verdicts: v, good: good, bad: bad, label: label, roll: label === 'On a roll', cold: label === 'Cold streak' };
+  };
+  // Is this director right for this genre? Their specialties, plus how their films in it have done.
+  C.dirFit = function (w, did, genre) {
+    var d = w.people[did], spec = (d.specialty || []).indexOf(genre) >= 0;
+    var mine = d.films.map(function (id) { return w.films[id]; }).filter(function (f) { return f.genre === genre; }).slice(-4);
+    var v = mine.map(function (f) { return HW.postMortem(w, f).verdict; });
+    var good = v.filter(isGood).length, bad = v.filter(isBad).length;
+    var score = (spec ? 2 : 0) + good - bad;
+    var label = score >= 2 ? 'Right at home' : score <= -1 ? 'Out of their depth' : mine.length || spec ? 'Capable' : 'Untried in ' + genre.toLowerCase();
+    return { spec: spec, films: mine.length, good: good, bad: bad, score: score, label: label };
+  };
+  // How a studio's recent films have done: the visible trace of its judgment.
+  C.studioRecord = function (w, sid) {
+    var s = w.studios[sid], last = s.films.slice(-8).map(function (id) { return w.films[id]; });
+    var v = last.map(function (f) { return HW.postMortem(w, f).verdict; });
+    var good = v.filter(isGood).length, bad = v.filter(isBad).length, net = good - bad;
+    var label = last.length < 3 ? 'Too new to judge' : net >= 3 ? 'Sharp eye for talent' : net <= -3 ? 'Poor judgment lately' : net >= 0 ? 'Solid track record' : 'Hit and miss';
+    return { films: last, verdicts: v, good: good, bad: bad, label: label };
   };
 
   // ---------- the quarter's slate and pitches ----------
@@ -202,24 +231,28 @@
     slate.forEach(function (f) { Sim.staffProject(w, ctx, f); });
     slate = slate.filter(function (f) { return f.director != null && f.cast.length > 1; });
     slate.forEach(function (f) { f.title = Sim.makeTitle(w, rng, f); });
+    c.slate = slate;
+    c.pitches = [];
+    if (c.qi >= (c.busyUntil || 0) && !c.over) c.pitches = pitchesFor(w, slate, rng, p, rep);
+    w.rngState = rng.s;
+  }
 
-    // which productions would cast the player, and in what part
-    var cands = [];
+  function pitchesFor(w, slate, rng, p, rep) {
+    var c = w.career, cands = [];
     slate.forEach(function (f, i) {
       var s = w.studios[f.studio], st = C.stand(w, s.id), d = w.people[f.director], t = C.tie(w, d.id);
       var sequelOfMine = f.seqOf != null && w.films[f.seqOf].cast.some(function (x) { return x.p === p.id && x.r === 'L'; });
       var access = ACCESS[s.stars] - st.stand / 4;
       var open = sequelOfMine || (rep >= access - 6 && st.until <= c.qi && t.snub <= c.qi && t.work > -35);
       if (!open) return;
-      var leadP = sequelOfMine ? 1 : clamp((rep - ACCESS[s.stars]) / 20 + (s.stars <= 2 ? 0.3 : 0) + (t.aff >= 40 ? 0.1 : 0), 0.05, 0.9);
+      var leadP = sequelOfMine ? 1 : clamp((rep - ACCESS[s.stars]) / 18 + (s.stars <= 2 ? 0.3 : 0) + (t.work >= 20 ? 0.15 : 0), 0.08, 0.9);
       var want = rng.chance(leadP) ? 'L' : 'S';
       var slot = pickSlot(w, f, want, p.gender) || pickSlot(w, f, want === 'L' ? 'S' : 'L', p.gender);
       if (!slot) return;
-      var target = clamp(Math.round(rep / 18) + 1, 1, 5);
-      var wgt = Math.exp(-Math.abs(s.stars - target)) + (t.work >= 20 ? 1.5 : 0) + (t.aff >= 30 ? 0.8 : 0) + (sequelOfMine ? 5 : 0);
+      var target = clamp(Math.round(rep / 15) + 1, 1, 5);
+      var wgt = Math.exp(-Math.abs(s.stars - target)) + (t.work >= 20 ? 1.5 : 0) + (sequelOfMine ? 5 : 0);
       cands.push({ i: i, slot: slot, wgt: wgt, seq: sequelOfMine });
     });
-    var picks = [];
     if (cands.length < 3) slate.forEach(function (f, i) {
       if (cands.some(function (x) { return x.i === i; })) return;
       var s = w.studios[f.studio], t = C.tie(w, f.director), st = C.stand(w, s.id);
@@ -227,27 +260,20 @@
       var slot = pickSlot(w, f, 'S', p.gender);
       if (slot) cands.push({ i: i, slot: slot, wgt: 0.3 });
     });
+    var picks = [];
     while (picks.length < 3 && cands.length) {
       var pick = rng.weighted(cands, function (x) { return x.wgt; });
       cands.splice(cands.indexOf(pick), 1);
       picks.push(pick);
     }
-    if (!picks.length && slate.length) {
-      // nobody wants you: the smallest production in town still needs a body on set
-      var small = slate.slice().sort(function (a, b) { return w.studios[a.studio].stars - w.studios[b.studio].stars || a.budget - b.budget; })[0];
-      var sl = pickSlot(w, small, 'S', p.gender) || pickSlot(w, small, 'L', p.gender);
-      if (sl) picks.push({ i: slate.indexOf(small), slot: sl, desperate: true });
-    }
-    c.slate = slate;
-    c.pitches = picks.map(function (x) {
+    return picks.map(function (x) {
       var f = slate[x.i], role = x.slot.r, ask = HW.fee(p);
       var fee = role === 'L' ? clamp(ask * rng.range(1, 1.4) + f.budget * 0.012, 0.03, Math.max(0.05, f.budget * 0.14))
         : clamp(ask * rng.range(0.7, 1.1) + f.budget * 0.004, 0.02, Math.max(0.03, f.budget * 0.04));
-      return { f: x.i, r: role, alt: x.slot.p, fee: r2(fee), seq: !!x.seq, desperate: !!x.desperate };
+      return { f: x.i, r: role, alt: x.slot.p, fee: r2(fee), seq: !!x.seq };
     });
-    w.rngState = rng.s;
   }
-  // The cast member whose part the player would take (they keep it if the player passes).
+  // The cast member whose part the player would take (they keep it if the player goes elsewhere).
   function pickSlot(w, f, role, gender) {
     for (var i = 0; i < f.cast.length; i++) {
       var k = f.cast[i];
@@ -257,106 +283,130 @@
   }
 
   // ---------- reading a pitch ----------
-  // What happens if you pass, what's risky, and what's good about it. Hidden items need investigating.
+  // What it costs to take another film instead, what's public knowledge, and what you find by looking closer.
   C.analyze = function (w, pitch) {
-    var c = w.career, f = c.slate[pitch.f], p = player(w), d = w.people[f.director], s = w.studios[f.studio];
+    var c = w.career, f = c.slate[pitch.f], d = w.people[f.director], s = w.studios[f.studio];
     var td = C.tie(w, d.id), out = { pass: [], risks: [], rewards: [] };
-    var dirSeen = C.seen(w, d.id), alt = w.people[pitch.alt];
-    // passing
-    var weeks = C.snubLength(d);
-    if (C.isPartner(td)) out.pass.push({ t: d.name + ' counts on you. Turning this down will strain your partnership, and they won\'t call for about ' + weeks + ' quarters.', ref: d.id, sev: 3 });
-    else out.pass.push({ t: d.name + ' won\'t pitch to you for about ' + weeks + ' quarter' + (weeks > 1 ? 's' : '') + '.', ref: d.id, sev: weeks >= 5 ? 2 : 1 });
-    out.pass.push({ t: s.name + ' (' + s.stars + '★) will be ' + (s.stars >= 4 ? 'noticeably' : 'a little') + ' cooler toward you.', sev: s.stars >= 4 ? 2 : 1 });
-    if (pitch.seq) out.pass.push({ t: 'They will recast your role in the sequel.', sev: 3 });
-    out.pass.push({ t: 'The part goes to ' + alt.name + ' instead.', ref: alt.id, sev: 0 });
-    // public risks
-    var others = f.cast.filter(function (k) { return k.p !== pitch.alt; });
+    var alt = w.people[pitch.alt], others = f.cast.filter(function (k) { return k.p !== pitch.alt; });
+    // if you sign on to a different film
+    var len = C.snubLength(d);
+    if (C.isPartner(td)) out.pass.push({ t: d.name + ' counts on you: choosing another film will strain your partnership, and they won\'t call for about ' + C.years(len) + '.', ref: d.id });
+    else out.pass.push({ t: d.name + ' won\'t pitch to you for about ' + C.years(len) + '.', ref: d.id });
+    out.pass.push({ t: s.name + ' will be ' + (s.stars >= 4 ? 'noticeably' : 'a little') + ' cooler toward you.' });
+    if (pitch.seq) out.pass.push({ t: 'They will recast your role in the sequel.' });
+    out.pass.push({ t: 'The part goes to ' + alt.name + '.', ref: alt.id });
+
+    // public knowledge: your history with these people, and headlines
+    if (td.films) {
+      if (C.isPartner(td)) out.rewards.push({ t: 'You and ' + d.name + ' work well together: ' + td.good + ' of your ' + td.films + ' films worked.', ref: d.id });
+      else if (td.bad > td.good) out.risks.push({ t: 'Your last collaborations with ' + d.name + ' didn\'t go well (' + td.bad + ' of ' + td.films + ' flopped).', ref: d.id });
+    }
     others.forEach(function (k) {
       var t = C.tie(w, k.p), o = w.people[k.p];
-      if (t.known && t.aff < -30) out.risks.push({ t: 'You and ' + o.name + ' don\'t get along. A tense set could sink the film.', ref: o.id });
+      if (t.films && t.aff >= 30 && t.good >= t.bad) out.rewards.push({ t: 'Proven chemistry with ' + o.name + ' (' + t.films + ' film' + (t.films > 1 ? 's' : '') + ' together).', ref: o.id });
+      else if (t.known && t.aff < -30) out.risks.push({ t: 'You and ' + o.name + ' don\'t get along. A tense set could sink the film.', ref: o.id });
+      if (o.fame >= 60) out.rewards.push({ t: o.name + ' is a box-office draw.', ref: o.id });
     });
-    if (td.known && td.aff < -30) out.risks.push({ t: d.name + ' doesn\'t like you. Expect a difficult shoot.', ref: d.id });
     var lastD = d.films.length ? w.films[d.films[d.films.length - 1]] : null;
     if (lastD && lastD.tags.indexOf('flop') >= 0) out.risks.push({ t: d.name + '\'s last film, "' + lastD.title + '", flopped.', ref: d.id });
     if (s.cash < 0) out.risks.push({ t: s.name + ' is losing money; budgets get squeezed.' });
-    if (w.trends[f.genre] < 0.8) out.risks.push({ t: f.genre + ' films are out of fashion right now.' });
-    // fit is judged against your own best genre, so it means something at every stage of a career
-    var fit = HW.genreApt(p, f.genre), best = Math.max.apply(null, HW.GENRE_KEYS.map(function (g) { return HW.genreApt(p, g); }));
-    if (fit < best * 0.75) out.risks.push({ t: 'Not your kind of film: fit ' + Math.round(fit) + ', against ' + Math.round(best) + ' in your best genre.' });
-    else if (fit >= best * 0.95) out.rewards.push({ t: 'Plays to your strengths (fit ' + Math.round(fit) + ').' });
     if (pitch.r === 'L' && f.budget >= 60) out.risks.push({ t: 'Leading a ' + HW.money(f.budget) + ' film puts your name on the poster: a flop would hit you hardest.' });
     if (f.seqNum >= 4) out.risks.push({ t: 'Part ' + f.seqNum + ' of a franchise: audiences may be tiring of it.' });
-    // rewards: public ones first
-    if (C.isPartner(td)) out.rewards.push({ t: 'Your partnership with ' + d.name + ' (' + td.films + ' films together).', ref: d.id });
-    if (s.stars >= 4) out.rewards.push({ t: 'A ' + s.stars + '-star studio: a big stage.' });
-    if (w.trends[f.genre] >= 1.2) out.rewards.push({ t: f.genre + ' is hot right now.' });
-    others.forEach(function (k) {
-      var o = w.people[k.p];
-      if (o.fame >= 60) out.rewards.push({ t: o.name + ' is a box-office draw.', ref: o.id });
-    });
-    // hidden: the director's form and attitude
-    var form = C.form(w, d.id);
-    if (dirSeen) {
+
+    // found by looking into the director
+    if (C.seen(w, d.id)) {
+      var form = C.form(w, d.id), fit = C.dirFit(w, d.id, f.genre);
       if (form.roll) out.rewards.push({ t: d.name + ' is on a roll: ' + form.good + ' of their last ' + form.films.length + ' films worked.', ref: d.id, found: true });
       if (form.cold) out.risks.push({ t: d.name + ' is on a cold streak.', ref: d.id, found: true });
-      if (td.aff >= 30) out.rewards.push({ t: d.name + ' is fond of you.', ref: d.id, found: true });
+      if (fit.score >= 2) out.rewards.push({ t: f.genre + ' is ' + d.name + '\'s territory' + (fit.spec ? ' (a specialty)' : '') + '.', ref: d.id, found: true });
+      else if (fit.score <= -1) out.risks.push({ t: d.name + '\'s ' + f.genre.toLowerCase() + ' films have struggled.', ref: d.id, found: true });
+      else if (!fit.films && !fit.spec) out.risks.push({ t: d.name + ' has never made a ' + f.genre.toLowerCase() + ' film.', ref: d.id, found: true });
+      if (!td.films && td.aff >= 30) out.rewards.push({ t: d.name + ' is a fan of yours.', ref: d.id, found: true });
     }
-    // hidden: costars' attitude and fit for this film
+    // found by looking into the cast
     others.forEach(function (k) {
       if (!C.seen(w, k.p)) return;
-      var o = w.people[k.p], t = C.tie(w, k.p), apt = HW.genreApt(o, f.genre);
-      if (t.aff >= 30) out.rewards.push({ t: o.name + ' is fond of you: expect good chemistry.', ref: o.id, found: true });
+      var o = w.people[k.p], t = C.tie(w, k.p);
+      if (!t.films && t.aff >= 30) out.rewards.push({ t: 'You and ' + o.name + ' hit it off: expect real chemistry.', ref: o.id, found: true });
       if (t.aff < -30 && !out.risks.some(function (r) { return r.ref === o.id; })) out.risks.push({ t: o.name + ' can\'t stand you.', ref: o.id, found: true });
-      if (apt >= 65) out.rewards.push({ t: o.name + ' is perfect for this kind of film (fit ' + Math.round(apt) + ').', ref: o.id, found: true });
-      else if (apt < 35) out.risks.push({ t: o.name + ' is miscast here (fit ' + Math.round(apt) + ').', ref: o.id, found: true });
     });
-    out.unexplored = [d.id].concat(others.map(function (k) { return k.p; })).filter(function (id) { return !C.seen(w, id); }).length;
+    // found by looking into the studio
+    if (C.seen(w, 's' + s.id)) {
+      var rec = C.studioRecord(w, s.id);
+      if (rec.label === 'Sharp eye for talent') out.rewards.push({ t: s.name + ' casts and hires well: ' + rec.good + ' of its last ' + rec.films.length + ' films worked.', found: true });
+      else if (rec.label === 'Poor judgment lately') out.risks.push({ t: s.name + '\'s recent choices keep missing: ' + rec.bad + ' of its last ' + rec.films.length + ' films flopped.', found: true });
+    }
+    var keys = [d.id, 's' + s.id].concat(others.map(function (k) { return k.p; }));
+    out.unexplored = keys.filter(function (k) { return !C.seen(w, k); }).length;
     return out;
   };
 
+  // ---------- what decides how a film turns out (applied to every film in the career world) ----------
+  function filmMods(w, f, rng) {
+    var s = w.studios[f.studio], mods = { perf: {}, q: 0 };
+    mods.q += ((s.judgment == null ? 50 : s.judgment) - 50) / 3.5; // a studio's eye for casting and directors
+    var fit = C.dirFit(w, f.director, f.genre), form = C.form(w, f.director);
+    mods.q += clamp(fit.score, -2, 3) * 1.2;                         // the right director for the material
+    if (form.roll) mods.q += 2; else if (form.cold) mods.q -= 1.5;   // confidence and momentum
+    return mods;
+  }
+
   // ---------- choosing ----------
-  // pick: index into c.pitches, or -1 to pass on everything.
+  // pick: index into c.pitches, or -1 to wait for the next quarter. Waiting upsets nobody.
   C.choose = function (w, pick) {
-    var c = w.career, p = player(w), ctx = ctxOf(w), rng = ctx.rng, Y = w.year;
+    var c = w.career;
     if (c.over) return null;
+    var report = resolveQuarter(w, pick >= 0 ? pick : -1);
+    // a film books you for a year: the next quarters play out without you
+    while (!c.over && c.qi < (c.busyUntil || 0)) {
+      var r = resolveQuarter(w, -1);
+      if (r.yearEnded) report.yearEnded = r.yearEnded;
+    }
+    report.nextPitches = C.label(w);
+    return report;
+  };
+
+  function resolveQuarter(w, pick) {
+    var c = w.career, p = player(w), ctx = ctxOf(w), rng = ctx.rng, Y = w.year;
     var slate = c.slate, chosen = pick >= 0 ? c.pitches[pick] : null, report = { y: Y, q: c.q, film: null, passed: [], changes: [] };
     var repBefore = p.fame;
+    slate.forEach(function (f) { f.mods = filmMods(w, f, rng); });
 
-    // the passed pitches: grudges and cooler studios
-    c.pitches.forEach(function (pt, i) {
-      if (i === pick) return;
-      var f = slate[pt.f], d = w.people[f.director], td = C.tie(w, d.id), st = C.stand(w, f.studio), s = w.studios[f.studio];
-      var partner = C.isPartner(td);
-      td.snub = c.qi + 1 + C.snubLength(d);
-      td.work -= partner ? 12 : 5;
-      if (partner) { td.aff -= 20; report.changes.push({ t: d.name + ' is hurt that you turned them down.', ref: d.id, bad: true }); }
-      else report.changes.push({ t: d.name + ' won\'t call for a while.', ref: d.id, bad: true });
-      st.stand -= s.stars >= 4 ? 6 : 3;
-      report.passed.push({ f: f, alt: pt.alt, r: pt.r });
-    });
+    if (chosen) {
+      // the pitches you turned down for this one
+      c.pitches.forEach(function (pt, i) {
+        if (i === pick) return;
+        var f = slate[pt.f], d = w.people[f.director], td = C.tie(w, d.id), st = C.stand(w, f.studio), s = w.studios[f.studio];
+        var partner = C.isPartner(td);
+        td.snub = c.qi + 1 + C.snubLength(d);
+        td.work -= partner ? 12 : 5;
+        if (partner) { td.aff -= 15; report.changes.push({ t: d.name + ' is hurt that you chose another film.', ref: d.id, bad: true }); }
+        else report.changes.push({ t: d.name + ' won\'t call for about ' + C.years(C.snubLength(d)) + '.', ref: d.id, bad: true });
+        st.stand -= s.stars >= 4 ? 6 : 3;
+        report.passed.push({ f: f, alt: pt.alt, r: pt.r });
+      });
+    }
 
     var mine = null;
     if (chosen) {
       mine = slate[chosen.f];
       var entry = mine.cast.filter(function (k) { return k.p === chosen.alt; })[0];
       entry.p = p.id; entry.fee = chosen.fee; entry.cut = undefined;
-      // on-set dynamics: fondness lifts performances, bad blood can wreck a shoot
-      var mods = mine.mods = { perf: {}, q: 0 };
-      var d = w.people[mine.director], td = C.tie(w, d.id), form = C.form(w, d.id);
+      // on set: chemistry lifts performances, a proven partnership lifts the film, bad blood can wreck it
+      var mods = mine.mods;
+      var d = w.people[mine.director], td = C.tie(w, d.id);
       if (td.aff >= 30) mods.perf[p.id] = (mods.perf[p.id] || 0) + 3;
+      if (C.isPartner(td)) { mods.q += 2; mods.perf[p.id] = (mods.perf[p.id] || 0) + 2; }
       if (td.aff < -30 && rng.chance(0.4)) { mods.q -= 3; mods.perf[p.id] = (mods.perf[p.id] || 0) - 5; mine.clash = d.id; }
-      if (C.isPartner(td)) mods.q += 1;
-      if (form.roll) mods.q += 2; else if (form.cold) mods.q -= 1;
       mine.cast.forEach(function (k) {
         if (k.p === p.id) return;
         var t = C.tie(w, k.p), o = w.people[k.p];
-        if (t.aff >= 30) { mods.perf[p.id] = (mods.perf[p.id] || 0) + 2; mods.perf[k.p] = (mods.perf[k.p] || 0) + 2; }
+        if (t.aff >= 30) { mods.perf[p.id] = (mods.perf[p.id] || 0) + 3; mods.perf[k.p] = (mods.perf[k.p] || 0) + 3; mods.q += 1.5; }
         else if (t.aff < -30 && rng.chance(0.35 + (HW.has(o, 'diva') ? 0.2 : 0))) {
           mods.perf[p.id] = (mods.perf[p.id] || 0) - 8; mods.perf[k.p] = (mods.perf[k.p] || 0) - 6; mods.q -= 4;
           mine.clash = mine.clash || k.p;
         }
       });
-      mine.agent = { p: p.id };
     }
 
     // release the whole quarter
@@ -369,26 +419,26 @@
 
     if (mine) {
       var pm = HW.postMortem(w, mine), x = mine.cast.filter(function (k) { return k.p === p.id; })[0], lead = x.r === 'L' ? 0 : 1;
-      // reputation is slow to build and quick to lose
+      // reputation: hits lift you quickly, a flop costs a quarter of it
       var delta = REP[pm.verdict][lead], before = repBefore, after;
       if (typeof delta === 'string') after = before * parseFloat(delta.slice(1));
-      else after = before + (delta > 0 ? delta * (1 - before / 115) : delta);
-      // a strong performance gets noticed even in a weak film; a bad one gets noticed too
-      var shine = x.perf >= 65 ? clamp((x.perf - 65) / 8, 0, 3) * (lead ? 0.6 : 1) : x.perf < 50 ? clamp((x.perf - 50) / 8, -2, 0) : 0;
-      after += shine > 0 ? shine * (1 - before / 115) : shine;
-      if (before < 20 && !/Flop|disaster/.test(pm.verdict)) after += 0.5; // an unknown gains a little just from being seen
+      else after = before + (delta > 0 ? delta * (1 - before / 140) : delta);
+      var shine = x.perf >= 65 ? clamp((x.perf - 65) / 6, 0, 4) * (lead ? 0.7 : 1) : x.perf < 50 ? clamp((x.perf - 50) / 8, -2, 0) : 0;
+      after += shine > 0 ? shine * (1 - before / 130) : shine;
+      if (before < 25 && !isBad(pm.verdict)) after += 1.5; // an unknown gains from simply being seen
       p.fame = Math.round(clamp(after, 0, 100) * 10) / 10;
       c.earnings = r2(c.earnings + x.fee);
       c.earnedYear = r2((c.earnedYear || 0) + x.fee);
       c.peak = Math.max(c.peak, p.fame);
       report.film = { id: mine.id, verdict: pm.verdict, good: pm.good, perf: x.perf, r: x.r, fee: x.fee, repBefore: Math.round(before * 10) / 10, repAfter: p.fame, clash: mine.clash != null ? mine.clash : null };
       // the people and the studio react, for career reasons
+      var good = isGood(pm.verdict), bad = isBad(pm.verdict);
       var wk = WORK[pm.verdict] * (lead ? 0.6 : 1), sd = STAND[pm.verdict] * (lead ? 0.6 : 1);
-      var d2 = w.people[mine.director], td2 = C.tie(w, d2.id);
-      var wasPartner = C.isPartner(td2);
+      var d2 = w.people[mine.director], td2 = C.tie(w, d2.id), wasPartner = C.isPartner(td2);
       td2.films++; td2.last = mine.id; td2.known = true;
+      if (good) td2.good++; if (bad) td2.bad++;
       td2.work = clamp(td2.work + wk, -100, 100);
-      td2.aff = clamp(td2.aff + 6 + (x.perf >= 80 ? 4 : 0) - (mine.clash === d2.id ? 15 : 0), -100, 100);
+      td2.aff = clamp(td2.aff + 5 + (x.perf >= 80 ? 4 : 0) - (mine.clash === d2.id ? 15 : 0), -100, 100);
       if (!wasPartner && C.isPartner(td2)) report.changes.push({ t: 'You and ' + d2.name + ' are now regular collaborators.', ref: d2.id, good: true });
       else if (wk <= -25) report.changes.push({ t: d2.name + ' will think twice before casting you again. Nothing personal: the flop hurt them too.', ref: d2.id, bad: true });
       else if (wk >= 15) report.changes.push({ t: d2.name + ' wants to work with you again.', ref: d2.id, good: true });
@@ -396,25 +446,29 @@
         if (k.p === p.id) return;
         var t = C.tie(w, k.p), o = w.people[k.p];
         t.films++; t.known = true; t.last = mine.id;
+        if (good) t.good++; if (bad) t.bad++;
         t.work = clamp(t.work + wk * 0.5, -100, 100);
         if (mine.clash === k.p) { t.aff = clamp(t.aff - 15, -100, 100); report.changes.push({ t: 'You clashed with ' + o.name + ' on set.', ref: o.id, bad: true }); }
-        else t.aff = clamp(t.aff + 4, -100, 100);
+        else {
+          t.aff = clamp(t.aff + 4, -100, 100);
+          if (t.aff >= 30 && t.films === 1) report.changes.push({ t: 'You and ' + o.name + ' had real chemistry.', ref: o.id, good: true });
+        }
       });
       var st2 = C.stand(w, mine.studio), s2 = w.studios[mine.studio];
       st2.stand = clamp(st2.stand + sd, -100, 100);
       if (st2.stand < -30) { st2.until = c.qi + 4; report.changes.push({ t: s2.name + ' won\'t hire you for about a year.', bad: true }); }
       else if (sd >= 12) report.changes.push({ t: s2.name + ' will remember this hit.', good: true });
-      var tag = pm.verdict + (x.r === 'L' ? ' (lead)' : ' (supporting)');
-      log(w, '"' + mine.title + '": ' + tag + '. Reputation ' + Math.round(before) + ' → ' + Math.round(p.fame) + '.', pm.good ? 'good' : /Flop|disaster/.test(pm.verdict) ? 'bad' : 'info', { f: mine.id });
+      log(w, '"' + mine.title + '": ' + pm.verdict + (x.r === 'L' ? ' (lead)' : ' (supporting)') + '. Reputation ' + Math.round(before) + ' → ' + Math.round(p.fame) + '.', good ? 'good' : bad ? 'bad' : 'info', { f: mine.id });
       milestones(w, mine, x, pm);
-    } else {
-      log(w, 'You passed on every pitch this quarter.', 'info');
+      c.busyUntil = c.qi + BOOKED_QUARTERS;
+    } else if (pick === -1 && c.pitches.length) {
+      log(w, 'You waited for better offers this quarter.', 'info');
     }
-    report.passed = report.passed.map(function (x) {
-      var pm = HW.postMortem(w, x.f), k = x.f.cast.filter(function (q) { return q.p === x.alt; })[0];
-      return { id: x.f.id, verdict: pm.verdict, good: pm.good, alt: x.alt, perf: k ? k.perf : null, r: x.r };
+    report.passed = report.passed.map(function (z) {
+      var pm = HW.postMortem(w, z.f);
+      return { id: z.f.id, verdict: pm.verdict, good: pm.good, alt: z.alt, r: z.r };
     });
-    report.passed.forEach(function (x) { if (x.good && /Smash/.test(x.verdict)) log(w, 'You passed on "' + w.films[x.id].title + '". It became a smash for ' + w.people[x.alt].name + '.', 'bad', { f: x.id }); });
+    report.passed.forEach(function (z) { if (/Smash/.test(z.verdict)) log(w, 'You passed on "' + w.films[z.id].title + '". It became a smash for ' + w.people[z.alt].name + '.', 'bad', { f: z.id }); });
 
     // grudges and standing slowly fade
     Object.keys(c.ties).forEach(function (id) { var t = c.ties[id]; if (t.work < 0) t.work = Math.min(0, t.work + 2.5); });
@@ -422,14 +476,13 @@
 
     w.rngState = rng.s;
     report.repNow = p.fame;
-    c.reports.push(report);
-    if (c.reports.length > 40) c.reports.shift();
+    if (chosen || c.pitches.length) { c.reports.push(report); if (c.reports.length > 40) c.reports.shift(); }
     c.qi++;
     c.q++;
     if (c.q === 4) { report.yearEnded = Y; endYear(w); }
     if (!c.over) prepareQuarter(w);
     return report;
-  };
+  }
 
   function milestones(w, f, x, pm) {
     var c = w.career, m = c.milestones || (c.milestones = {});
